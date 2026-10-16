@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { Button, ErrorText, Field } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { authMessage } from '../lib/auth-message.ts'
+import { finishHouseholdSetup } from '../lib/create-home.ts'
 import { supabase, supabaseConfigError } from '../lib/supabase.ts'
 
 export function LoginScreen() {
@@ -105,7 +106,8 @@ export function RegisterScreen() {
 }
 
 export function HouseholdScreen() {
-  const { session, profile, loading, refreshProfile, signOut } = useAuth()
+  const { session, profile, profileError, loading, refreshProfile, signOut } = useAuth()
+  const navigate = useNavigate()
   const [code, setCode] = useState('')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
@@ -114,28 +116,31 @@ export function HouseholdScreen() {
   if (!session) return <Navigate to="/ingresar" replace />
   if (profile?.householdId) return <Navigate to="/" replace />
 
-  async function createHome() {
+  async function setup(call: () => PromiseLike<{ error: { message: string } | null }>, failure: string) {
     setSaving(true)
     setError('')
-    const { error: rpcError } = await supabase.rpc('create_household')
-    setSaving(false)
-    if (rpcError) {
-      setError(rpcError.message)
-      return
+    try {
+      await finishHouseholdSetup({ call, refreshProfile, failure })
+      navigate('/', { replace: true })
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : failure)
+    } finally {
+      setSaving(false)
     }
-    await refreshProfile()
   }
 
-  async function joinHome() {
-    setSaving(true)
-    setError('')
-    const { error: rpcError } = await supabase.rpc('join_household', { invite: code.trim() })
-    setSaving(false)
-    if (rpcError) {
-      setError(rpcError.message)
-      return
-    }
-    await refreshProfile()
+  function createHome() {
+    return setup(
+      () => supabase.rpc('create_household'),
+      'El hogar no quedó vinculado a tu perfil.',
+    )
+  }
+
+  function joinHome() {
+    return setup(
+      () => supabase.rpc('join_household', { invite: code.trim() }),
+      'No pudimos unirte al hogar.',
+    )
   }
 
   return (
@@ -150,7 +155,7 @@ export function HouseholdScreen() {
       <Button type="button" variant="alt" onClick={() => void joinHome()} disabled={saving}>
         Unirme
       </Button>
-      <ErrorText>{error}</ErrorText>
+      <ErrorText>{error || profileError}</ErrorText>
       <button type="button" className="mt-8 text-sm font-extrabold text-muted" onClick={() => void signOut()}>
         Cerrar sesión
       </button>

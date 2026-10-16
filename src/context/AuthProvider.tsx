@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import type { ViewMode } from '../types/database.ts'
 import { supabase } from '../lib/supabase.ts'
@@ -13,8 +13,9 @@ export type Profile = {
 type AuthState = {
   session: Session | null
   profile: Profile | null
+  profileError: string
   loading: boolean
-  refreshProfile: () => Promise<void>
+  refreshProfile: () => Promise<Profile | null>
   signOut: () => Promise<void>
 }
 
@@ -39,15 +40,31 @@ async function fetchProfile(userId: string): Promise<Profile | null> {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [profileError, setProfileError] = useState('')
   const [loading, setLoading] = useState(true)
+  const profileRequest = useRef(0)
 
   const refreshProfile = useCallback(async () => {
     const userId = session?.user.id
     if (!userId) {
       setProfile(null)
-      return
+      setProfileError('')
+      return null
     }
-    setProfile(await fetchProfile(userId))
+    const request = ++profileRequest.current
+    try {
+      const next = await fetchProfile(userId)
+      if (request !== profileRequest.current) return next
+      setProfile(next)
+      setProfileError('')
+      return next
+    } catch (caught) {
+      if (request !== profileRequest.current) return null
+      const message = caught instanceof Error ? caught.message : 'No se pudo cargar el perfil.'
+      setProfile(null)
+      setProfileError(message)
+      throw new Error(message)
+    }
   }, [session?.user.id])
 
   useEffect(() => {
@@ -68,35 +85,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    let active = true
-    const userId = session?.user.id
-    if (!userId) {
+    if (!session?.user.id) {
+      profileRequest.current += 1
       setProfile(null)
+      setProfileError('')
       return
     }
-    fetchProfile(userId)
-      .then((next) => {
-        if (active) setProfile(next)
-      })
-      .catch(() => {
-        if (active) setProfile(null)
-      })
-    return () => {
-      active = false
-    }
-  }, [session?.user.id])
+    void refreshProfile().catch(() => {
+      // El mensaje queda en profileError para mostrarlo en pantalla.
+    })
+  }, [session?.user.id, refreshProfile])
 
   const value = useMemo<AuthState>(
     () => ({
       session,
       profile,
+      profileError,
       loading,
       refreshProfile,
       signOut: async () => {
         await supabase.auth.signOut()
       },
     }),
-    [session, profile, loading, refreshProfile],
+    [session, profile, profileError, loading, refreshProfile],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
