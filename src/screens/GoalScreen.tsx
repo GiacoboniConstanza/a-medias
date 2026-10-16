@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { amountFromDigits, applyKey, Keypad } from '../components/Keypad.tsx'
-import { Button, Card, Chip, ErrorText, Progress } from '../components/ui.tsx'
+import { Button, Card, Chip, ErrorText } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
 import { contributeToGoal, createGoal } from '../lib/api.ts'
-import { monthSplit } from '../lib/derive.ts'
+import { monthSplit, partnerId } from '../lib/derive.ts'
 import { EMOJIS } from '../lib/emojis.ts'
 import { formatMoney } from '../lib/format.ts'
 import type { ContributionMode } from '../types/database.ts'
@@ -28,6 +28,8 @@ export function GoalScreen() {
 
   const split = monthSplit(data)
   const myPercent = split.rows.find((row) => row.id === profile.id)?.percent ?? 50
+  const splitLabel = split.rows.map((row) => row.percent).join('/') || '50/50'
+  const partnerName = data.names[partnerId(data, profile.id) ?? ''] ?? 'Tu compañera'
   const contribution = mode === 'percentage' ? Math.round((amountFromDigits(digits) * myPercent) / 100) : amountFromDigits(digits)
   const people = Object.keys(data.names)
 
@@ -91,7 +93,7 @@ export function GoalScreen() {
           <Card className="bg-[#d9f2ff] text-center">
             <div className="text-5xl">{data.goal.emoji}</div>
             <b className="text-xl">{data.goal.name}</b>
-            {data.goal.targetDate ? <p className="text-sm text-muted">{data.goal.targetDate.split('-').reverse().join('/')}</p> : null}
+            {data.goal.targetDate ? <p className="text-sm text-muted">{monthYear(data.goal.targetDate)}</p> : null}
             <p className="mt-2 text-3xl font-black">
               {formatMoney(data.goal.byUser.reduce((sum, item) => sum + item.amount, 0))}
             </p>
@@ -102,14 +104,23 @@ export function GoalScreen() {
                 : Math.round((data.goal.byUser.reduce((sum, item) => sum + item.amount, 0) / data.goal.target) * 100)}
               %!
             </p>
-            <div className="mt-2">
-              <Progress
-                value={
-                  data.goal.target === 0
-                    ? 0
-                    : (data.goal.byUser.reduce((sum, item) => sum + item.amount, 0) / data.goal.target) * 100
-                }
-                color="#7a5cff"
+            <div className="mt-2.5 h-5 overflow-hidden rounded-lg bg-white">
+              <div
+                className="h-full rounded-lg"
+                style={{
+                  width: `${
+                    data.goal.target === 0
+                      ? 0
+                      : Math.max(
+                          0,
+                          Math.min(
+                            100,
+                            (data.goal.byUser.reduce((sum, item) => sum + item.amount, 0) / data.goal.target) * 100,
+                          ),
+                        )
+                  }%`,
+                  background: 'linear-gradient(90deg,#7ac8ff,#7a5cff)',
+                }}
               />
             </div>
           </Card>
@@ -132,7 +143,7 @@ export function GoalScreen() {
               Aportar libre
             </Chip>
             <Chip active={mode === 'percentage'} onClick={() => setMode('percentage')}>
-              Usar {myPercent}%
+              Usar {splitLabel}
             </Chip>
           </div>
           <button type="button" className="mb-2 w-full text-center text-3xl font-black" onClick={() => setEditing('amount')}>
@@ -152,7 +163,7 @@ export function GoalScreen() {
           <Button type="button" variant="pink" className="mt-3" onClick={() => void contribute()} disabled={saving}>
             Aportar
           </Button>
-          <p className="mt-3 text-center text-sm text-muted">🔒 Tu compañera ve tu aporte acá, no tus fondos privados.</p>
+          <p className="mt-3 text-center text-sm text-muted">🔒 {partnerName} ve tu aporte acá, no tus fondos privados.</p>
         </>
       ) : (
         <Card>
@@ -181,6 +192,13 @@ export function GoalScreen() {
       <ErrorText>{message}</ErrorText>
     </>
   )
+}
+
+function monthYear(iso: string): string {
+  const [year, month] = iso.split('-')
+  const date = new Date(Number(year), Number(month) - 1, 1)
+  const name = new Intl.DateTimeFormat('es-AR', { month: 'long' }).format(date)
+  return `${name.charAt(0).toUpperCase()}${name.slice(1)} ${year}`
 }
 
 function ContributionBar({ names, byUser }: { names: Record<string, string>; byUser: { userId: string; amount: number }[] }) {

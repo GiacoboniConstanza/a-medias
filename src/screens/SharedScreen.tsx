@@ -1,17 +1,19 @@
 import { useState } from 'react'
 import { MonthSwitcher } from '../components/MonthSwitcher.tsx'
+import { ViewToggle } from '../components/ViewToggle.tsx'
 import { Button, Card, ErrorText } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
 import { useMonth } from '../context/MonthProvider.tsx'
-import { settleMonth, undoSettlement } from '../lib/api.ts'
+import { saveViewMode, settleMonth, undoSettlement } from '../lib/api.ts'
 import { buildSharedCsv, downloadText } from '../lib/csv.ts'
 import { debtCopy, monthSplit } from '../lib/derive.ts'
 import { formatMoney } from '../lib/format.ts'
 import { shortDate } from '../lib/month.ts'
+import type { ViewMode } from '../types/database.ts'
 
 export function SharedScreen() {
-  const { profile } = useAuth()
+  const { profile, refreshProfile } = useAuth()
   const { month } = useMonth()
   const { data, loading, error, refresh } = useFinance()
   const [message, setMessage] = useState('')
@@ -60,6 +62,12 @@ export function SharedScreen() {
     }
   }
 
+  async function changeMode(mode: ViewMode) {
+    if (!profile) return
+    await saveViewMode(profile.id, mode)
+    await refreshProfile()
+  }
+
   function exportCsv() {
     const csv = buildSharedCsv(
       shared.map((expense) => ({
@@ -75,8 +83,9 @@ export function SharedScreen() {
 
   return (
     <>
-      <header className="mb-2">
+      <header className="mb-2 flex items-center justify-between">
         <span className="text-xl font-black text-brand">A Medias</span>
+        <ViewToggle mode={profile.viewMode} onChange={(mode) => void changeMode(mode)} />
       </header>
       <h1 className="text-xl font-extrabold">Compartidos</h1>
       <MonthSwitcher />
@@ -91,14 +100,19 @@ export function SharedScreen() {
             </tr>
           </thead>
           <tbody>
-            {shared.map((expense) => (
-              <tr key={expense.id} className="border-t border-line">
-                <td className="py-1.5">{shortDate(expense.spentOn)}</td>
-                <td>{expense.title}</td>
-                <td>{data.names[expense.payerId]}</td>
-                <td className="text-right">{formatMoney(expense.amount)}</td>
-              </tr>
-            ))}
+            {shared.map((expense) => {
+              const category = data.categories.find((item) => item.id === expense.categoryId)
+              return (
+                <tr key={expense.id} className="border-t border-line">
+                  <td className="py-1.5">{shortDate(expense.spentOn)}</td>
+                  <td>
+                    {category?.emoji} {expense.title}
+                  </td>
+                  <td>{data.names[expense.payerId]}</td>
+                  <td className="text-right">{formatMoney(expense.amount)}</td>
+                </tr>
+              )
+            })}
             <tr className="border-t border-line font-extrabold">
               <td className="py-1.5" colSpan={3}>
                 Total

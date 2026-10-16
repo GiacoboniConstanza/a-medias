@@ -82,7 +82,7 @@ export function BreakdownScreen() {
       {top ? (
         <Card className="bg-warn-bg">
           <button type="button" className="w-full text-left" onClick={() => setOpen(open === top.id ? null : top.id)}>
-            <b>💡 Este mes:</b> {top.label.toLowerCase()} fue tu gasto más grande ({formatMoney(top.amount)}).
+            <b>💡 Este mes:</b> {top.label.toLowerCase()} fue tu gasto más grande.
           </button>
         </Card>
       ) : null}

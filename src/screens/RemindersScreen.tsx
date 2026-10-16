@@ -119,10 +119,10 @@ export function RemindersScreen() {
         <p className="text-sm opacity-80">{longDate(now)}</p>
       </div>
       {current && !loggedToday && !dismissed ? (
-        <Card>
-          <p className="text-xs font-bold text-muted">🧉 A MEDIAS · en la app</p>
+        <Card className="bg-white/90">
+          <p className="text-xs font-bold text-muted">🧉 A MEDIAS · ahora</p>
           <b>¿Gastaste algo hoy?</b>
-          <p className="text-sm text-muted">Anotalo en dos toques así no se te escapa.</p>
+          <p className="text-sm text-muted">Anotalo en dos toques así no se te escapa 😉</p>
           <div className="mt-2">
             <Link to="/cargar" className="mr-1 inline-block rounded-2xl bg-brand px-3 py-1.5 text-[13px] font-bold text-white">
               Sí, cargar
@@ -142,7 +142,7 @@ export function RemindersScreen() {
             <div key={item.id} className="flex items-center gap-2.5 border-b border-line py-2 last:border-0">
               <div
                 className={`grid h-7 w-7 place-items-center rounded-full text-sm font-black text-white ${
-                  state === 'paid' ? 'bg-good-fill text-good' : state === 'soon' || state === 'late' ? 'bg-warn-fill text-warn' : 'border-2 border-[#d8d0ee] bg-transparent text-transparent'
+                  state === 'paid' ? 'bg-good-fill text-white' : state === 'soon' || state === 'late' ? 'bg-warn-fill text-warn' : 'border-2 border-[#d8d0ee] bg-transparent text-transparent'
                 }`}
               >
                 {state === 'paid' ? '✓' : state === 'soon' || state === 'late' ? '!' : ''}
