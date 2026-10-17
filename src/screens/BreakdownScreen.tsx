@@ -219,6 +219,7 @@ export function BreakdownScreen() {
               <i className="h-full bg-blush" style={{ width: `${periodPrivateWidth}%` }} />
             </div>
           </div>
+          <BagPaidList expenses={source.filter((expense) => expense.paidFromBag)} />
         </>
       ) : null}
 
@@ -233,7 +234,15 @@ export function BreakdownScreen() {
                     <p className="font-extrabold">{expense.title}</p>
                     <p className="mt-0.5 font-semibold text-muted">
                       {shortDate(expense.spentOn)} · <AppIcon name={category?.icon || DEFAULT_ICON} /> {category?.name ?? 'Otros'} ·{' '}
-                      {expense.isShared ? 'Compartido' : 'Privado'}
+                      {expense.isShared ? (
+                        'Compartido'
+                      ) : expense.paidFromBag ? (
+                        <span className="text-text">
+                          Privado · <AppIcon name="bag-shopping" className="text-primary" /> pagado con la bolsa
+                        </span>
+                      ) : (
+                        'Privado'
+                      )}
                     </p>
                   </div>
                   <p className="shrink-0 font-extrabold">{formatMoney(expense.amount)}</p>
@@ -270,6 +279,24 @@ export function BreakdownScreen() {
         onApply={applyFilters}
       />
     </>
+  )
+}
+
+function BagPaidList({ expenses }: { expenses: ExpenseItem[] }) {
+  if (expenses.length === 0) return null
+  return (
+    <ul className="mb-4">
+      {expenses.map((expense) => (
+        <li key={expense.id} className="flex min-h-11 items-center justify-between gap-3 text-sm">
+          <span className="min-w-0 font-semibold">
+            <AppIcon name="bag-shopping" className="mr-1.5 text-primary" />
+            {expense.title}
+            <span className="text-muted"> · privado, pagado con la bolsa</span>
+          </span>
+          <span className="shrink-0 font-extrabold">{formatMoney(expense.amount)}</span>
+        </li>
+      ))}
+    </ul>
   )
 }
 

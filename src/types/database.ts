@@ -79,6 +79,7 @@ export type Database = {
           emoji: string
           icon: string
           target_amount: number
+          target_date: string | null
           created_at: string
         },
         {
@@ -88,9 +89,35 @@ export type Database = {
           emoji: string
           icon: string
           target_amount: number
+          target_date?: string | null
           created_at?: string
         },
-        { name?: string; emoji?: string; icon?: string; target_amount?: number }
+        { name?: string; emoji?: string; icon?: string; target_amount?: number; target_date?: string | null }
+      >
+      bag_movements: Table<
+        {
+          id: string
+          user_id: string
+          kind: string
+          fund_id: string | null
+          expense_id: string | null
+          amount: number
+          label: string
+          happened_on: string
+          created_at: string
+        },
+        {
+          id?: string
+          user_id: string
+          kind: string
+          fund_id?: string | null
+          expense_id?: string | null
+          amount: number
+          label?: string
+          happened_on: string
+          created_at?: string
+        },
+        { label?: string; amount?: number }
       >
       extra_allocations: Table<
         {
@@ -141,6 +168,7 @@ export type Database = {
           amount: number
           spent_on: string
           is_shared: boolean
+          paid_from_bag: boolean
           created_at: string
         },
         {
@@ -153,9 +181,10 @@ export type Database = {
           amount: number
           spent_on: string
           is_shared: boolean
+          paid_from_bag?: boolean
           created_at?: string
         },
-        { title?: string; amount?: number; is_shared?: boolean }
+        { title?: string; amount?: number; is_shared?: boolean; paid_from_bag?: boolean }
       >
       shared_goals: Table<
         {
@@ -300,6 +329,20 @@ export type Database = {
     Functions: {
       create_household: { Args: Record<string, never>; Returns: string }
       join_household: { Args: { invite: string }; Returns: string }
+      spend_from_gustos: {
+        Args: { expense_title: string; category_id: string; expense_amount: number; spent_on: string }
+        Returns: string
+      }
+      move_bag_money: {
+        Args: {
+          movement_kind: string
+          target_fund: string
+          movement_amount: number
+          happened_on: string
+          movement_label: string
+        }
+        Returns: string
+      }
     }
   }
 }

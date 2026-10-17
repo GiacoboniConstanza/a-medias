@@ -84,3 +84,13 @@ export function ErrorText({ children }: { children: ReactNode }) {
   if (!children) return null
   return <p className="mt-2 text-center text-sm font-bold text-alert-ink">{children}</p>
 }
+
+export function FieldError({ children, id }: { children: ReactNode; id?: string }) {
+  if (!children) return null
+  return (
+    <p id={id} role="alert" className="mt-1 flex items-start gap-1.5 text-sm font-bold text-alert-ink">
+      <AppIcon name="triangle-exclamation" className="mt-0.5 shrink-0" />
+      <span>{children}</span>
+    </p>
+  )
+}

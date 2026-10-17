@@ -1,32 +1,35 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AppIcon } from '../components/AppIcon.tsx'
-import { IconPicker } from '../components/IconPicker.tsx'
-import { amountFromDigits, applyKey, Keypad } from '../components/Keypad.tsx'
+import { ExtraSheet, FundSheet, GustoSheet, MoveSheet } from '../components/bag/forms.tsx'
 import { MonthSwitcher } from '../components/MonthSwitcher.tsx'
-import { Button, Card, ErrorText, Progress } from '../components/ui.tsx'
+import { Card, Progress } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
-import { createExtra, createFund } from '../lib/api.ts'
+import type { BagMovementItem, ExtraItem, FundItem } from '../lib/api.ts'
+import { monthBagSplit } from '../lib/bag.ts'
 import { formatMoney } from '../lib/format.ts'
 import { gustosStatus } from '../lib/gustos.ts'
-import { shortDate, todayISO } from '../lib/month.ts'
+import { shortDate } from '../lib/month.ts'
 
-const FUND_COLORS = ['#C7DDAE', '#A79BCB', '#F7B7C4', '#F4C542', '#DEC59E']
+type MoveMode = 'to_fund' | 'to_gustos' | 'use'
 
 export function ExtrasScreen() {
   const { profile } = useAuth()
   const { data, loading, error, refresh } = useFinance()
-  const [digits, setDigits] = useState('')
-  const [label, setLabel] = useState('')
-  const [receivedOn, setReceivedOn] = useState(() => todayISO())
-  const [fundAmounts, setFundAmounts] = useState<Record<string, string>>({})
-  const [activeFund, setActiveFund] = useState<string | null>('extra')
-  const [name, setName] = useState('')
-  const [icon, setIcon] = useState('piggy-bank')
-  const [targetDigits, setTargetDigits] = useState('')
-  const [creatingFund, setCreatingFund] = useState(false)
-  const [message, setMessage] = useState('')
-  const [saving, setSaving] = useState(false)
+  const [fundOpen, setFundOpen] = useState(false)
+  const [editing, setEditing] = useState<FundItem | null>(null)
+  const [extraOpen, setExtraOpen] = useState(false)
+  const [gustoOpen, setGustoOpen] = useState(false)
+  const [moveMode, setMoveMode] = useState<MoveMode | null>(null)
+  const [moveFund, setMoveFund] = useState<FundItem | null>(null)
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [toast, setToast] = useState('')
+
+  useEffect(() => {
+    if (!toast) return
+    const timeout = window.setTimeout(() => setToast(''), 3200)
+    return () => window.clearTimeout(timeout)
+  }, [toast])
 
   if (!profile?.householdId) return null
   if (loading && !data) return <p className="py-16 text-center font-bold text-muted">Cargando…</p>
@@ -34,203 +37,324 @@ export function ExtrasScreen() {
 
   const userId = profile.id
   const householdId = profile.householdId
-  const finance = data
+  const split = monthBagSplit(data.extrasThisMonth)
+  const fundWidth = split.total > 0 ? (split.funds / split.total) * 100 : 0
+  const gustosWidth = split.total > 0 ? (split.gustos / split.total) * 100 : 0
+  const gustos = gustosStatus(data.gustosPool, Math.max(data.gustosPool - data.gustosFree, 0))
+  const freeWidth = data.gustosPool > 0 ? Math.max(0, Math.min(100, (data.gustosFree / data.gustosPool) * 100)) : 0
+  const history = historyRows(data.extrasThisMonth, data.movementsThisMonth)
 
-  const amount = amountFromDigits(digits)
-  const assigned = data.funds.reduce((sum, fund) => sum + amountFromDigits(fundAmounts[fund.id] ?? ''), 0)
-  const gustosPart = amount - assigned
-  const gustos = gustosStatus(data.gustosAllocated, data.privateSpentAllTime)
-  const gustosUsed = data.gustosAllocated === 0 ? 0 : Math.min(100, (data.privateSpentAllTime / data.gustosAllocated) * 100)
-
-  function onKey(key: string) {
-    if (activeFund === 'extra') setDigits((current) => applyKey(current, key))
-    else if (activeFund === 'target') setTargetDigits((current) => applyKey(current, key))
-    else if (activeFund) {
-      setFundAmounts((current) => ({ ...current, [activeFund]: applyKey(current[activeFund] ?? '', key) }))
-    }
+  function saved(message: string) {
+    setFundOpen(false)
+    setExtraOpen(false)
+    setGustoOpen(false)
+    setMoveMode(null)
+    setToast(message)
+    void refresh()
   }
 
-  async function saveExtra() {
-    if (amount <= 0 || !label.trim()) {
-      setMessage('Poné el monto y un nombre para el extra.')
-      return
-    }
-    if (gustosPart < 0) {
-      setMessage('Los fondos no pueden sumar más que el extra.')
-      return
-    }
-    setSaving(true)
-    setMessage('')
-    try {
-      const allocations: { fundId: string | null; amount: number }[] = finance.funds
-        .map((fund) => ({ fundId: fund.id, amount: amountFromDigits(fundAmounts[fund.id] ?? '') }))
-        .filter((allocation) => allocation.amount > 0)
-      if (gustosPart > 0) allocations.push({ fundId: null, amount: gustosPart })
-      await createExtra({
-        userId,
-        householdId,
-        label,
-        amount,
-        receivedOn,
-        allocations,
-      })
-      setDigits('')
-      setLabel('')
-      setFundAmounts({})
-      await refresh()
-    } catch (caught) {
-      setMessage(caught instanceof Error ? caught.message : 'No pude guardar el extra.')
-    } finally {
-      setSaving(false)
-    }
+  function openFund(fund: FundItem | null) {
+    setEditing(fund)
+    setFundOpen(true)
   }
 
-  async function saveFund() {
-    const target = amountFromDigits(targetDigits)
-    if (!name.trim() || target <= 0) {
-      setMessage('El fondo necesita nombre y meta.')
-      return
-    }
-    setSaving(true)
-    setMessage('')
-    try {
-      await createFund({ userId, name, icon, target })
-      setName('')
-      setTargetDigits('')
-      setCreatingFund(false)
-      await refresh()
-    } catch (caught) {
-      setMessage(caught instanceof Error ? caught.message : 'No pude crear el fondo.')
-    } finally {
-      setSaving(false)
-    }
+  function openMove(mode: MoveMode, fund: FundItem | null) {
+    setMoveFund(fund)
+    setMoveMode(mode)
   }
 
   return (
     <>
-      <header className="mb-3 flex items-center justify-between">
-        <span className="font-display text-xl font-semibold text-primary">A Medias</span>
-        <span className="inline-flex min-h-11 items-center gap-1.5 rounded-2xl bg-card px-3 text-sm font-semibold text-text shadow-soft">
+      <header className="mb-1 flex items-center justify-between gap-3">
+        <h1 className="font-display text-[1.75rem] font-bold leading-tight">Bolsa de extras</h1>
+        <span className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-2xl bg-card px-3 text-sm font-semibold text-text shadow-soft">
           <AppIcon name="lock" /> Solo vos
         </span>
       </header>
-      <h1 className="flex items-center gap-2 font-display text-[22px] font-semibold">
-        Bolsa de extras <AppIcon name="bag-shopping" className="text-primary" />
-      </h1>
-      <p className="mb-2 text-sm text-muted">Los extras no entran en el porcentaje de los gastos compartidos.</p>
       <MonthSwitcher />
-      {data.extrasThisMonth.map((extra) => (
-        <Card key={extra.id} className="bg-warn/25">
-          <p className="text-sm text-muted">
-            {extra.label} · {shortDate(extra.receivedOn)}
-          </p>
-          <p className="font-display text-3xl font-bold">{formatMoney(extra.amount)}</p>
-          <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-text">
-            <span>Repartido:</span>
-            {extra.parts.length === 0 ? <span>sin repartir</span> : null}
-            {extra.parts.map((part) => (
-              <span key={`${part.label}-${part.amount}`} className="inline-flex items-center gap-1">
-                <AppIcon name={part.icon} /> {formatMoney(part.amount)}
-              </span>
-            ))}
-          </div>
-          <div className="mt-2 flex h-2.5 overflow-hidden rounded-md">
-            {extra.parts.map((part) => (
-              <i key={part.label} style={{ width: `${(part.amount / extra.amount) * 100}%`, background: part.color }} />
-            ))}
-          </div>
-        </Card>
-      ))}
+
       <Card>
-        <b className="inline-flex items-center gap-2">
-          Mis fondos de ahorro <AppIcon name="piggy-bank" className="text-primary" />
-        </b>
-        {data.funds.length === 0 ? <p className="mt-2 text-sm text-muted">Todavía no armaste fondos.</p> : null}
-        {data.funds.map((fund, index) => (
-          <div key={fund.id} className="my-2">
-            <div className="flex justify-between text-sm">
-              <b>
-                <AppIcon name={fund.icon} /> {fund.name}
-              </b>
-              <span className="text-muted">
-                {formatMoney(fund.saved)} / {formatMoney(fund.target)}
-              </span>
-            </div>
-            <div className="mt-1">
-              <Progress value={fund.target === 0 ? 0 : (fund.saved / fund.target) * 100} color={FUND_COLORS[index % FUND_COLORS.length] ?? '#9ec9ff'} />
-            </div>
-          </div>
-        ))}
-        <Button type="button" variant="alt" className="mt-2 py-2 text-sm" onClick={() => setCreatingFund((current) => !current)}>
-          + Nuevo fondo
-        </Button>
-        {creatingFund ? (
-          <div className="mt-3">
-            <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Nombre" className="mb-2 min-h-11 w-full rounded-2xl bg-sand px-3 py-2 font-bold text-text" />
-            <IconPicker value={icon} onChange={setIcon} />
-            <button type="button" className="mt-2 font-extrabold" onClick={() => setActiveFund('target')}>
-              Meta: {formatMoney(amountFromDigits(targetDigits))}
-            </button>
-            <Button type="button" className="mt-2" onClick={() => void saveFund()} disabled={saving}>
-              Guardar fondo
-            </Button>
-          </div>
-        ) : null}
-      </Card>
-      <Card>
-        <div className="flex justify-between">
-          <b className="inline-flex items-center gap-2">
-            <AppIcon name="bag-shopping" /> Gustos
-          </b>
-          <span className="text-sm text-muted">
-            {formatMoney(Math.max(gustos.remaining, 0))} de {formatMoney(data.gustosAllocated)} libres
+        <h2 className="font-display text-sm font-semibold text-muted">Tu bolsa este mes</h2>
+        <p className="mt-1 font-display text-3xl font-bold leading-none">{formatMoney(split.total)}</p>
+        <div
+          className="my-2 flex h-2.5 overflow-hidden rounded-full bg-sand"
+          role="img"
+          aria-label={`Fondos ${formatMoney(split.funds)}, gustos ${formatMoney(split.gustos)}`}
+        >
+          <i className="h-full bg-primary" style={{ width: `${fundWidth}%` }} />
+          <i className="h-full bg-warn" style={{ width: `${gustosWidth}%` }} />
+        </div>
+        <div className="flex justify-between gap-2 text-xs font-semibold text-muted">
+          <span className="inline-flex items-center gap-1">
+            <AppIcon name="circle" className="text-[8px] text-primary" /> Fondos {formatMoney(split.funds)}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <AppIcon name="circle" className="text-[8px] text-warn" /> Gustos {formatMoney(split.gustos)}
           </span>
         </div>
-        <div className="mt-2">
-          <Progress value={gustosUsed} color="#F7B7C4" />
-        </div>
+        <button type="button" onClick={() => setExtraOpen(true)} className="mt-3 block min-h-[52px] w-full rounded-2xl bg-primary text-base font-semibold text-white">
+          + Cargar un extra
+        </button>
       </Card>
+
+      <section className="mb-3" aria-labelledby="fondos-titulo">
+        <h2 id="fondos-titulo" className="mb-2 font-display text-lg font-semibold">
+          Mis fondos
+        </h2>
+        {data.funds.length === 0 ? <EmptyFunds /> : null}
+        <div className="grid grid-cols-2 gap-3">
+          {data.funds.map((fund) => (
+            <article key={fund.id} className="flex flex-col rounded-3xl bg-card p-3 shadow-card">
+              <button type="button" onClick={() => openFund(fund)} className="min-h-11 text-left">
+                <span className="flex items-center gap-2">
+                  <FundRing value={fund.target === 0 ? 0 : (fund.saved / fund.target) * 100} />
+                  <span className="min-w-0">
+                    <span className="flex items-center gap-1 font-display text-sm font-semibold">
+                      <AppIcon name={fund.icon} className="text-primary" />
+                      <span className="truncate">{fund.name}</span>
+                    </span>
+                    <span className="mt-0.5 block text-xs font-semibold text-muted">
+                      {formatMoney(Math.max(fund.saved, 0))} de {formatMoney(fund.target)}
+                    </span>
+                  </span>
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => openMove('to_gustos', fund)}
+                className="mt-2 min-h-11 rounded-2xl border-2 border-primary px-2 text-sm font-semibold text-primary"
+              >
+                Devolver a gustos
+              </button>
+              <button
+                type="button"
+                onClick={() => openMove('use', fund)}
+                className="mt-2 min-h-11 rounded-2xl bg-sand px-2 text-sm font-semibold text-text"
+              >
+                Usar
+              </button>
+            </article>
+          ))}
+          <button
+            type="button"
+            onClick={() => openFund(null)}
+            className="flex h-full min-h-44 flex-col items-center justify-center gap-2 rounded-3xl border-2 border-dashed border-primary bg-card px-3 text-base font-semibold text-primary"
+          >
+            <AppIcon name="plus" />
+            Nuevo fondo
+          </button>
+        </div>
+      </section>
+
+      <Card>
+        <h2 className="flex items-center gap-2 font-display text-sm font-semibold text-muted">
+          <AppIcon name="bag-shopping" className="text-primary" /> Gustos
+        </h2>
+        <p className="mt-1 font-display text-xl font-semibold">
+          Tenés {formatMoney(Math.max(data.gustosFree, 0))} para darte gustos
+        </p>
+        <div className="my-2">
+          <Progress value={freeWidth} color="#F4C542" />
+        </div>
+        <p className="text-xs font-semibold text-muted">
+          {data.gustosPool > 0
+            ? `${formatMoney(Math.max(data.gustosFree, 0))} libres de ${formatMoney(data.gustosPool)}`
+            : 'Cuando un extra no va a un fondo, queda acá.'}
+        </p>
+        <button
+          type="button"
+          onClick={() => setGustoOpen(true)}
+          disabled={data.gustosFree <= 0}
+          className="mt-3 block min-h-11 w-full rounded-2xl bg-primary text-sm font-semibold text-white disabled:opacity-50"
+        >
+          Me di un gusto
+        </button>
+        <button
+          type="button"
+          onClick={() => openMove('to_fund', null)}
+          disabled={data.gustosFree <= 0 || data.funds.length === 0}
+          className="mt-2 block min-h-11 w-full rounded-2xl border-2 border-primary bg-card text-sm font-semibold text-primary disabled:opacity-50"
+        >
+          Pasar a un fondo
+        </button>
+        {data.funds.length === 0 ? <p className="mt-2 text-sm font-semibold text-muted">Para pasar plata, primero creá un fondo.</p> : null}
+      </Card>
+
       {gustos.level === 'low' ? (
         <Card className="bg-debt text-sm">
           <b className="inline-flex items-center gap-1 text-alert-ink">
             <AppIcon name="triangle-exclamation" /> Ojo:
           </b>{' '}
-          te quedan {formatMoney(gustos.remaining)} de gustos. Si seguís, tocás tus fondos.
+          te quedan {formatMoney(data.gustosFree)} para gustos.
         </Card>
       ) : null}
-      {gustos.level === 'over' ? (
-        <Card className="bg-debt text-sm">
-          <b className="inline-flex items-center gap-1 text-alert-ink">
-            <AppIcon name="triangle-exclamation" /> Ojo:
-          </b>{' '}
-          se te acabaron los gustos y ya estás usando {formatMoney(Math.abs(gustos.remaining))} de tus fondos.
-        </Card>
-      ) : null}
-      <Card>
-        <b>Cargar un extra</b>
-        <input value={label} onChange={(event) => setLabel(event.target.value)} placeholder="Incentivo, guardia, venta…" className="mt-2 min-h-11 w-full rounded-2xl bg-sand px-3 py-2 font-bold text-text" />
-        <label className="mt-2 block text-sm font-bold text-muted">
-          Fecha
-          <input type="date" value={receivedOn} onChange={(event) => setReceivedOn(event.target.value)} className="mt-1 min-h-11 w-full rounded-2xl bg-sand px-3 py-2 font-bold text-text" />
-        </label>
-        <button type="button" className="mt-2 min-h-11 font-display text-2xl font-bold" onClick={() => setActiveFund('extra')}>
-          {formatMoney(amount)}
+
+      <section className="mb-3">
+        <button
+          type="button"
+          aria-expanded={historyOpen}
+          onClick={() => setHistoryOpen((current) => !current)}
+          className="flex min-h-11 w-full items-center justify-between rounded-3xl bg-card px-4 text-left shadow-card"
+        >
+          <span className="font-display text-base font-semibold">Historial de extras</span>
+          <span className="inline-flex items-center gap-2 text-sm font-semibold text-muted">
+            {history.length === 0 ? 'Vacío' : history.length}
+            <span>{historyOpen ? 'Ocultar' : 'Ver'}</span>
+          </span>
         </button>
-        {data.funds.map((fund) => (
-          <button key={fund.id} type="button" className="mt-1 block text-sm font-bold" onClick={() => setActiveFund(fund.id)}>
-            <AppIcon name={fund.icon} /> {fund.name}: {formatMoney(amountFromDigits(fundAmounts[fund.id] ?? ''))}
-            {activeFund === fund.id ? ' · editando' : ''}
-          </button>
-        ))}
-        <p className="mt-1 text-sm text-muted">El resto va a gustos: {formatMoney(Math.max(gustosPart, 0))}</p>
-        <div className="mt-2">
-          <Keypad onKey={onKey} />
-        </div>
-        <Button type="button" variant="pink" className="mt-3" onClick={() => void saveExtra()} disabled={saving}>
-          Repartir extra
-        </Button>
-        <ErrorText>{message}</ErrorText>
-      </Card>
+        {historyOpen ? (
+          <div className="mt-2 rounded-3xl bg-card px-4 py-1 shadow-card">
+            {history.length === 0 ? <p className="py-4 text-sm font-semibold text-muted">Todavía no hay movimientos este mes.</p> : null}
+            <ul>
+              {history.map((row) => (
+                <li key={row.id} className="border-b border-dashed border-line py-3 last:border-0">
+                  {row.kind === 'extra' ? <ExtraRow extra={row.extra} /> : <MovementRow movement={row.movement} />}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+      </section>
+
+      {toast ? (
+        <p role="status" className="fixed bottom-28 left-1/2 z-50 max-w-[20rem] -translate-x-1/2 rounded-2xl bg-primary px-4 py-3 text-center text-sm font-semibold text-white shadow-fab">
+          {toast}
+        </p>
+      ) : null}
+
+      <FundSheet open={fundOpen} fund={editing} userId={userId} onClose={() => setFundOpen(false)} onSaved={saved} />
+      <ExtraSheet
+        open={extraOpen}
+        funds={data.funds}
+        userId={userId}
+        householdId={householdId}
+        onClose={() => setExtraOpen(false)}
+        onSaved={saved}
+      />
+      <GustoSheet
+        open={gustoOpen}
+        categories={data.categories}
+        householdId={householdId}
+        userId={userId}
+        gustosFree={data.gustosFree}
+        onClose={() => setGustoOpen(false)}
+        onSaved={saved}
+        onRefresh={refresh}
+      />
+      <MoveSheet
+        open={moveMode !== null}
+        mode={moveMode ?? 'to_fund'}
+        funds={data.funds}
+        fund={moveFund}
+        gustosFree={data.gustosFree}
+        onClose={() => setMoveMode(null)}
+        onSaved={saved}
+      />
     </>
   )
+}
+
+function FundRing({ value }: { value: number }) {
+  const pct = Math.max(0, Math.min(100, value))
+  const radius = 16
+  const circ = 2 * Math.PI * radius
+  return (
+    <svg width="44" height="44" viewBox="0 0 44 44" className="shrink-0" role="img" aria-label={`${Math.round(pct)} por ciento de la meta`}>
+      <circle cx="22" cy="22" r={radius} fill="none" stroke="#F1E5D6" strokeWidth="5" />
+      <circle
+        cx="22"
+        cy="22"
+        r={radius}
+        fill="none"
+        stroke="#4F6B57"
+        strokeWidth="5"
+        strokeLinecap="round"
+        strokeDasharray={circ}
+        strokeDashoffset={circ - (pct / 100) * circ}
+        transform="rotate(-90 22 22)"
+      />
+    </svg>
+  )
+}
+
+function EmptyFunds() {
+  return (
+    <div className="mb-3 rounded-3xl bg-card px-4 py-6 text-center shadow-card">
+      <svg viewBox="0 0 160 110" className="mx-auto mb-2 h-24 w-36" aria-hidden="true">
+        <ellipse cx="80" cy="96" rx="46" ry="8" fill="#EADCCB" />
+        <rect x="48" y="38" width="64" height="46" rx="16" fill="#C7DDAE" />
+        <path d="M48 54h64" stroke="#4F6B57" strokeWidth="4" />
+        <circle cx="80" cy="28" r="10" fill="#F4C542" />
+        <path d="M80 38v8" stroke="#4F6B57" strokeWidth="3" strokeLinecap="round" />
+      </svg>
+      <p className="font-display text-lg font-semibold">Todavía no tenés fondos</p>
+      <p className="text-sm font-semibold text-muted">Un fondo junta plata para algo puntual. El resto queda para gustos.</p>
+    </div>
+  )
+}
+
+function ExtraRow({ extra }: { extra: ExtraItem }) {
+  return (
+    <>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-extrabold">{extra.label}</p>
+          <p className="text-sm font-semibold text-muted">{shortDate(extra.receivedOn)}</p>
+        </div>
+        <p className="shrink-0 font-extrabold">{formatMoney(extra.amount)}</p>
+      </div>
+      <p className="mt-1 text-sm font-semibold text-text">
+        Repartido:{' '}
+        {extra.parts.length === 0
+          ? 'a gustos'
+          : extra.parts.map((part) => `${part.label} ${formatMoney(part.amount)}`).join(' · ')}
+      </p>
+      <div className="mt-2 flex h-2.5 overflow-hidden rounded-full bg-sand">
+        {extra.parts.map((part) => (
+          <i key={`${part.label}-${part.amount}`} className="h-full" style={{ width: `${(part.amount / extra.amount) * 100}%`, background: part.color }} />
+        ))}
+      </div>
+    </>
+  )
+}
+
+function MovementRow({ movement }: { movement: BagMovementItem }) {
+  const copy =
+    movement.kind === 'gusto'
+      ? { title: movement.label || 'Gusto', detail: 'Me di un gusto' }
+      : movement.kind === 'to_fund'
+        ? { title: `A ${movement.fundName}`, detail: 'Pasaste de gustos' }
+        : movement.kind === 'to_gustos'
+          ? { title: `Desde ${movement.fundName}`, detail: 'Volvió a gustos' }
+          : { title: movement.label || movement.fundName, detail: 'Usaste el fondo' }
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <div className="min-w-0">
+        <p className="inline-flex items-center gap-1.5 font-extrabold">
+          {movement.kind === 'gusto' ? <AppIcon name="bag-shopping" className="text-primary" /> : null}
+          {copy.title}
+        </p>
+        <p className="text-sm font-semibold text-muted">
+          {shortDate(movement.happenedOn)} · {copy.detail}
+        </p>
+      </div>
+      <p className="shrink-0 font-extrabold">{formatMoney(movement.amount)}</p>
+    </div>
+  )
+}
+
+function historyRows(extras: ExtraItem[], movements: BagMovementItem[]) {
+  const rows: ({ id: string; date: string } & (
+    | { kind: 'extra'; extra: ExtraItem }
+    | { kind: 'move'; movement: BagMovementItem }
+  ))[] = [
+    ...extras.map((extra) => ({ id: `extra-${extra.id}`, date: extra.receivedOn, kind: 'extra' as const, extra })),
+    ...movements.map((movement) => ({
+      id: `move-${movement.id}`,
+      date: movement.happenedOn,
+      kind: 'move' as const,
+      movement,
+    })),
+  ]
+  return rows.sort((a, b) => b.date.localeCompare(a.date))
 }

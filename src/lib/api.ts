@@ -1,11 +1,13 @@
 import type { ContributionMode, ViewMode } from '../types/database.ts'
+import { bagBalances, type BagKind } from './bag.ts'
 import { money } from './format.ts'
 import { DEFAULT_ICON } from './icons.ts'
 import type { ExpenseSpan } from './expense-range.ts'
 import { monthEnd } from './month.ts'
 import { supabase } from './supabase.ts'
 
-const PART_COLORS = ['#9ec9ff', '#8fe3b0', '#ffc2d1', '#c9b8ff', '#ffd36e']
+const FUND_BAR = ['#4F6B57', '#6A784D', '#8FA37A']
+const GUSTOS_BAR = '#F4C542'
 
 export type Category = {
   id: string
@@ -20,6 +22,7 @@ export type ExpenseItem = {
   amount: number
   spentOn: string
   isShared: boolean
+  paidFromBag: boolean
   payerId: string
   ownerId: string
   categoryId: string
@@ -30,6 +33,7 @@ export type FundItem = {
   name: string
   icon: string
   target: number
+  targetDate: string | null
   saved: number
 }
 
@@ -38,6 +42,17 @@ export type ExtraPart = {
   icon: string
   amount: number
   color: string
+  toGustos: boolean
+}
+
+export type BagMovementItem = {
+  id: string
+  kind: BagKind
+  fundId: string | null
+  fundName: string
+  label: string
+  amount: number
+  happenedOn: string
 }
 
 export type ExtraItem = {
@@ -90,11 +105,12 @@ export type FinanceData = {
   bases: Record<string, number>
   categories: Category[]
   monthExpenses: ExpenseItem[]
-  privateSpentAllTime: number
   lastLoggedOn: string | null
   extrasThisMonth: ExtraItem[]
+  movementsThisMonth: BagMovementItem[]
   funds: FundItem[]
-  gustosAllocated: number
+  gustosFree: number
+  gustosPool: number
   goal: GoalItem | null
   fixed: FixedItem[]
   settlement: SettlementItem | null
@@ -113,9 +129,9 @@ export async function loadFinance(householdId: string, userId: string, month: st
     extras,
     funds,
     allocations,
+    movements,
     categories,
     monthExpenses,
-    privateExpenses,
     lastExpense,
     goals,
     contributions,
@@ -127,16 +143,16 @@ export async function loadFinance(householdId: string, userId: string, month: st
     supabase.from('profiles').select('id, display_name').eq('household_id', householdId),
     supabase.from('monthly_incomes').select('user_id, base_amount').eq('household_id', householdId).eq('month', month),
     supabase.from('income_extras').select('id, amount, label, received_on').eq('user_id', userId),
-    supabase.from('savings_funds').select('id, name, icon, target_amount').eq('user_id', userId),
+    supabase.from('savings_funds').select('id, name, icon, target_amount, target_date').eq('user_id', userId),
     supabase.from('extra_allocations').select('extra_id, fund_id, amount').eq('user_id', userId),
+    supabase.from('bag_movements').select('id, kind, fund_id, amount, label, happened_on').eq('user_id', userId),
     supabase.from('categories').select('id, name, icon, owner_id').eq('household_id', householdId),
     supabase
       .from('expenses')
-      .select('id, title, amount, spent_on, is_shared, payer_id, owner_id, category_id')
+      .select('id, title, amount, spent_on, is_shared, paid_from_bag, payer_id, owner_id, category_id')
       .gte('spent_on', month)
       .lte('spent_on', end)
       .order('spent_on', { ascending: true }),
-    supabase.from('expenses').select('amount').eq('owner_id', userId).eq('is_shared', false),
     supabase
       .from('expenses')
       .select('spent_on')
@@ -171,9 +187,9 @@ export async function loadFinance(householdId: string, userId: string, month: st
   fail(extras.error)
   fail(funds.error)
   fail(allocations.error)
+  fail(movements.error)
   fail(categories.error)
   fail(monthExpenses.error)
-  fail(privateExpenses.error)
   fail(lastExpense.error)
   fail(goals.error)
   fail(contributions.error)
@@ -188,21 +204,40 @@ export async function loadFinance(householdId: string, userId: string, month: st
   const bases: Record<string, number> = {}
   for (const income of incomes.data ?? []) bases[income.user_id] = money(income.base_amount)
 
+  const balance = bagBalances(
+    (allocations.data ?? []).map((allocation) => ({
+      fundId: allocation.fund_id,
+      amount: money(allocation.amount),
+    })),
+    (movements.data ?? []).flatMap((movement) => {
+      if (!isBagKind(movement.kind)) return []
+      return [{ kind: movement.kind, fundId: movement.fund_id, amount: money(movement.amount) }]
+    }),
+  )
+
   const extrasThisMonth: ExtraItem[] = (extras.data ?? [])
     .filter((extra) => extra.received_on >= month && extra.received_on <= end)
     .sort((a, b) => b.received_on.localeCompare(a.received_on))
     .map((extra) => {
       const parts = (allocations.data ?? [])
         .filter((allocation) => allocation.extra_id === extra.id)
-        .map((allocation, index) => {
+        .map((allocation) => {
           const fund = allocation.fund_id ? fundById.get(allocation.fund_id) : undefined
+          const toGustos = !allocation.fund_id
           return {
             label: fund?.name ?? 'Gustos',
             icon: fund?.icon || 'bag-shopping',
             amount: money(allocation.amount),
-            color: PART_COLORS[index % PART_COLORS.length] ?? '#ffc2d1',
+            color: toGustos ? GUSTOS_BAR : '#4F6B57',
+            toGustos,
           }
         })
+      let fundShade = 0
+      for (const part of parts) {
+        if (part.toGustos) continue
+        part.color = FUND_BAR[fundShade % FUND_BAR.length] ?? '#4F6B57'
+        fundShade += 1
+      }
       return {
         id: extra.id,
         label: extra.label,
@@ -212,16 +247,22 @@ export async function loadFinance(householdId: string, userId: string, month: st
       }
     })
 
-  const savedByFund = new Map<string, number>()
-  let gustosAllocated = 0
-  for (const allocation of allocations.data ?? []) {
-    const amount = money(allocation.amount)
-    if (!allocation.fund_id) {
-      gustosAllocated += amount
-      continue
-    }
-    savedByFund.set(allocation.fund_id, (savedByFund.get(allocation.fund_id) ?? 0) + amount)
-  }
+  const movementsThisMonth: BagMovementItem[] = (movements.data ?? [])
+    .flatMap((movement) => {
+      if (!isBagKind(movement.kind) || movement.happened_on < month || movement.happened_on > end) return []
+      return [
+        {
+          id: movement.id,
+          kind: movement.kind,
+          fundId: movement.fund_id,
+          fundName: movement.fund_id ? (fundById.get(movement.fund_id)?.name ?? 'Fondo') : 'Gustos',
+          label: movement.label,
+          amount: money(movement.amount),
+          happenedOn: movement.happened_on,
+        },
+      ]
+    })
+    .sort((a, b) => b.happenedOn.localeCompare(a.happenedOn))
 
   const goalRow = goals.data?.[0]
   const goal: GoalItem | null = goalRow
@@ -260,21 +301,24 @@ export async function loadFinance(householdId: string, userId: string, month: st
       amount: money(expense.amount),
       spentOn: expense.spent_on,
       isShared: expense.is_shared,
+      paidFromBag: expense.paid_from_bag,
       payerId: expense.payer_id,
       ownerId: expense.owner_id,
       categoryId: expense.category_id,
     })),
-    privateSpentAllTime: (privateExpenses.data ?? []).reduce((sum, expense) => sum + money(expense.amount), 0),
     lastLoggedOn: lastExpense.data?.spent_on ?? null,
     extrasThisMonth,
+    movementsThisMonth,
     funds: (funds.data ?? []).map((fund) => ({
       id: fund.id,
       name: fund.name,
       icon: fund.icon || DEFAULT_ICON,
       target: money(fund.target_amount),
-      saved: savedByFund.get(fund.id) ?? 0,
+      targetDate: fund.target_date,
+      saved: balance.savedByFund.get(fund.id) ?? 0,
     })),
-    gustosAllocated,
+    gustosFree: balance.gustosFree,
+    gustosPool: balance.gustosPool,
     goal,
     fixed: (fixedExpenses.data ?? []).map((expense) => {
       const payment = paymentByFixed.get(expense.id)
@@ -309,7 +353,11 @@ export async function loadFinance(householdId: string, userId: string, month: st
   }
 }
 
-const EXPENSE_COLUMNS = 'id, title, amount, spent_on, is_shared, payer_id, owner_id, category_id, created_at'
+const EXPENSE_COLUMNS = 'id, title, amount, spent_on, is_shared, paid_from_bag, payer_id, owner_id, category_id, created_at'
+
+function isBagKind(kind: string): kind is BagKind {
+  return kind === 'gusto' || kind === 'to_fund' || kind === 'to_gustos' || kind === 'use'
+}
 
 function mapExpense(expense: {
   id: string
@@ -317,6 +365,7 @@ function mapExpense(expense: {
   amount: number
   spent_on: string
   is_shared: boolean
+  paid_from_bag: boolean
   payer_id: string
   owner_id: string
   category_id: string
@@ -327,6 +376,7 @@ function mapExpense(expense: {
     amount: money(expense.amount),
     spentOn: expense.spent_on,
     isShared: expense.is_shared,
+    paidFromBag: expense.paid_from_bag,
     payerId: expense.payer_id,
     ownerId: expense.owner_id,
     categoryId: expense.category_id,
@@ -440,6 +490,7 @@ export async function createFund(input: {
   name: string
   icon: string
   target: number
+  targetDate: string | null
 }): Promise<void> {
   const { error } = await supabase.from('savings_funds').insert({
     user_id: input.userId,
@@ -447,6 +498,59 @@ export async function createFund(input: {
     icon: input.icon,
     emoji: input.icon,
     target_amount: input.target,
+    target_date: input.targetDate,
+  })
+  fail(error)
+}
+
+export async function updateFund(input: {
+  id: string
+  name: string
+  icon: string
+  target: number
+  targetDate: string | null
+}): Promise<void> {
+  const { error } = await supabase
+    .from('savings_funds')
+    .update({
+      name: input.name.trim(),
+      icon: input.icon,
+      emoji: input.icon,
+      target_amount: input.target,
+      target_date: input.targetDate,
+    })
+    .eq('id', input.id)
+  fail(error)
+}
+
+export async function spendFromGustos(input: {
+  title: string
+  categoryId: string
+  amount: number
+  spentOn: string
+}): Promise<void> {
+  const { error } = await supabase.rpc('spend_from_gustos', {
+    expense_title: input.title.trim(),
+    category_id: input.categoryId,
+    expense_amount: input.amount,
+    spent_on: input.spentOn,
+  })
+  fail(error)
+}
+
+export async function moveBagMoney(input: {
+  kind: Exclude<BagKind, 'gusto'>
+  fundId: string
+  amount: number
+  happenedOn: string
+  label: string
+}): Promise<void> {
+  const { error } = await supabase.rpc('move_bag_money', {
+    movement_kind: input.kind,
+    target_fund: input.fundId,
+    movement_amount: input.amount,
+    happened_on: input.happenedOn,
+    movement_label: input.label.trim(),
   })
   fail(error)
 }

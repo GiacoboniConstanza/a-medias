@@ -20,7 +20,7 @@ export function monthSplit(data: FinanceData): SplitResult {
 
 export function myPrivateSpent(data: FinanceData, meId: string): number {
   return data.monthExpenses
-    .filter((expense) => !expense.isShared && expense.ownerId === meId)
+    .filter((expense) => !expense.isShared && !expense.paidFromBag && expense.ownerId === meId)
     .reduce((sum, expense) => sum + expense.amount, 0)
 }
 

@@ -54,7 +54,9 @@ input {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bubble-motion {
+  .bubble-motion,
+  .sheet-motion {
     animation: none !important;
+    transition: none !important;
   }
 }
