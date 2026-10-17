@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { AppIcon } from '../components/AppIcon.tsx'
 import { amountFromDigits, applyKey, Keypad } from '../components/Keypad.tsx'
 import { Button, Card, ErrorText } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
@@ -51,8 +52,8 @@ export function SalaryScreen() {
   return (
     <>
       <header className="mb-3 flex items-center justify-between">
-        <Link to="/" className="font-bold text-muted">
-          ‹ Inicio
+        <Link to="/" className="inline-flex min-h-11 items-center gap-1 font-semibold text-ink">
+          <AppIcon name="chevron-left" /> Inicio
         </Link>
         <span className="font-black text-brand">A Medias</span>
       </header>

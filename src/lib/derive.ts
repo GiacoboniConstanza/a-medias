@@ -39,3 +39,16 @@ export function paceInput(month: string, today = new Date()) {
 export function debtCopy(meId: string, result: SplitResult): string {
   return debtSentence(meId, result)
 }
+
+export function monthPocket(input: { base: number; privateSpent: number; myShare: number; extras: number }) {
+  const spent = input.privateSpent + input.myShare
+  return {
+    remaining: input.base - spent,
+    spent,
+    privateSpent: input.privateSpent,
+    sharedShare: input.myShare,
+    base: input.base,
+    extras: input.extras,
+    income: input.base + input.extras,
+  }
+}

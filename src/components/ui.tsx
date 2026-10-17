@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import { AppIcon } from './AppIcon.tsx'
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
   return <section className={`mb-3 rounded-[22px] bg-white p-3.5 shadow-card ${className}`}>{children}</section>
@@ -16,7 +17,7 @@ export function Button({
   }[variant]
   return (
     <button
-      className={`block w-full rounded-[18px] px-4 py-3 text-center text-base font-extrabold disabled:opacity-50 ${tone} ${className}`}
+      className={`block min-h-11 w-full rounded-[18px] px-4 py-3 text-center text-base font-semibold disabled:opacity-50 ${tone} ${className}`}
       {...props}
     />
   )
@@ -36,8 +37,11 @@ export function Chip({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`m-0.5 inline-block rounded-2xl px-3 py-1.5 text-[13px] font-bold ${active ? 'bg-brand text-white' : 'bg-chip text-ink'}`}
+      className={`inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-2xl border-2 px-3 text-sm font-semibold ${
+        active ? 'border-active bg-active text-white' : 'border-edge bg-white text-ink'
+      }`}
     >
+      {active ? <AppIcon name="check" /> : null}
       {children}
     </button>
   )
@@ -70,7 +74,7 @@ export function Field({
         type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-2xl border border-line bg-white px-3 py-3 text-base font-bold text-ink outline-none focus:border-brand"
+        className="min-h-11 w-full rounded-2xl border-2 border-edge bg-white px-3 py-3 text-base font-semibold text-ink"
       />
     </label>
   )

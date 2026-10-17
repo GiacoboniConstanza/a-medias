@@ -7,7 +7,7 @@ import { supabaseConfigError } from '../lib/supabase.ts'
 export function AppShell() {
   return (
     <div className="min-h-dvh bg-lilac text-ink">
-      <div className="mx-auto min-h-dvh max-w-[430px] bg-canvas px-5 pb-24 pt-6">
+      <div className="mx-auto min-h-dvh max-w-[430px] bg-canvas px-5 pb-32 pt-6">
         <Outlet />
       </div>
       <BottomNav />

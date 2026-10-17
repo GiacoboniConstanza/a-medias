@@ -30,6 +30,13 @@ export function monthLabel(monthStart: string): string {
   return label.charAt(0).toUpperCase() + label.slice(1)
 }
 
+export function monthTitle(monthStart: string): string {
+  const [yearText, monthText] = monthStart.split('-')
+  const date = new Date(Number(yearText), Number(monthText) - 1, 1)
+  const name = new Intl.DateTimeFormat('es-AR', { month: 'long' }).format(date)
+  return `${name.charAt(0).toUpperCase()}${name.slice(1)} ${yearText}`
+}
+
 export function monthName(monthStart: string): string {
   return monthLabel(monthStart).split(' de ')[0]?.toLowerCase() ?? ''
 }

@@ -1,3 +1,4 @@
+import { AppIcon } from './AppIcon.tsx'
 import { formatMoney } from '../lib/format.ts'
 
 const SLOTS = [
@@ -11,7 +12,7 @@ const SLOTS = [
 
 export type BubbleItem = {
   id: string
-  emoji: string
+  icon: string
   label: string
   amount: number
 }
@@ -41,7 +42,9 @@ export function Bubbles({ items }: { items: BubbleItem[] }) {
               fontSize: Math.max(11, size / 11),
             }}
           >
-            <span style={{ fontSize: Math.max(18, size / 4.2) }}>{item.emoji}</span>
+            <span style={{ fontSize: Math.max(18, size / 4.2) }}>
+              <AppIcon name={item.icon} />
+            </span>
             <span>{item.label}</span>
             <small className="text-[11px] font-semibold text-ink/70">{formatMoney(item.amount)}</small>
           </div>

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { AppIcon } from '../components/AppIcon.tsx'
 import { Bubbles } from '../components/Bubbles.tsx'
 import { MonthSwitcher } from '../components/MonthSwitcher.tsx'
 import { ViewToggle } from '../components/ViewToggle.tsx'
@@ -7,6 +8,7 @@ import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
 import { saveViewMode } from '../lib/api.ts'
 import { formatMoney } from '../lib/format.ts'
+import { DEFAULT_ICON } from '../lib/icons.ts'
 import { shortDate } from '../lib/month.ts'
 import type { ViewMode } from '../types/database.ts'
 
@@ -20,11 +22,11 @@ export function BreakdownScreen() {
   if (!data) return <p className="py-16 text-center font-extrabold text-bad">{error}</p>
 
   const mine = data.monthExpenses.filter((expense) => expense.payerId === me.id)
-  const totals = new Map<string, { emoji: string; label: string; amount: number }>()
+  const totals = new Map<string, { icon: string; label: string; amount: number }>()
   for (const expense of mine) {
     const category = data.categories.find((item) => item.id === expense.categoryId)
     const current = totals.get(expense.categoryId) ?? {
-      emoji: category?.emoji ?? '💸',
+      icon: category?.icon || DEFAULT_ICON,
       label: category?.name ?? 'Otros',
       amount: 0,
     }
@@ -46,7 +48,9 @@ export function BreakdownScreen() {
         <ViewToggle mode={me.viewMode} onChange={(mode) => void changeMode(mode)} />
       </header>
       <h1 className="text-[22px] font-extrabold">¿En qué se me fue?</h1>
-      <p className="mb-2 text-sm font-semibold text-muted">Solo vos ves tus privados 🔒</p>
+      <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-ink">
+        <AppIcon name="lock" /> Solo vos ves tus privados
+      </p>
       <MonthSwitcher />
       {profile.viewMode === 'friendly' ? (
         <Bubbles items={bubbles} />
@@ -67,8 +71,10 @@ export function BreakdownScreen() {
                   <tr key={expense.id} className="border-t border-line">
                     <td className="py-1.5">{shortDate(expense.spentOn)}</td>
                     <td>
-                      {category?.emoji} {expense.title}
-                      {expense.isShared ? '' : ' 🔒'}
+                      <span className="inline-flex items-center gap-1">
+                        <AppIcon name={category?.icon || DEFAULT_ICON} /> {expense.title}
+                        {expense.isShared ? null : <AppIcon name="lock" />}
+                      </span>
                     </td>
                     <td className="text-right font-bold">{formatMoney(expense.amount)}</td>
                   </tr>
@@ -82,7 +88,10 @@ export function BreakdownScreen() {
       {top ? (
         <Card className="bg-warn-bg">
           <button type="button" className="w-full text-left" onClick={() => setOpen(open === top.id ? null : top.id)}>
-            <b>💡 Este mes:</b> {top.label.toLowerCase()} fue tu gasto más grande.
+            <b className="inline-flex items-center gap-1">
+              <AppIcon name="lightbulb" /> Este mes:
+            </b>{' '}
+            {top.label.toLowerCase()} fue tu gasto más grande.
           </button>
         </Card>
       ) : null}

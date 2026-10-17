@@ -4,6 +4,9 @@
   --font-sans: 'Nunito', ui-sans-serif, system-ui, sans-serif;
   --color-ink: #3b3355;
   --color-brand: #7a5cff;
+  /* Blanco sobre #7a5cff queda en 4.37:1. Este violeta, a un paso, llega a 4.5:1. */
+  --color-active: #7859fe;
+  --color-edge: #5c5470;
   --color-muted: #8a82a6;
   --color-canvas: #fffdf8;
   --color-lilac: #f6f1ff;
@@ -39,4 +42,9 @@ body {
 button,
 input {
   font-family: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-active);
+  outline-offset: 2px;
 }

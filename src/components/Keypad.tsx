@@ -1,3 +1,5 @@
+import { AppIcon } from './AppIcon.tsx'
+
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '000', '0', '⌫']
 
 export function Keypad({ onKey }: { onKey: (key: string) => void }) {
@@ -8,9 +10,9 @@ export function Keypad({ onKey }: { onKey: (key: string) => void }) {
           key={key}
           type="button"
           onClick={() => onKey(key)}
-          className="rounded-2xl bg-[#f4f0ff] py-2.5 text-center text-[22px] font-extrabold"
+          className="min-h-11 rounded-2xl border-2 border-edge bg-white text-center text-[22px] font-semibold text-ink"
         >
-          {key}
+          {key === '⌫' ? <AppIcon name="delete-left" /> : key}
         </button>
       ))}
     </div>

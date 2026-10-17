@@ -1,11 +1,12 @@
 import { useState } from 'react'
+import { AppIcon } from '../components/AppIcon.tsx'
+import { IconPicker } from '../components/IconPicker.tsx'
 import { amountFromDigits, applyKey, Keypad } from '../components/Keypad.tsx'
 import { MonthSwitcher } from '../components/MonthSwitcher.tsx'
-import { Button, Card, Chip, ErrorText, Progress } from '../components/ui.tsx'
+import { Button, Card, ErrorText, Progress } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
 import { createExtra, createFund } from '../lib/api.ts'
-import { EMOJIS } from '../lib/emojis.ts'
 import { formatMoney } from '../lib/format.ts'
 import { gustosStatus } from '../lib/gustos.ts'
 import { shortDate, todayISO } from '../lib/month.ts'
@@ -21,7 +22,7 @@ export function ExtrasScreen() {
   const [fundAmounts, setFundAmounts] = useState<Record<string, string>>({})
   const [activeFund, setActiveFund] = useState<string | null>('extra')
   const [name, setName] = useState('')
-  const [emoji, setEmoji] = useState('🐷')
+  const [icon, setIcon] = useState('piggy-bank')
   const [targetDigits, setTargetDigits] = useState('')
   const [creatingFund, setCreatingFund] = useState(false)
   const [message, setMessage] = useState('')
@@ -93,7 +94,7 @@ export function ExtrasScreen() {
     setSaving(true)
     setMessage('')
     try {
-      await createFund({ userId, name, emoji, target })
+      await createFund({ userId, name, icon, target })
       setName('')
       setTargetDigits('')
       setCreatingFund(false)
@@ -109,9 +110,13 @@ export function ExtrasScreen() {
     <>
       <header className="mb-3 flex items-center justify-between">
         <span className="text-xl font-black text-brand">A Medias</span>
-        <span className="rounded-2xl bg-chip px-3 py-1 text-[13px] font-bold">🔒 Solo vos</span>
+        <span className="inline-flex min-h-11 items-center gap-1.5 rounded-2xl border-2 border-edge bg-white px-3 text-sm font-semibold text-ink">
+          <AppIcon name="lock" /> Solo vos
+        </span>
       </header>
-      <h1 className="text-[22px] font-extrabold">Bolsa de extras 👜</h1>
+      <h1 className="flex items-center gap-2 text-[22px] font-extrabold">
+        Bolsa de extras <AppIcon name="bag-shopping" className="text-brand" />
+      </h1>
       <p className="mb-2 text-sm text-muted">Los extras no entran en el porcentaje de los gastos compartidos.</p>
       <MonthSwitcher />
       {data.extrasThisMonth.map((extra) => (
@@ -120,10 +125,15 @@ export function ExtrasScreen() {
             {extra.label} · {shortDate(extra.receivedOn)}
           </p>
           <p className="text-3xl font-black">{formatMoney(extra.amount)}</p>
-          <p className="text-sm text-muted">
-            Repartido:{' '}
-            {extra.parts.map((part) => `${part.emoji} ${formatMoney(part.amount)}`).join(' · ') || 'sin repartir'}
-          </p>
+          <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-ink">
+            <span>Repartido:</span>
+            {extra.parts.length === 0 ? <span>sin repartir</span> : null}
+            {extra.parts.map((part) => (
+              <span key={`${part.label}-${part.amount}`} className="inline-flex items-center gap-1">
+                <AppIcon name={part.icon} /> {formatMoney(part.amount)}
+              </span>
+            ))}
+          </div>
           <div className="mt-2 flex h-2.5 overflow-hidden rounded-md">
             {extra.parts.map((part) => (
               <i key={part.label} style={{ width: `${(part.amount / extra.amount) * 100}%`, background: part.color }} />
@@ -132,13 +142,15 @@ export function ExtrasScreen() {
         </Card>
       ))}
       <Card>
-        <b>Mis fondos de ahorro 🐷</b>
+        <b className="inline-flex items-center gap-2">
+          Mis fondos de ahorro <AppIcon name="piggy-bank" className="text-brand" />
+        </b>
         {data.funds.length === 0 ? <p className="mt-2 text-sm text-muted">Todavía no armaste fondos.</p> : null}
         {data.funds.map((fund, index) => (
           <div key={fund.id} className="my-2">
             <div className="flex justify-between text-sm">
               <b>
-                {fund.emoji} {fund.name}
+                <AppIcon name={fund.icon} /> {fund.name}
               </b>
               <span className="text-muted">
                 {formatMoney(fund.saved)} / {formatMoney(fund.target)}
@@ -155,13 +167,7 @@ export function ExtrasScreen() {
         {creatingFund ? (
           <div className="mt-3">
             <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Nombre" className="mb-2 w-full rounded-2xl bg-chip px-3 py-2 font-bold" />
-            <div>
-              {EMOJIS.map((item) => (
-                <Chip key={item} active={emoji === item} onClick={() => setEmoji(item)}>
-                  {item}
-                </Chip>
-              ))}
-            </div>
+            <IconPicker value={icon} onChange={setIcon} />
             <button type="button" className="mt-2 font-extrabold" onClick={() => setActiveFund('target')}>
               Meta: {formatMoney(amountFromDigits(targetDigits))}
             </button>
@@ -173,7 +179,9 @@ export function ExtrasScreen() {
       </Card>
       <Card>
         <div className="flex justify-between">
-          <b>🛍️ Gustos</b>
+          <b className="inline-flex items-center gap-2">
+            <AppIcon name="bag-shopping" /> Gustos
+          </b>
           <span className="text-sm text-muted">
             {formatMoney(Math.max(gustos.remaining, 0))} de {formatMoney(data.gustosAllocated)} libres
           </span>
@@ -184,12 +192,18 @@ export function ExtrasScreen() {
       </Card>
       {gustos.level === 'low' ? (
         <Card className="bg-bad-bg text-sm">
-          <b className="text-bad">⚠️ Ojo:</b> te quedan {formatMoney(gustos.remaining)} de gustos. Si seguís, tocás tus fondos.
+          <b className="inline-flex items-center gap-1 text-bad">
+            <AppIcon name="triangle-exclamation" /> Ojo:
+          </b>{' '}
+          te quedan {formatMoney(gustos.remaining)} de gustos. Si seguís, tocás tus fondos.
         </Card>
       ) : null}
       {gustos.level === 'over' ? (
         <Card className="bg-bad-bg text-sm">
-          <b className="text-bad">⚠️ Ojo:</b> se te acabaron los gustos y ya estás usando {formatMoney(Math.abs(gustos.remaining))} de tus fondos.
+          <b className="inline-flex items-center gap-1 text-bad">
+            <AppIcon name="triangle-exclamation" /> Ojo:
+          </b>{' '}
+          se te acabaron los gustos y ya estás usando {formatMoney(Math.abs(gustos.remaining))} de tus fondos.
         </Card>
       ) : null}
       <Card>
@@ -204,7 +218,7 @@ export function ExtrasScreen() {
         </button>
         {data.funds.map((fund) => (
           <button key={fund.id} type="button" className="mt-1 block text-sm font-bold" onClick={() => setActiveFund(fund.id)}>
-            {fund.emoji} {fund.name}: {formatMoney(amountFromDigits(fundAmounts[fund.id] ?? ''))}
+            <AppIcon name={fund.icon} /> {fund.name}: {formatMoney(amountFromDigits(fundAmounts[fund.id] ?? ''))}
             {activeFund === fund.id ? ' · editando' : ''}
           </button>
         ))}

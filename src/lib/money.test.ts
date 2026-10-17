@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
+import { monthPocket } from './derive.ts'
 import { formatMoney } from './format.ts'
 import { gustosStatus } from './gustos.ts'
+import { iconByName, ICON_CHOICES, DEFAULT_ICON } from './icons.ts'
 import { jarStatus } from './jar.ts'
+import { monthTitle } from './month.ts'
 import { debtSentence, splitShared } from './split.ts'
 
 describe('reparto del boceto', () => {
@@ -59,6 +62,26 @@ describe('frasco', () => {
     })
     expect(status.tone).toBe('red')
     expect(status.remaining).toBe(-20_000)
+  })
+})
+
+describe('inicio del mes', () => {
+  it('resta privados y la parte compartida, y deja los extras en la bolsa', () => {
+    const pocket = monthPocket({ base: 900_000, privateSpent: 72_000, myShare: 211_200, extras: 300_000 })
+    expect(pocket.remaining).toBe(616_800)
+    expect(pocket.spent).toBe(283_200)
+    expect(pocket.income).toBe(1_200_000)
+  })
+
+  it('titula el mes sin la palabra de', () => {
+    expect(monthTitle('2026-10-01')).toBe('Octubre 2026')
+  })
+
+  it('usa un ícono por defecto si el nombre no está', () => {
+    expect(ICON_CHOICES).toHaveLength(30)
+    expect(iconByName('plane')).toBe(iconByName('plane'))
+    expect(iconByName('no-existe').iconName).toBe(iconByName(DEFAULT_ICON).iconName)
+    expect(iconByName('').iconName).toBe('tag')
   })
 })
 

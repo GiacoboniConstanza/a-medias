@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { AppIcon } from '../components/AppIcon.tsx'
+import { IconPicker } from '../components/IconPicker.tsx'
 import { amountFromDigits, applyKey, Keypad } from '../components/Keypad.tsx'
 import { Button, Chip, ErrorText } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
@@ -7,7 +9,7 @@ import { useFinance } from '../context/FinanceProvider.tsx'
 import { createCategory, createExpense, type Category } from '../lib/api.ts'
 import { formatMoney } from '../lib/format.ts'
 import { todayISO } from '../lib/month.ts'
-import { EMOJIS } from '../lib/emojis.ts'
+import { DEFAULT_ICON } from '../lib/icons.ts'
 
 export function ExpenseScreen() {
   const navigate = useNavigate()
@@ -20,7 +22,7 @@ export function ExpenseScreen() {
   const [title, setTitle] = useState('')
   const [drafting, setDrafting] = useState(false)
   const [draftName, setDraftName] = useState('')
-  const [draftEmoji, setDraftEmoji] = useState('✨')
+  const [draftIcon, setDraftIcon] = useState(DEFAULT_ICON)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -77,13 +79,13 @@ export function ExpenseScreen() {
         householdId,
         ownerId: shared ? null : meId,
         name: draftName,
-        emoji: draftEmoji,
+        icon: draftIcon,
       })
       await refresh()
       setDrafting(false)
       setDraftName('')
       if (amount > 0) {
-        await save({ id, name: draftName.trim(), emoji: draftEmoji, ownerId: shared ? null : meId })
+        await save({ id, name: draftName.trim(), icon: draftIcon, ownerId: shared ? null : meId })
       } else {
         setSaving(false)
       }
@@ -96,8 +98,8 @@ export function ExpenseScreen() {
   return (
     <>
       <header className="mb-2 flex items-center justify-between">
-        <button type="button" onClick={() => navigate(-1)} className="font-bold text-muted">
-          ✕ Cancelar
+        <button type="button" onClick={() => navigate(-1)} className="inline-flex min-h-11 items-center gap-1 font-semibold text-ink">
+          <AppIcon name="xmark" /> Cancelar
         </button>
         <b>Nuevo gasto</b>
         <span className="w-16" />
@@ -106,17 +108,17 @@ export function ExpenseScreen() {
         <p className="text-[44px] font-black leading-none">{formatMoney(amount)}</p>
         <p className="text-sm font-semibold text-muted">¿Cuánto gastaste?</p>
       </div>
-      <div className="mb-2 text-center">
+      <div className="mb-2 flex flex-wrap justify-center gap-2">
         <Chip active={shared} onClick={() => setSharedMode(true)}>
-          👭 Compartido
+          <AppIcon name="user-group" /> Compartido
         </Chip>
         <Chip active={!shared} onClick={() => setSharedMode(false)}>
-          🔒 Privado
+          <AppIcon name="lock" /> Privado
         </Chip>
       </div>
       {shared ? (
-        <div className="mb-2 text-center">
-          <span className="text-sm font-semibold text-muted">Pagó: </span>
+        <div className="mb-2 flex flex-wrap items-center justify-center gap-2">
+          <span className="text-sm font-semibold text-ink">Pagó: </span>
           {people.map(([id, name]) => (
             <Chip key={id} active={payerId === id} onClick={() => setPayerId(id)}>
               {id === meId ? `Yo (${name})` : name}
@@ -130,7 +132,7 @@ export function ExpenseScreen() {
           type="date"
           value={spentOn}
           onChange={(event) => setSpentOn(event.target.value)}
-          className="mt-1 w-full rounded-2xl border border-line bg-white px-3 py-2 font-bold text-ink"
+          className="mt-1 min-h-11 w-full rounded-2xl border-2 border-edge bg-white px-3 py-2 font-semibold text-ink"
         />
       </label>
       <label className="mb-2 block text-sm font-bold text-muted">
@@ -138,18 +140,18 @@ export function ExpenseScreen() {
         <input
           value={title}
           onChange={(event) => setTitle(event.target.value)}
-          className="mt-1 w-full rounded-2xl border border-line bg-white px-3 py-2 font-bold text-ink"
+          className="mt-1 min-h-11 w-full rounded-2xl border-2 border-edge bg-white px-3 py-2 font-semibold text-ink"
           placeholder="Alquiler, súper, café…"
         />
       </label>
-      <div className="mb-3 text-center">
+      <div className="mb-3 flex flex-wrap justify-center gap-2">
         {categories.map((category) => (
           <Chip key={category.id} onClick={() => void save(category)}>
-            {category.emoji} {category.name}
+            <AppIcon name={category.icon} /> {category.name}
           </Chip>
         ))}
         <Chip active={drafting} onClick={() => setDrafting((current) => !current)}>
-          ＋ Nueva
+          <AppIcon name="plus" /> Nueva
         </Chip>
       </div>
       {drafting ? (
@@ -160,13 +162,7 @@ export function ExpenseScreen() {
             placeholder="Nombre"
             className="mb-2 w-full rounded-2xl bg-chip px-3 py-2 font-bold"
           />
-          <div>
-            {EMOJIS.map((emoji) => (
-              <Chip key={emoji} active={draftEmoji === emoji} onClick={() => setDraftEmoji(emoji)}>
-                {emoji}
-              </Chip>
-            ))}
-          </div>
+          <IconPicker value={draftIcon} onChange={setDraftIcon} />
           <Button type="button" variant="alt" className="mt-2" onClick={() => void addCategory()} disabled={saving}>
             Crear categoría
           </Button>

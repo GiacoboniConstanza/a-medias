@@ -1,11 +1,12 @@
 import { useState } from 'react'
+import { AppIcon } from '../components/AppIcon.tsx'
+import { IconPicker } from '../components/IconPicker.tsx'
 import { amountFromDigits, applyKey, Keypad } from '../components/Keypad.tsx'
 import { Button, Card, Chip, ErrorText } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
 import { contributeToGoal, createGoal } from '../lib/api.ts'
 import { monthSplit, partnerId } from '../lib/derive.ts'
-import { EMOJIS } from '../lib/emojis.ts'
 import { formatMoney } from '../lib/format.ts'
 import type { ContributionMode } from '../types/database.ts'
 
@@ -15,7 +16,7 @@ export function GoalScreen() {
   const [mode, setMode] = useState<ContributionMode>('percentage')
   const [digits, setDigits] = useState('')
   const [name, setName] = useState('Vacaciones juntas')
-  const [emoji, setEmoji] = useState('🏖️')
+  const [icon, setIcon] = useState('umbrella-beach')
   const [targetDigits, setTargetDigits] = useState('')
   const [targetDate, setTargetDate] = useState('')
   const [editing, setEditing] = useState<'amount' | 'target'>('amount')
@@ -45,7 +46,7 @@ export function GoalScreen() {
       await createGoal({
         householdId: profile?.householdId as string,
         name,
-        emoji,
+        icon,
         target,
         targetDate: targetDate || null,
       })
@@ -85,13 +86,17 @@ export function GoalScreen() {
     <>
       <header className="mb-3 flex items-center justify-between">
         <span className="text-xl font-black text-brand">A Medias</span>
-        <span className="rounded-2xl bg-chip px-3 py-1 text-[13px] font-bold">👭 Las dos</span>
+        <span className="inline-flex min-h-11 items-center gap-1.5 rounded-2xl border-2 border-edge bg-white px-3 text-sm font-semibold text-ink">
+          <AppIcon name="user-group" /> Las dos
+        </span>
       </header>
       <h1 className="mb-3 text-[22px] font-extrabold">Meta compartida</h1>
       {data.goal ? (
         <>
           <Card className="bg-[#d9f2ff] text-center">
-            <div className="text-5xl">{data.goal.emoji}</div>
+            <div className="text-5xl text-brand">
+              <AppIcon name={data.goal.icon} />
+            </div>
             <b className="text-xl">{data.goal.name}</b>
             {data.goal.targetDate ? <p className="text-sm text-muted">{monthYear(data.goal.targetDate)}</p> : null}
             <p className="mt-2 text-3xl font-black">
@@ -130,7 +135,7 @@ export function GoalScreen() {
               const amount = data.goal?.byUser.find((item) => item.userId === id)?.amount ?? 0
               return (
                 <div key={id} className="flex items-center gap-2 border-b border-line py-2 last:border-0">
-                  <span>🙋‍♀️</span>
+                  <AppIcon name="user" className="text-brand" />
                   <b className="flex-1">{data.names[id]}</b>
                   <span>{formatMoney(amount)}</span>
                 </div>
@@ -138,7 +143,7 @@ export function GoalScreen() {
             })}
             <ContributionBar names={data.names} byUser={data.goal.byUser} />
           </Card>
-          <div className="mb-2 text-center">
+          <div className="mb-2 flex flex-wrap justify-center gap-2">
             <Chip active={mode === 'free'} onClick={() => setMode('free')}>
               Aportar libre
             </Chip>
@@ -163,18 +168,16 @@ export function GoalScreen() {
           <Button type="button" variant="pink" className="mt-3" onClick={() => void contribute()} disabled={saving}>
             Aportar
           </Button>
-          <p className="mt-3 text-center text-sm text-muted">🔒 {partnerName} ve tu aporte acá, no tus fondos privados.</p>
+          <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-sm font-semibold text-ink">
+            <AppIcon name="lock" /> {partnerName} ve tu aporte acá, no tus fondos privados.
+          </p>
         </>
       ) : (
         <Card>
           <b>Armen la primera meta</b>
           <input value={name} onChange={(event) => setName(event.target.value)} className="mt-2 w-full rounded-2xl bg-chip px-3 py-2 font-bold" />
           <div className="my-2">
-            {EMOJIS.map((item) => (
-              <Chip key={item} active={emoji === item} onClick={() => setEmoji(item)}>
-                {item}
-              </Chip>
-            ))}
+            <IconPicker value={icon} onChange={setIcon} />
           </div>
           <button type="button" className="font-extrabold" onClick={() => setEditing('target')}>
             Meta: {formatMoney(amountFromDigits(targetDigits))}

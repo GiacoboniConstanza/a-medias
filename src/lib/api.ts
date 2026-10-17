@@ -1,5 +1,6 @@
 import type { ContributionMode, ViewMode } from '../types/database.ts'
 import { money } from './format.ts'
+import { DEFAULT_ICON } from './icons.ts'
 import { monthEnd } from './month.ts'
 import { supabase } from './supabase.ts'
 
@@ -8,7 +9,7 @@ const PART_COLORS = ['#9ec9ff', '#8fe3b0', '#ffc2d1', '#c9b8ff', '#ffd36e']
 export type Category = {
   id: string
   name: string
-  emoji: string
+  icon: string
   ownerId: string | null
 }
 
@@ -26,14 +27,14 @@ export type ExpenseItem = {
 export type FundItem = {
   id: string
   name: string
-  emoji: string
+  icon: string
   target: number
   saved: number
 }
 
 export type ExtraPart = {
   label: string
-  emoji: string
+  icon: string
   amount: number
   color: string
 }
@@ -49,7 +50,7 @@ export type ExtraItem = {
 export type GoalItem = {
   id: string
   name: string
-  emoji: string
+  icon: string
   target: number
   targetDate: string | null
   byUser: { userId: string; amount: number }[]
@@ -66,7 +67,7 @@ export type FixedPayment = {
 export type FixedItem = {
   id: string
   title: string
-  emoji: string
+  icon: string
   amount: number
   dueDay: number
   isShared: boolean
@@ -125,9 +126,9 @@ export async function loadFinance(householdId: string, userId: string, month: st
     supabase.from('profiles').select('id, display_name').eq('household_id', householdId),
     supabase.from('monthly_incomes').select('user_id, base_amount').eq('household_id', householdId).eq('month', month),
     supabase.from('income_extras').select('id, amount, label, received_on').eq('user_id', userId),
-    supabase.from('savings_funds').select('id, name, emoji, target_amount').eq('user_id', userId),
+    supabase.from('savings_funds').select('id, name, icon, target_amount').eq('user_id', userId),
     supabase.from('extra_allocations').select('extra_id, fund_id, amount').eq('user_id', userId),
-    supabase.from('categories').select('id, name, emoji, owner_id').eq('household_id', householdId),
+    supabase.from('categories').select('id, name, icon, owner_id').eq('household_id', householdId),
     supabase
       .from('expenses')
       .select('id, title, amount, spent_on, is_shared, payer_id, owner_id, category_id')
@@ -144,14 +145,14 @@ export async function loadFinance(householdId: string, userId: string, month: st
       .maybeSingle(),
     supabase
       .from('shared_goals')
-      .select('id, name, emoji, target_amount, target_date')
+      .select('id, name, icon, target_amount, target_date')
       .eq('household_id', householdId)
       .order('created_at', { ascending: false })
       .limit(1),
     supabase.from('goal_contributions').select('goal_id, user_id, amount'),
     supabase
       .from('fixed_expenses')
-      .select('id, title, emoji, expected_amount, due_day, is_shared, category_id')
+      .select('id, title, icon, expected_amount, due_day, is_shared, category_id')
       .eq('household_id', householdId)
       .order('due_day', { ascending: true }),
     supabase.from('fixed_payments').select('id, fixed_expense_id, paid_on, payer_id, amount, expense_id').eq('month', month),
@@ -196,7 +197,7 @@ export async function loadFinance(householdId: string, userId: string, month: st
           const fund = allocation.fund_id ? fundById.get(allocation.fund_id) : undefined
           return {
             label: fund?.name ?? 'Gustos',
-            emoji: fund?.emoji ?? '🛍️',
+            icon: fund?.icon || 'bag-shopping',
             amount: money(allocation.amount),
             color: PART_COLORS[index % PART_COLORS.length] ?? '#ffc2d1',
           }
@@ -226,7 +227,7 @@ export async function loadFinance(householdId: string, userId: string, month: st
     ? {
         id: goalRow.id,
         name: goalRow.name,
-        emoji: goalRow.emoji,
+        icon: goalRow.icon || DEFAULT_ICON,
         target: money(goalRow.target_amount),
         targetDate: goalRow.target_date,
         byUser: Object.entries(
@@ -249,7 +250,7 @@ export async function loadFinance(householdId: string, userId: string, month: st
     categories: (categories.data ?? []).map((category) => ({
       id: category.id,
       name: category.name,
-      emoji: category.emoji,
+      icon: category.icon || DEFAULT_ICON,
       ownerId: category.owner_id,
     })),
     monthExpenses: (monthExpenses.data ?? []).map((expense) => ({
@@ -268,7 +269,7 @@ export async function loadFinance(householdId: string, userId: string, month: st
     funds: (funds.data ?? []).map((fund) => ({
       id: fund.id,
       name: fund.name,
-      emoji: fund.emoji,
+      icon: fund.icon || DEFAULT_ICON,
       target: money(fund.target_amount),
       saved: savedByFund.get(fund.id) ?? 0,
     })),
@@ -279,7 +280,7 @@ export async function loadFinance(householdId: string, userId: string, month: st
       return {
         id: expense.id,
         title: expense.title,
-        emoji: expense.emoji,
+        icon: expense.icon || DEFAULT_ICON,
         amount: money(expense.expected_amount),
         dueDay: expense.due_day,
         isShared: expense.is_shared,
@@ -343,7 +344,7 @@ export async function createCategory(input: {
   householdId: string
   ownerId: string | null
   name: string
-  emoji: string
+  icon: string
 }): Promise<string> {
   const { data, error } = await supabase
     .from('categories')
@@ -351,7 +352,8 @@ export async function createCategory(input: {
       household_id: input.householdId,
       owner_id: input.ownerId,
       name: input.name.trim(),
-      emoji: input.emoji,
+      icon: input.icon,
+      emoji: input.icon,
     })
     .select('id')
     .single()
@@ -390,13 +392,14 @@ export async function createExpense(input: {
 export async function createFund(input: {
   userId: string
   name: string
-  emoji: string
+  icon: string
   target: number
 }): Promise<void> {
   const { error } = await supabase.from('savings_funds').insert({
     user_id: input.userId,
     name: input.name.trim(),
-    emoji: input.emoji,
+    icon: input.icon,
+    emoji: input.icon,
     target_amount: input.target,
   })
   fail(error)
@@ -437,14 +440,15 @@ export async function createExtra(input: {
 export async function createGoal(input: {
   householdId: string
   name: string
-  emoji: string
+  icon: string
   target: number
   targetDate: string | null
 }): Promise<void> {
   const { error } = await supabase.from('shared_goals').insert({
     household_id: input.householdId,
     name: input.name.trim(),
-    emoji: input.emoji,
+    icon: input.icon,
+    emoji: input.icon,
     target_amount: input.target,
     target_date: input.targetDate,
   })
@@ -495,7 +499,7 @@ export async function createFixedExpense(input: {
   ownerId: string | null
   categoryId: string | null
   title: string
-  emoji: string
+  icon: string
   amount: number
   dueDay: number
   isShared: boolean
@@ -505,7 +509,8 @@ export async function createFixedExpense(input: {
     owner_id: input.ownerId,
     category_id: input.categoryId,
     title: input.title.trim(),
-    emoji: input.emoji,
+    icon: input.icon,
+    emoji: input.icon,
     expected_amount: input.amount,
     due_day: input.dueDay,
     is_shared: input.isShared,

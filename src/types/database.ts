@@ -77,6 +77,7 @@ export type Database = {
           user_id: string
           name: string
           emoji: string
+          icon: string
           target_amount: number
           created_at: string
         },
@@ -85,10 +86,11 @@ export type Database = {
           user_id: string
           name: string
           emoji: string
+          icon: string
           target_amount: number
           created_at?: string
         },
-        { name?: string; emoji?: string; target_amount?: number }
+        { name?: string; emoji?: string; icon?: string; target_amount?: number }
       >
       extra_allocations: Table<
         {
@@ -114,6 +116,7 @@ export type Database = {
           owner_id: string | null
           name: string
           emoji: string
+          icon: string
           created_at: string
         },
         {
@@ -122,9 +125,10 @@ export type Database = {
           owner_id: string | null
           name: string
           emoji: string
+          icon: string
           created_at?: string
         },
-        { name?: string; emoji?: string }
+        { name?: string; emoji?: string; icon?: string }
       >
       expenses: Table<
         {
@@ -159,6 +163,7 @@ export type Database = {
           household_id: string
           name: string
           emoji: string
+          icon: string
           target_amount: number
           target_date: string | null
           created_at: string
@@ -168,11 +173,12 @@ export type Database = {
           household_id: string
           name: string
           emoji: string
+          icon: string
           target_amount: number
           target_date?: string | null
           created_at?: string
         },
-        { name?: string; emoji?: string; target_amount?: number; target_date?: string | null }
+        { name?: string; emoji?: string; icon?: string; target_amount?: number; target_date?: string | null }
       >
       goal_contributions: Table<
         {
@@ -201,6 +207,7 @@ export type Database = {
           category_id: string | null
           title: string
           emoji: string
+          icon: string
           expected_amount: number
           due_day: number
           is_shared: boolean
@@ -213,6 +220,7 @@ export type Database = {
           category_id?: string | null
           title: string
           emoji: string
+          icon: string
           expected_amount: number
           due_day: number
           is_shared: boolean

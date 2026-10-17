@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { AppIcon } from '../components/AppIcon.tsx'
 import { MonthSwitcher } from '../components/MonthSwitcher.tsx'
 import { ViewToggle } from '../components/ViewToggle.tsx'
 import { Button, Card, ErrorText } from '../components/ui.tsx'
@@ -9,6 +10,7 @@ import { saveViewMode, settleMonth, undoSettlement } from '../lib/api.ts'
 import { buildSharedCsv, downloadText } from '../lib/csv.ts'
 import { debtCopy, monthSplit } from '../lib/derive.ts'
 import { formatMoney } from '../lib/format.ts'
+import { DEFAULT_ICON } from '../lib/icons.ts'
 import { shortDate } from '../lib/month.ts'
 import type { ViewMode } from '../types/database.ts'
 
@@ -106,7 +108,9 @@ export function SharedScreen() {
                 <tr key={expense.id} className="border-t border-line">
                   <td className="py-1.5">{shortDate(expense.spentOn)}</td>
                   <td>
-                    {category?.emoji} {expense.title}
+                    <span className="inline-flex items-center gap-1">
+                      <AppIcon name={category?.icon || DEFAULT_ICON} /> {expense.title}
+                    </span>
                   </td>
                   <td>{data.names[expense.payerId]}</td>
                   <td className="text-right">{formatMoney(expense.amount)}</td>
@@ -159,11 +163,15 @@ export function SharedScreen() {
         </Button>
       ) : (
         <Button type="button" onClick={() => void settle()} disabled={saving || split.amount === 0 || split.rows.length < 2}>
-          ✓ Saldar mes
+          <span className="inline-flex items-center justify-center gap-2">
+            <AppIcon name="check" /> Saldar mes
+          </span>
         </Button>
       )}
       <Button type="button" variant="alt" className="mt-2" onClick={exportCsv}>
-        ⬇ Exportar a planilla
+        <span className="inline-flex items-center justify-center gap-2">
+          <AppIcon name="download" /> Exportar a planilla
+        </span>
       </Button>
       <ErrorText>{message}</ErrorText>
     </>
