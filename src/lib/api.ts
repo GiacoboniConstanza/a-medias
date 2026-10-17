@@ -1,6 +1,7 @@
 import type { ContributionMode, ViewMode } from '../types/database.ts'
 import { money } from './format.ts'
 import { DEFAULT_ICON } from './icons.ts'
+import type { ExpenseSpan } from './expense-range.ts'
 import { monthEnd } from './month.ts'
 import { supabase } from './supabase.ts'
 
@@ -306,6 +307,51 @@ export async function loadFinance(householdId: string, userId: string, month: st
         }
       : null,
   }
+}
+
+const EXPENSE_COLUMNS = 'id, title, amount, spent_on, is_shared, payer_id, owner_id, category_id, created_at'
+
+function mapExpense(expense: {
+  id: string
+  title: string
+  amount: number
+  spent_on: string
+  is_shared: boolean
+  payer_id: string
+  owner_id: string
+  category_id: string
+}): ExpenseItem {
+  return {
+    id: expense.id,
+    title: expense.title,
+    amount: money(expense.amount),
+    spentOn: expense.spent_on,
+    isShared: expense.is_shared,
+    payerId: expense.payer_id,
+    ownerId: expense.owner_id,
+    categoryId: expense.category_id,
+  }
+}
+
+/** Gastos que pagó esta persona, ya recortados por fecha en la consulta. */
+export async function loadPayerExpenses(payerId: string, span: ExpenseSpan): Promise<ExpenseItem[]> {
+  if (span.kind === 'dates' && span.dates.length === 0) return []
+
+  const ranked = supabase
+    .from('expenses')
+    .select(EXPENSE_COLUMNS)
+    .eq('payer_id', payerId)
+    .order('spent_on', { ascending: true })
+    .order('created_at', { ascending: true })
+
+  const filtered =
+    span.kind === 'dates'
+      ? ranked.in('spent_on', span.dates)
+      : ranked.gte('spent_on', span.from).lte('spent_on', span.to)
+
+  const { data, error } = await filtered
+  fail(error)
+  return (data ?? []).map(mapExpense)
 }
 
 export async function saveViewMode(userId: string, viewMode: ViewMode): Promise<void> {

@@ -30,19 +30,21 @@ export function Chip({
   active = false,
   children,
   onClick,
+  className = '',
 }: {
   active?: boolean
   children: ReactNode
   onClick?: () => void
+  className?: string
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-2xl px-3 text-sm font-semibold ${
+      className={`inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-2xl px-3 text-sm font-semibold ${
         active ? 'bg-primary text-white' : 'border border-line bg-card text-text'
-      }`}
+      } ${className}`}
     >
       {active ? <AppIcon name="check" /> : null}
       {children}

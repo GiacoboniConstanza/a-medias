@@ -1,14 +1,7 @@
 import { AppIcon } from './AppIcon.tsx'
 import { formatMoney } from '../lib/format.ts'
 
-const SLOTS = [
-  { left: 8, top: 12, color: '#F7B7C4' },
-  { left: 188, top: 28, color: '#C7DDAE' },
-  { left: 28, top: 214, color: '#DEC59E' },
-  { left: 168, top: 196, color: '#F4C542' },
-  { left: 250, top: 188, color: '#A79BCB' },
-  { left: 196, top: 300, color: '#C4866D' },
-]
+const COLORS = ['#F7B7C4', '#C7DDAE', '#DEC59E', '#F4C542', '#A79BCB', '#C4866D']
 
 export type BubbleItem = {
   id: string
@@ -17,37 +10,42 @@ export type BubbleItem = {
   amount: number
 }
 
-export function Bubbles({ items }: { items: BubbleItem[] }) {
-  const sorted = [...items].sort((a, b) => b.amount - a.amount).slice(0, SLOTS.length)
+export function Bubbles({
+  items,
+  activeIds,
+  onPick,
+}: {
+  items: BubbleItem[]
+  activeIds: string[]
+  onPick: (id: string) => void
+}) {
+  const sorted = [...items].sort((a, b) => b.amount - a.amount)
   const max = sorted[0]?.amount ?? 1
-  if (sorted.length === 0) {
-    return <p className="py-16 text-center font-bold text-muted">Todavía no anotaste gastos este mes.</p>
-  }
+  const filtering = activeIds.length > 0
   return (
-    <div className="relative h-[430px]">
+    <div className="flex flex-wrap items-center justify-center gap-3">
       {sorted.map((item, index) => {
-        const slot = SLOTS[index]
-        if (!slot) return null
-        const size = 68 + Math.sqrt(item.amount / max) * 122
+        const picked = activeIds.includes(item.id)
+        const dimmed = filtering && !picked
+        const size = 120 + Math.round(Math.sqrt(item.amount / max) * 28)
         return (
-          <div
+          <button
             key={item.id}
-            className="absolute flex flex-col items-center justify-center rounded-full text-center font-extrabold text-text"
-            style={{
-              width: size,
-              height: size,
-              left: slot.left,
-              top: slot.top,
-              background: slot.color,
-              fontSize: Math.max(11, size / 11),
-            }}
+            type="button"
+            onClick={() => onPick(item.id)}
+            aria-pressed={picked}
+            aria-label={`${item.label}, ${formatMoney(item.amount)}`}
+            className={`relative flex shrink-0 flex-col items-center justify-center rounded-full px-3 text-center font-extrabold text-text ${
+              dimmed ? 'after:absolute after:inset-0 after:rounded-full after:bg-card/55' : 'shadow-soft'
+            } ${picked ? 'ring-2 ring-primary ring-offset-2 ring-offset-card' : ''}`}
+            style={{ width: size, height: size, background: COLORS[index % COLORS.length], minWidth: 120, minHeight: 120 }}
           >
-            <span style={{ fontSize: Math.max(18, size / 4.2) }}>
+            <span className="relative z-10 text-xl leading-none">
               <AppIcon name={item.icon} />
             </span>
-            <span>{item.label}</span>
-            <small className="text-[11px] font-semibold">{formatMoney(item.amount)}</small>
-          </div>
+            <span className="relative z-10 mt-1 line-clamp-2 text-sm leading-tight">{item.label}</span>
+            <span className="relative z-10 text-sm font-semibold">{formatMoney(item.amount)}</span>
+          </button>
         )
       })}
     </div>
