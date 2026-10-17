@@ -1,37 +1,30 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { Bubbles } from '../components/Bubbles.tsx'
+import { FilterSheet, PERIODS, type ExpenseFilters } from '../components/FilterSheet.tsx'
 import { MonthSwitcher } from '../components/MonthSwitcher.tsx'
 import { ViewToggle } from '../components/ViewToggle.tsx'
-import { Card, Chip, inputClass } from '../components/ui.tsx'
+import { Card } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
 import { useMonth } from '../context/MonthProvider.tsx'
 import { loadPayerExpenses, saveViewMode, type ExpenseItem } from '../lib/api.ts'
-import { expenseSpan, type DatePreset } from '../lib/expense-range.ts'
+import { expenseSpan } from '../lib/expense-range.ts'
 import { formatMoney } from '../lib/format.ts'
 import { DEFAULT_ICON } from '../lib/icons.ts'
 import { monthEnd, shortDate } from '../lib/month.ts'
 import type { ViewMode } from '../types/database.ts'
 
-const DATE_FILTERS: { id: DatePreset; label: string }[] = [
-  { id: 'month', label: 'Todo el mes' },
-  { id: 'week1', label: 'Semana 1' },
-  { id: 'week2', label: 'Semana 2' },
-  { id: 'week3', label: 'Semana 3' },
-  { id: 'rest', label: 'Semana 4/5' },
-  { id: 'weekends', label: 'Fines de semana' },
-  { id: 'custom', label: 'Elegir días' },
-]
-
 export function BreakdownScreen() {
   const { profile, refreshProfile } = useAuth()
   const { month } = useMonth()
   const { data, loading, error } = useFinance()
-  const [preset, setPreset] = useState<DatePreset>('month')
+  const [preset, setPreset] = useState<ExpenseFilters['preset']>('month')
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
   const [categoryIds, setCategoryIds] = useState<string[]>([])
+  const [highlightId, setHighlightId] = useState<string | null>(null)
+  const [sheetOpen, setSheetOpen] = useState(false)
   const [expenses, setExpenses] = useState<ExpenseItem[]>([])
   const [listLoading, setListLoading] = useState(true)
   const [listError, setListError] = useState('')
@@ -75,25 +68,30 @@ export function BreakdownScreen() {
   if (!data) return <p className="py-16 text-center font-bold text-alert-ink">{error}</p>
 
   const categories = data.categories.filter((category) => category.ownerId === null || category.ownerId === me.id)
+  const friendly = me.viewMode === 'friendly'
   const source = listLoading ? [] : expenses
-  const visible = categoryIds.length === 0 ? source : source.filter((expense) => categoryIds.includes(expense.categoryId))
-  const totals = new Map<string, { icon: string; label: string; amount: number }>()
-  for (const expense of source) {
+  const visible = friendly || categoryIds.length === 0 ? source : source.filter((expense) => categoryIds.includes(expense.categoryId))
+  const bubbles = [...source.reduce((map, expense) => {
     const category = data.categories.find((item) => item.id === expense.categoryId)
-    const current = totals.get(expense.categoryId) ?? {
+    const current = map.get(expense.categoryId) ?? {
       icon: category?.icon || DEFAULT_ICON,
       label: category?.name ?? 'Otros',
       amount: 0,
     }
     current.amount += expense.amount
-    totals.set(expense.categoryId, current)
-  }
-  const bubbles = [...totals.entries()].map(([id, item]) => ({ id, ...item }))
+    map.set(expense.categoryId, current)
+    return map
+  }, new Map<string, { icon: string; label: string; amount: number }>()).entries()].map(([id, item]) => ({ id, ...item }))
   const shared = visible.filter((expense) => expense.isShared).reduce((sum, expense) => sum + expense.amount, 0)
   const privateSpent = visible.filter((expense) => !expense.isShared).reduce((sum, expense) => sum + expense.amount, 0)
   const total = shared + privateSpent
   const sharedWidth = total > 0 ? (shared / total) * 100 : 0
   const privateWidth = total > 0 ? (privateSpent / total) * 100 : 0
+  const periodTotal = source.reduce((sum, expense) => sum + expense.amount, 0)
+  const periodShared = source.filter((expense) => expense.isShared).reduce((sum, expense) => sum + expense.amount, 0)
+  const periodPrivate = periodTotal - periodShared
+  const periodSharedWidth = periodTotal > 0 ? (periodShared / periodTotal) * 100 : 0
+  const periodPrivateWidth = periodTotal > 0 ? (periodPrivate / periodTotal) * 100 : 0
   const top = [...visible.reduce((map, expense) => {
     const category = data.categories.find((item) => item.id === expense.categoryId)
     const current = map.get(expense.categoryId) ?? { label: category?.name ?? 'Otros', amount: 0 }
@@ -102,27 +100,28 @@ export function BreakdownScreen() {
     return map
   }, new Map<string, { label: string; amount: number }>()).values()].sort((a, b) => b.amount - a.amount)[0]
   const selectedNames = categories.filter((category) => categoryIds.includes(category.id)).map((category) => category.name)
-  const friendly = me.viewMode === 'friendly'
+  const summaryParts: string[] = []
+  if (preset !== 'month') {
+    const label = PERIODS.find((period) => period.id === preset)?.label ?? 'Período'
+    summaryParts.push(preset === 'custom' ? `${shortDate(customFrom || month)} – ${shortDate(customTo || end)}` : label)
+  }
+  if (!friendly) summaryParts.push(...selectedNames)
+  const activeCount = (preset === 'month' ? 0 : 1) + (friendly ? 0 : categoryIds.length)
   const filteredEmpty = !listLoading && visible.length === 0
+  const filters: ExpenseFilters = { preset, customFrom, customTo, categoryIds }
 
-  function choosePreset(next: DatePreset) {
-    setPreset(next)
-    if (next !== 'custom') return
-    setCustomFrom((current) => (current >= month && current <= end ? current : month))
-    setCustomTo((current) => (current >= month && current <= end ? current : end))
-  }
-
-  function toggleCategory(id: string) {
-    setCategoryIds((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]))
-  }
-
-  function pickBubble(id: string) {
-    setCategoryIds((current) => (current.length === 1 && current[0] === id ? [] : [id]))
+  function applyFilters(next: ExpenseFilters) {
+    setPreset(next.preset)
+    setCustomFrom(next.customFrom)
+    setCustomTo(next.customTo)
+    if (!friendly) setCategoryIds(next.categoryIds)
+    setSheetOpen(false)
   }
 
   function clearFilters() {
     setPreset('month')
     setCategoryIds([])
+    setHighlightId(null)
   }
 
   async function changeMode(mode: ViewMode) {
@@ -134,94 +133,72 @@ export function BreakdownScreen() {
     <>
       <p className="text-sm font-bold text-muted">Hola, {me.displayName}</p>
       <MonthSwitcher heading />
-      <ViewToggle mode={me.viewMode} onChange={(mode) => void changeMode(mode)} className="mb-3" />
-
-      <div className="mb-3 flex gap-2 overflow-x-auto pb-1" role="group" aria-label="Período">
-        {DATE_FILTERS.map((filter) => (
-          <Chip key={filter.id} active={preset === filter.id} onClick={() => choosePreset(filter.id)}>
-            {filter.label}
-          </Chip>
-        ))}
+      <div className="mb-3 flex items-center gap-2">
+        <ViewToggle mode={me.viewMode} onChange={(mode) => void changeMode(mode)} className="min-w-0 flex-1" />
+        <button
+          type="button"
+          onClick={() => setSheetOpen(true)}
+          aria-haspopup="dialog"
+          aria-expanded={sheetOpen}
+          aria-label={activeCount > 0 ? `Filtros, ${activeCount} activos` : 'Filtros'}
+          className={`relative grid h-11 w-11 shrink-0 place-items-center rounded-full border text-lg ${
+            activeCount > 0 ? 'border-primary bg-primary text-white' : 'border-[#E8DCCB] bg-card text-primary'
+          }`}
+        >
+          <AppIcon name="sliders" />
+          {activeCount > 0 ? (
+            <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-card px-1 text-xs font-extrabold text-primary ring-2 ring-primary">
+              {activeCount}
+            </span>
+          ) : null}
+        </button>
       </div>
 
-      {preset === 'custom' ? (
+      {activeCount > 0 ? (
+        <p className="mb-3 text-sm font-semibold leading-6 text-muted">
+          Mostrando: {summaryParts.join(' · ')}{' '}
+          <button type="button" onClick={clearFilters} className="ml-1 inline-flex min-h-11 items-center font-extrabold text-primary">
+            Limpiar
+          </button>
+        </p>
+      ) : null}
+
+      {listError ? <p className="mb-3 text-center text-sm font-bold text-alert-ink">{listError}</p> : null}
+
+      {!friendly ? (
         <Card>
-          <div className="grid grid-cols-2 gap-2">
-            <label className="block text-sm font-bold text-muted">
-              Desde
-              <input
-                type="date"
-                min={month}
-                max={end}
-                value={customFrom || month}
-                onChange={(event) => {
-                  const next = event.target.value
-                  setCustomFrom(next)
-                  setCustomTo((current) => ((current || end) < next ? next : current))
-                }}
-                className={`mt-1 ${inputClass}`}
-              />
-            </label>
-            <label className="block text-sm font-bold text-muted">
-              Hasta
-              <input
-                type="date"
-                min={month}
-                max={end}
-                value={customTo || end}
-                onChange={(event) => {
-                  const next = event.target.value
-                  setCustomTo(next)
-                  setCustomFrom((current) => ((current || month) > next ? next : current))
-                }}
-                className={`mt-1 ${inputClass}`}
-              />
-            </label>
-          </div>
+          <h2 className="font-display text-sm font-semibold text-muted">Gastaste</h2>
+          {listLoading ? (
+            <p className="mt-2 font-bold text-muted">Cargando…</p>
+          ) : (
+            <>
+              <p className="mt-1 font-display text-3xl font-bold leading-none">{formatMoney(total)}</p>
+              <div className="my-2 flex h-2.5 overflow-hidden rounded-full bg-sand" aria-hidden="true">
+                <i className="h-full bg-lavender" style={{ width: `${sharedWidth}%` }} />
+                <i className="h-full bg-blush" style={{ width: `${privateWidth}%` }} />
+              </div>
+              <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 text-sm font-semibold text-muted">
+                <span className="inline-flex items-center gap-1">
+                  <AppIcon name="circle" className="text-[8px] text-lavender" /> Compartidos {formatMoney(shared)}
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <AppIcon name="circle" className="text-[8px] text-blush" /> Privados {formatMoney(privateSpent)}
+                </span>
+              </div>
+            </>
+          )}
         </Card>
       ) : null}
 
-      <div className="mb-3 flex gap-2 overflow-x-auto pb-1" role="group" aria-label="Categorías">
-        <Chip active={categoryIds.length === 0} onClick={() => setCategoryIds([])}>
-          Todas
-        </Chip>
-        {categories.map((category) => (
-          <Chip key={category.id} active={categoryIds.includes(category.id)} onClick={() => toggleCategory(category.id)}>
-            <AppIcon name={category.icon} /> {category.name}
-          </Chip>
-        ))}
-      </div>
-
-      <Card>
-        <h2 className="font-display text-sm font-semibold text-muted">Gastaste</h2>
-        {listLoading ? (
-          <p className="mt-2 font-bold text-muted">Cargando…</p>
-        ) : (
-          <>
-            <p className="mt-1 font-display text-3xl font-bold leading-none">{formatMoney(total)}</p>
-            <div className="my-2 flex h-2.5 overflow-hidden rounded-full bg-sand" aria-hidden="true">
-              <i className="h-full bg-lavender" style={{ width: `${sharedWidth}%` }} />
-              <i className="h-full bg-blush" style={{ width: `${privateWidth}%` }} />
-            </div>
-            <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 text-sm font-semibold text-muted">
-              <span className="inline-flex items-center gap-1">
-                <AppIcon name="circle" className="text-[8px] text-lavender" /> Compartidos {formatMoney(shared)}
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <AppIcon name="circle" className="text-[8px] text-blush" /> Privados {formatMoney(privateSpent)}
-              </span>
-            </div>
-          </>
-        )}
-      </Card>
-
-      {listError ? <p className="mb-3 text-center text-sm font-bold text-alert-ink">{listError}</p> : null}
+      {friendly && listLoading ? <p className="py-10 text-center font-bold text-muted">Cargando…</p> : null}
 
       {filteredEmpty ? (
         <Card className="py-8 text-center">
           <SoftEmpty />
           <p className="font-display text-lg font-semibold">Nada por acá</p>
-          <p className="text-sm font-semibold text-muted">Con este período y estas categorías no hay gastos.</p>
+          <p className="text-sm font-semibold text-muted">
+            {friendly ? 'Con este período no hay gastos.' : 'Con este período y estas categorías no hay gastos.'}
+          </p>
           <button type="button" onClick={clearFilters} className="mt-3 inline-flex min-h-11 items-center font-semibold text-primary">
             Ver todo el mes
           </button>
@@ -229,17 +206,20 @@ export function BreakdownScreen() {
       ) : null}
 
       {!listLoading && !filteredEmpty && friendly ? (
-        <Card>
-          {categoryIds.length > 0 ? (
-            <div className="mb-3 text-center">
-              <p className="text-sm font-bold text-muted">
-                {selectedNames.length === 1 ? selectedNames[0] : 'Categorías elegidas'}
-              </p>
-              <p className="font-display text-3xl font-bold leading-none">{formatMoney(total)}</p>
+        <>
+          <Bubbles
+            items={bubbles}
+            activeId={highlightId}
+            onPick={(id) => setHighlightId((current) => (current === id ? null : id))}
+          />
+          <div className="mb-4 mt-2">
+            <p className="text-sm font-semibold text-muted">Gastaste {formatMoney(periodTotal)} este mes</p>
+            <div className="mt-1.5 flex h-1 overflow-hidden rounded-full bg-sand" aria-hidden="true">
+              <i className="h-full bg-lavender" style={{ width: `${periodSharedWidth}%` }} />
+              <i className="h-full bg-blush" style={{ width: `${periodPrivateWidth}%` }} />
             </div>
-          ) : null}
-          <Bubbles items={bubbles} activeIds={categoryIds} onPick={pickBubble} />
-        </Card>
+          </div>
+        </>
       ) : null}
 
       {!listLoading && !filteredEmpty && !friendly ? (
@@ -278,6 +258,17 @@ export function BreakdownScreen() {
           </div>
         </Card>
       ) : null}
+
+      <FilterSheet
+        open={sheetOpen}
+        friendly={friendly}
+        month={month}
+        end={end}
+        categories={categories}
+        initial={filters}
+        onClose={() => setSheetOpen(false)}
+        onApply={applyFilters}
+      />
     </>
   )
 }

@@ -23,3 +23,38 @@ input {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
+
+@keyframes bubble-enter {
+  from {
+    opacity: 0;
+    scale: 0.84;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes bubble-float {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -4px;
+  }
+}
+
+.bubble-motion {
+  animation-name: bubble-enter, bubble-float;
+  animation-duration: 0.45s, 5s;
+  animation-timing-function: ease-out, ease-in-out;
+  animation-iteration-count: 1, infinite;
+  animation-fill-mode: both, none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bubble-motion {
+    animation: none !important;
+  }
+}
