@@ -3,6 +3,7 @@ import { AppIcon } from '../components/AppIcon.tsx'
 import { Bubbles } from '../components/Bubbles.tsx'
 import { FilterSheet, PERIODS, type ExpenseFilters } from '../components/FilterSheet.tsx'
 import { MonthSwitcher } from '../components/MonthSwitcher.tsx'
+import { SectionHeader } from '../components/SectionHeader.tsx'
 import { ViewToggle } from '../components/ViewToggle.tsx'
 import { Card } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
@@ -131,7 +132,7 @@ export function BreakdownScreen() {
 
   return (
     <>
-      <p className="text-sm font-bold text-muted">Hola, {me.displayName}</p>
+      <SectionHeader icon="receipt" title="Gastos" />
       <MonthSwitcher heading />
       <div className="mb-3 flex items-center gap-2">
         <ViewToggle mode={me.viewMode} onChange={(mode) => void changeMode(mode)} className="min-w-0 flex-1" />

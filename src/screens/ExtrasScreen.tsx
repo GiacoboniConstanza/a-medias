@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { ExtraSheet, FundSheet, GustoSheet, MoveSheet } from '../components/bag/forms.tsx'
 import { MonthSwitcher } from '../components/MonthSwitcher.tsx'
+import { AudiencePill, SectionHeader } from '../components/SectionHeader.tsx'
 import { Card, Progress } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
@@ -65,13 +66,8 @@ export function ExtrasScreen() {
 
   return (
     <>
-      <header className="mb-1 flex items-center justify-between gap-3">
-        <h1 className="font-display text-[1.75rem] font-bold leading-tight">Bolsa de extras</h1>
-        <span className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-2xl bg-card px-3 text-sm font-semibold text-text shadow-soft">
-          <AppIcon name="lock" /> Solo vos
-        </span>
-      </header>
-      <MonthSwitcher />
+      <SectionHeader icon="bag-shopping" title="Bolsa de extras" aside={<AudiencePill icon="lock">Solo vos</AudiencePill>} />
+      <MonthSwitcher heading />
 
       <Card>
         <h2 className="font-display text-sm font-semibold text-muted">Tu bolsa este mes</h2>

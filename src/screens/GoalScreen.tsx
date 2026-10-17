@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { IconPicker } from '../components/IconPicker.tsx'
 import { amountFromDigits, applyKey, Keypad } from '../components/Keypad.tsx'
+import { AudiencePill, SectionHeader } from '../components/SectionHeader.tsx'
 import { Button, Card, Chip, ErrorText } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
@@ -84,13 +85,12 @@ export function GoalScreen() {
 
   return (
     <>
-      <header className="mb-3 flex items-center justify-between">
-        <span className="font-display text-xl font-semibold text-primary">A Medias</span>
-        <span className="inline-flex min-h-11 items-center gap-1.5 rounded-2xl bg-card px-3 text-sm font-semibold text-text shadow-soft">
-          <AppIcon name="user-group" /> Las dos
-        </span>
-      </header>
-      <h1 className="mb-3 font-display text-[22px] font-semibold">Meta compartida</h1>
+      <SectionHeader
+        className="mb-3"
+        icon="umbrella-beach"
+        title="Meta compartida"
+        aside={<AudiencePill icon="user-group">Las dos</AudiencePill>}
+      />
       {data.goal ? (
         <>
           <Card className="bg-lavender/20 text-center">

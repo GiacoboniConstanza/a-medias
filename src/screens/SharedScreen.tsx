@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { MonthSwitcher } from '../components/MonthSwitcher.tsx'
+import { SectionHeader } from '../components/SectionHeader.tsx'
 import { ViewToggle } from '../components/ViewToggle.tsx'
 import { Button, Card, ErrorText } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
@@ -85,17 +86,9 @@ export function SharedScreen() {
 
   return (
     <>
-      <header className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <span className="font-display text-xl font-semibold text-primary">A Medias</span>
-        <ViewToggle mode={profile.viewMode} onChange={(mode) => void changeMode(mode)} />
-      </header>
-      <h1 className="mb-1 flex items-center gap-2 font-display text-xl font-semibold">
-        <span className="grid h-9 w-9 place-items-center rounded-full bg-lavender text-text">
-          <AppIcon name="user-group" />
-        </span>
-        Compartidos
-      </h1>
-      <MonthSwitcher />
+      <SectionHeader icon="user-group" title="Compartidos" />
+      <MonthSwitcher heading />
+      <ViewToggle mode={profile.viewMode} onChange={(mode) => void changeMode(mode)} className="mb-3" />
       <Card className="overflow-x-auto">
         <table className="w-full border-collapse text-left text-sm">
           <thead>
