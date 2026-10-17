@@ -51,7 +51,7 @@ export function HomeScreen() {
 
   return (
     <>
-      <p className="text-sm font-bold text-muted">Hola, {profile.displayName}</p>
+      <p className="mb-4 text-sm font-bold text-muted">Hola, {profile.displayName}</p>
       <MonthSwitcher heading />
       <ViewToggle mode={profile.viewMode} onChange={(mode) => void changeMode(mode)} className="mb-3" />
 

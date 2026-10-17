@@ -85,12 +85,7 @@ export function GoalScreen() {
 
   return (
     <>
-      <SectionHeader
-        className="mb-3"
-        icon="umbrella-beach"
-        title="Meta compartida"
-        aside={<AudiencePill icon="user-group">Las dos</AudiencePill>}
-      />
+      <SectionHeader icon="umbrella-beach" title="Meta compartida" aside={<AudiencePill icon="user-group">Las dos</AudiencePill>} />
       {data.goal ? (
         <>
           <Card className="bg-lavender/20 text-center">
