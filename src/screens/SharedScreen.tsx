@@ -22,8 +22,8 @@ export function SharedScreen() {
   const [saving, setSaving] = useState(false)
 
   if (!profile) return null
-  if (loading && !data) return <p className="py-16 text-center font-extrabold text-muted">Cargando…</p>
-  if (!data) return <p className="py-16 text-center font-extrabold text-bad">{error}</p>
+  if (loading && !data) return <p className="py-16 text-center font-bold text-muted">Cargando…</p>
+  if (!data) return <p className="py-16 text-center font-bold text-alert-ink">{error}</p>
 
   const shared = data.monthExpenses.filter((expense) => expense.isShared)
   const split = monthSplit(data)
@@ -85,11 +85,16 @@ export function SharedScreen() {
 
   return (
     <>
-      <header className="mb-2 flex items-center justify-between">
-        <span className="text-xl font-black text-brand">A Medias</span>
+      <header className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <span className="font-display text-xl font-semibold text-primary">A Medias</span>
         <ViewToggle mode={profile.viewMode} onChange={(mode) => void changeMode(mode)} />
       </header>
-      <h1 className="text-xl font-extrabold">Compartidos</h1>
+      <h1 className="mb-1 flex items-center gap-2 font-display text-xl font-semibold">
+        <span className="grid h-9 w-9 place-items-center rounded-full bg-lavender text-text">
+          <AppIcon name="user-group" />
+        </span>
+        Compartidos
+      </h1>
       <MonthSwitcher />
       <Card className="overflow-x-auto">
         <table className="w-full border-collapse text-left text-sm">
@@ -129,7 +134,7 @@ export function SharedScreen() {
       <Card>
         <b className="text-sm">Reparto por sueldo base</b>
         <p className="text-xs text-muted">Los extras no entran en este porcentaje.</p>
-        {split.usedEvenSplit ? <p className="text-xs font-bold text-warn">Falta algún sueldo base: por ahora partimos en partes iguales.</p> : null}
+        {split.usedEvenSplit ? <p className="text-xs font-bold text-alert-ink">Falta algún sueldo base: por ahora partimos en partes iguales.</p> : null}
         <table className="mt-2 w-full border-collapse text-left text-sm">
           <thead>
             <tr className="text-muted">
@@ -152,7 +157,7 @@ export function SharedScreen() {
             ))}
           </tbody>
         </table>
-        <p className="mt-2 font-extrabold text-brand">Saldo: {sentence}</p>
+        <p className="mt-2 font-display text-lg font-semibold text-primary">Saldo: {sentence}</p>
         {data.settlement ? (
           <p className="mt-1 text-sm font-bold text-good">Mes saldado por {formatMoney(data.settlement.amount)}.</p>
         ) : null}

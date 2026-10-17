@@ -18,8 +18,8 @@ export function BreakdownScreen() {
   const [open, setOpen] = useState<string | null>(null)
   if (!profile) return null
   const me = profile
-  if (loading && !data) return <p className="py-16 text-center font-extrabold text-muted">Cargando…</p>
-  if (!data) return <p className="py-16 text-center font-extrabold text-bad">{error}</p>
+  if (loading && !data) return <p className="py-16 text-center font-bold text-muted">Cargando…</p>
+  if (!data) return <p className="py-16 text-center font-bold text-alert-ink">{error}</p>
 
   const mine = data.monthExpenses.filter((expense) => expense.payerId === me.id)
   const totals = new Map<string, { icon: string; label: string; amount: number }>()
@@ -43,12 +43,12 @@ export function BreakdownScreen() {
 
   return (
     <>
-      <header className="mb-3 flex items-center justify-between">
-        <span className="text-xl font-black text-brand">A Medias</span>
+      <header className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <span className="font-display text-xl font-semibold text-primary">A Medias</span>
         <ViewToggle mode={me.viewMode} onChange={(mode) => void changeMode(mode)} />
       </header>
-      <h1 className="text-[22px] font-extrabold">¿En qué se me fue?</h1>
-      <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-ink">
+      <h1 className="font-display text-[22px] font-semibold">¿En qué se me fue?</h1>
+      <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-text">
         <AppIcon name="lock" /> Solo vos ves tus privados
       </p>
       <MonthSwitcher />
@@ -86,7 +86,7 @@ export function BreakdownScreen() {
         </Card>
       )}
       {top ? (
-        <Card className="bg-warn-bg">
+        <Card className="bg-warn/25">
           <button type="button" className="w-full text-left" onClick={() => setOpen(open === top.id ? null : top.id)}>
             <b className="inline-flex items-center gap-1">
               <AppIcon name="lightbulb" /> Este mes:

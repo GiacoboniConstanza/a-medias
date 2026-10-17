@@ -11,7 +11,7 @@ import { formatMoney } from '../lib/format.ts'
 import { gustosStatus } from '../lib/gustos.ts'
 import { shortDate, todayISO } from '../lib/month.ts'
 
-const FUND_COLORS = ['#9ec9ff', '#8fe3b0', '#c9b8ff', '#ffd36e', '#ffc2d1']
+const FUND_COLORS = ['#C7DDAE', '#A79BCB', '#F7B7C4', '#F4C542', '#DEC59E']
 
 export function ExtrasScreen() {
   const { profile } = useAuth()
@@ -29,8 +29,8 @@ export function ExtrasScreen() {
   const [saving, setSaving] = useState(false)
 
   if (!profile?.householdId) return null
-  if (loading && !data) return <p className="py-16 text-center font-extrabold text-muted">Cargando…</p>
-  if (!data) return <p className="py-16 text-center font-extrabold text-bad">{error}</p>
+  if (loading && !data) return <p className="py-16 text-center font-bold text-muted">Cargando…</p>
+  if (!data) return <p className="py-16 text-center font-bold text-alert-ink">{error}</p>
 
   const userId = profile.id
   const householdId = profile.householdId
@@ -109,23 +109,23 @@ export function ExtrasScreen() {
   return (
     <>
       <header className="mb-3 flex items-center justify-between">
-        <span className="text-xl font-black text-brand">A Medias</span>
-        <span className="inline-flex min-h-11 items-center gap-1.5 rounded-2xl border-2 border-edge bg-white px-3 text-sm font-semibold text-ink">
+        <span className="font-display text-xl font-semibold text-primary">A Medias</span>
+        <span className="inline-flex min-h-11 items-center gap-1.5 rounded-2xl bg-card px-3 text-sm font-semibold text-text shadow-soft">
           <AppIcon name="lock" /> Solo vos
         </span>
       </header>
-      <h1 className="flex items-center gap-2 text-[22px] font-extrabold">
-        Bolsa de extras <AppIcon name="bag-shopping" className="text-brand" />
+      <h1 className="flex items-center gap-2 font-display text-[22px] font-semibold">
+        Bolsa de extras <AppIcon name="bag-shopping" className="text-primary" />
       </h1>
       <p className="mb-2 text-sm text-muted">Los extras no entran en el porcentaje de los gastos compartidos.</p>
       <MonthSwitcher />
       {data.extrasThisMonth.map((extra) => (
-        <Card key={extra.id} className="bg-[#fff1c9]">
+        <Card key={extra.id} className="bg-warn/25">
           <p className="text-sm text-muted">
             {extra.label} · {shortDate(extra.receivedOn)}
           </p>
-          <p className="text-3xl font-black">{formatMoney(extra.amount)}</p>
-          <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-ink">
+          <p className="font-display text-3xl font-bold">{formatMoney(extra.amount)}</p>
+          <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-text">
             <span>Repartido:</span>
             {extra.parts.length === 0 ? <span>sin repartir</span> : null}
             {extra.parts.map((part) => (
@@ -143,7 +143,7 @@ export function ExtrasScreen() {
       ))}
       <Card>
         <b className="inline-flex items-center gap-2">
-          Mis fondos de ahorro <AppIcon name="piggy-bank" className="text-brand" />
+          Mis fondos de ahorro <AppIcon name="piggy-bank" className="text-primary" />
         </b>
         {data.funds.length === 0 ? <p className="mt-2 text-sm text-muted">Todavía no armaste fondos.</p> : null}
         {data.funds.map((fund, index) => (
@@ -166,7 +166,7 @@ export function ExtrasScreen() {
         </Button>
         {creatingFund ? (
           <div className="mt-3">
-            <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Nombre" className="mb-2 w-full rounded-2xl bg-chip px-3 py-2 font-bold" />
+            <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Nombre" className="mb-2 min-h-11 w-full rounded-2xl bg-sand px-3 py-2 font-bold text-text" />
             <IconPicker value={icon} onChange={setIcon} />
             <button type="button" className="mt-2 font-extrabold" onClick={() => setActiveFund('target')}>
               Meta: {formatMoney(amountFromDigits(targetDigits))}
@@ -187,20 +187,20 @@ export function ExtrasScreen() {
           </span>
         </div>
         <div className="mt-2">
-          <Progress value={gustosUsed} color="#ff8fab" />
+          <Progress value={gustosUsed} color="#F7B7C4" />
         </div>
       </Card>
       {gustos.level === 'low' ? (
-        <Card className="bg-bad-bg text-sm">
-          <b className="inline-flex items-center gap-1 text-bad">
+        <Card className="bg-debt text-sm">
+          <b className="inline-flex items-center gap-1 text-alert-ink">
             <AppIcon name="triangle-exclamation" /> Ojo:
           </b>{' '}
           te quedan {formatMoney(gustos.remaining)} de gustos. Si seguís, tocás tus fondos.
         </Card>
       ) : null}
       {gustos.level === 'over' ? (
-        <Card className="bg-bad-bg text-sm">
-          <b className="inline-flex items-center gap-1 text-bad">
+        <Card className="bg-debt text-sm">
+          <b className="inline-flex items-center gap-1 text-alert-ink">
             <AppIcon name="triangle-exclamation" /> Ojo:
           </b>{' '}
           se te acabaron los gustos y ya estás usando {formatMoney(Math.abs(gustos.remaining))} de tus fondos.
@@ -208,12 +208,12 @@ export function ExtrasScreen() {
       ) : null}
       <Card>
         <b>Cargar un extra</b>
-        <input value={label} onChange={(event) => setLabel(event.target.value)} placeholder="Incentivo, guardia, venta…" className="mt-2 w-full rounded-2xl bg-chip px-3 py-2 font-bold" />
+        <input value={label} onChange={(event) => setLabel(event.target.value)} placeholder="Incentivo, guardia, venta…" className="mt-2 min-h-11 w-full rounded-2xl bg-sand px-3 py-2 font-bold text-text" />
         <label className="mt-2 block text-sm font-bold text-muted">
           Fecha
-          <input type="date" value={receivedOn} onChange={(event) => setReceivedOn(event.target.value)} className="mt-1 w-full rounded-2xl bg-white px-3 py-2 font-bold text-ink" />
+          <input type="date" value={receivedOn} onChange={(event) => setReceivedOn(event.target.value)} className="mt-1 min-h-11 w-full rounded-2xl bg-sand px-3 py-2 font-bold text-text" />
         </label>
-        <button type="button" className="mt-2 text-2xl font-black" onClick={() => setActiveFund('extra')}>
+        <button type="button" className="mt-2 min-h-11 font-display text-2xl font-bold" onClick={() => setActiveFund('extra')}>
           {formatMoney(amount)}
         </button>
         {data.funds.map((fund) => (

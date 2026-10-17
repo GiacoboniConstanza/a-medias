@@ -27,8 +27,8 @@ export function RemindersScreen() {
   const now = new Date()
 
   if (!profile?.householdId) return null
-  if (loading && !data) return <p className="py-16 text-center font-extrabold text-muted">Cargando…</p>
-  if (!data) return <p className="py-16 text-center font-extrabold text-bad">{error}</p>
+  if (loading && !data) return <p className="py-16 text-center font-bold text-muted">Cargando…</p>
+  if (!data) return <p className="py-16 text-center font-bold text-alert-ink">{error}</p>
 
   const today = todayISO(now)
   const loggedToday = data.lastLoggedOn === today
@@ -113,24 +113,24 @@ export function RemindersScreen() {
 
   return (
     <>
-      <div className="-mx-5 -mt-6 mb-4 bg-gradient-to-b from-[#2e2850] to-[#4b3f7a] px-5 pb-8 pt-8 text-center text-white">
-        <p className="text-5xl font-light">
+      <div className="-mx-5 -mt-6 mb-4 bg-primary px-5 pb-8 pt-8 text-center text-white">
+        <p className="font-display text-5xl font-semibold">
           {now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
         </p>
-        <p className="text-sm opacity-80">{longDate(now)}</p>
+        <p className="text-sm font-semibold text-white">{longDate(now)}</p>
       </div>
       {current && !loggedToday && !dismissed ? (
-        <Card className="bg-white/90">
-          <p className="inline-flex items-center gap-1 text-xs font-semibold text-ink">
+        <Card>
+          <p className="inline-flex items-center gap-1 text-xs font-semibold text-muted">
             <AppIcon name="mug-hot" /> A MEDIAS · ahora
           </p>
           <b>¿Gastaste algo hoy?</b>
-          <p className="text-sm font-semibold text-ink">Anotalo en dos toques así no se te escapa.</p>
+          <p className="text-sm font-semibold text-text">Anotalo en dos toques así no se te escapa.</p>
           <div className="mt-2">
-            <Link to="/cargar" className="mr-1 inline-flex min-h-11 items-center rounded-2xl border-2 border-active bg-active px-3 text-sm font-semibold text-white">
+            <Link to="/cargar" className="mr-1 inline-flex min-h-11 items-center rounded-2xl bg-primary px-3 text-sm font-semibold text-white">
               Sí, cargar
             </Link>
-            <button type="button" className="min-h-11 rounded-2xl border-2 border-edge bg-white px-3 text-sm font-semibold text-ink" onClick={() => setDismissed(true)}>
+            <button type="button" className="min-h-11 rounded-2xl bg-sand px-3 text-sm font-semibold text-text" onClick={() => setDismissed(true)}>
               Hoy no
             </button>
           </div>
@@ -138,7 +138,7 @@ export function RemindersScreen() {
       ) : null}
       <Card>
         <b className="inline-flex items-center gap-2 text-[17px]">
-          <AppIcon name="calendar-days" className="text-brand" /> Vencimientos de {monthNameOnly(month)}
+          <AppIcon name="calendar-days" className="text-primary" /> Vencimientos de {monthNameOnly(month)}
         </b>
         {data.fixed.length === 0 ? <p className="mt-2 text-sm text-muted">No hay gastos fijos este hogar.</p> : null}
         {data.fixed.map((item) => {
@@ -146,8 +146,8 @@ export function RemindersScreen() {
           return (
             <div key={item.id} className="flex items-center gap-2.5 border-b border-line py-2 last:border-0">
               <div
-                className={`grid h-7 w-7 place-items-center rounded-full text-sm font-black text-white ${
-                  state === 'paid' ? 'bg-good-fill text-white' : state === 'soon' || state === 'late' ? 'bg-warn-fill text-warn' : 'border-2 border-[#d8d0ee] bg-transparent text-transparent'
+                className={`grid h-7 w-7 place-items-center rounded-full text-sm font-bold ${
+                  state === 'paid' ? 'bg-good text-white' : state === 'soon' || state === 'late' ? 'bg-warn text-text' : 'border-2 border-warn-soft bg-transparent text-transparent'
                 }`}
               >
                 {state === 'paid' ? <AppIcon name="check" /> : state === 'soon' || state === 'late' ? <AppIcon name="triangle-exclamation" /> : ''}
@@ -163,11 +163,11 @@ export function RemindersScreen() {
                 </p>
               </div>
               {item.payment ? (
-                <button type="button" className="min-h-11 px-2 text-sm font-semibold text-brand" onClick={() => void undo(item.id)} disabled={saving}>
+                <button type="button" className="min-h-11 px-2 text-sm font-semibold text-primary" onClick={() => void undo(item.id)} disabled={saving}>
                   Deshacer
                 </button>
               ) : (
-                <button type="button" className="min-h-11 px-2 text-sm font-semibold text-brand" onClick={() => void pay(item.id)} disabled={saving}>
+                <button type="button" className="min-h-11 px-2 text-sm font-semibold text-primary" onClick={() => void pay(item.id)} disabled={saving}>
                   Pagué
                 </button>
               )}
@@ -176,8 +176,8 @@ export function RemindersScreen() {
         })}
       </Card>
       {current && silentDays !== null && silentDays >= pushPlan.silence.daysWithoutExpenses ? (
-        <Card className="flex items-start gap-2 bg-chip text-sm font-semibold text-ink">
-          <AppIcon name="bell" className="mt-0.5 text-brand" />
+        <Card className="flex items-start gap-2 bg-sand text-sm font-semibold text-text">
+          <AppIcon name="bell" className="mt-0.5 text-primary" />
           {pushPlan.silence.body.replace('unos días', `${silentDays} días`)}
         </Card>
       ) : null}
@@ -186,10 +186,10 @@ export function RemindersScreen() {
       </Button>
       {open ? (
         <Card>
-          <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Alquiler, luz, obra social…" className="mb-2 w-full rounded-2xl bg-chip px-3 py-2 font-bold" />
+          <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Alquiler, luz, obra social…" className="mb-2 min-h-11 w-full rounded-2xl bg-sand px-3 py-2 font-bold text-text" />
           <IconPicker value={icon} onChange={setIcon} />
-          <input value={amount} onChange={(event) => setAmount(event.target.value.replace(/\D/g, ''))} inputMode="numeric" placeholder="Monto" className="mt-2 w-full rounded-2xl bg-chip px-3 py-2 font-bold" />
-          <input value={dueDay} onChange={(event) => setDueDay(event.target.value.replace(/\D/g, '').slice(0, 2))} inputMode="numeric" placeholder="Día de vencimiento" className="mt-2 w-full rounded-2xl bg-chip px-3 py-2 font-bold" />
+          <input value={amount} onChange={(event) => setAmount(event.target.value.replace(/\D/g, ''))} inputMode="numeric" placeholder="Monto" className="mt-2 min-h-11 w-full rounded-2xl bg-sand px-3 py-2 font-bold text-text" />
+          <input value={dueDay} onChange={(event) => setDueDay(event.target.value.replace(/\D/g, '').slice(0, 2))} inputMode="numeric" placeholder="Día de vencimiento" className="mt-2 min-h-11 w-full rounded-2xl bg-sand px-3 py-2 font-bold text-text" />
           <div className="my-2 flex flex-wrap gap-2">
             <Chip active={shared} onClick={() => setShared(true)}>
               <AppIcon name="user-group" /> Compartido

@@ -27,8 +27,8 @@ export function LoginScreen() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-[430px] flex-col justify-center bg-canvas px-6">
-      <p className="text-center text-4xl font-black text-brand">A Medias</p>
+    <main className="mx-auto flex min-h-dvh max-w-[430px] flex-col justify-center bg-bg px-6">
+      <p className="text-center font-display text-4xl font-semibold text-primary">A Medias</p>
       <p className="mb-6 text-center text-sm font-semibold text-muted">La plata de las dos, en un solo lugar.</p>
       <Field label="Correo" type="email" value={email} onChange={setEmail} />
       <Field label="Contraseña" type="password" value={password} onChange={setPassword} />
@@ -36,16 +36,16 @@ export function LoginScreen() {
         Entrar
       </Button>
       <ErrorText>{error}</ErrorText>
-      <Link to="/registro" className="mt-4 text-center font-extrabold text-brand">
+      <Link to="/registro" className="mt-4 inline-flex min-h-11 items-center justify-center text-center font-bold text-primary">
         Crear cuenta
       </Link>
       {local ? (
         <div className="mt-6 text-center text-sm text-muted">
           <p className="font-bold">Datos de ejemplo locales</p>
-          <button type="button" className="mt-1 font-extrabold text-brand" onClick={() => void submit('coty@example.com', 'amedias-demo')}>
+          <button type="button" className="mt-1 min-h-11 font-bold text-primary" onClick={() => void submit('coty@example.com', 'amedias-demo')}>
             Entrar como Coty
           </button>
-          <button type="button" className="mt-1 block w-full font-extrabold text-brand" onClick={() => void submit('maru@example.com', 'amedias-demo')}>
+          <button type="button" className="mt-1 block min-h-11 w-full font-bold text-primary" onClick={() => void submit('maru@example.com', 'amedias-demo')}>
             Entrar como Maru
           </button>
         </div>
@@ -87,8 +87,8 @@ export function RegisterScreen() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-[430px] flex-col justify-center bg-canvas px-6">
-      <p className="text-center text-4xl font-black text-brand">A Medias</p>
+    <main className="mx-auto flex min-h-dvh max-w-[430px] flex-col justify-center bg-bg px-6">
+      <p className="text-center font-display text-4xl font-semibold text-primary">A Medias</p>
       <p className="mb-6 text-center text-sm font-semibold text-muted">Creá tu cuenta con el correo.</p>
       <Field label="Cómo te decimos" value={name} onChange={setName} />
       <Field label="Correo" type="email" value={email} onChange={setEmail} />
@@ -97,8 +97,8 @@ export function RegisterScreen() {
         Crear cuenta
       </Button>
       <ErrorText>{error}</ErrorText>
-      {info ? <p className="mt-3 text-center text-sm font-bold text-good">{info}</p> : null}
-      <Link to="/ingresar" className="mt-4 text-center font-extrabold text-brand">
+      {info ? <p className="mt-3 text-center text-sm font-bold text-primary">{info}</p> : null}
+      <Link to="/ingresar" className="mt-4 inline-flex min-h-11 items-center justify-center text-center font-bold text-primary">
         Ya tengo cuenta
       </Link>
     </main>
@@ -112,7 +112,7 @@ export function HouseholdScreen() {
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
-  if (loading) return <p className="py-16 text-center font-extrabold text-muted">Cargando…</p>
+  if (loading) return <p className="py-16 text-center font-bold text-muted">Cargando…</p>
   if (!session) return <Navigate to="/ingresar" replace />
   if (profile?.householdId) return <Navigate to="/" replace />
 
@@ -144,8 +144,8 @@ export function HouseholdScreen() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-[430px] flex-col justify-center bg-canvas px-6">
-      <p className="text-center text-3xl font-black text-brand">¿Con quién convivís?</p>
+    <main className="mx-auto flex min-h-dvh max-w-[430px] flex-col justify-center bg-bg px-6">
+      <p className="text-center font-display text-3xl font-semibold text-primary">¿Con quién convivís?</p>
       <p className="mb-6 text-center text-sm text-muted">El hogar es de dos. Creá uno y pasale el código, o unite al de ella.</p>
       <Button type="button" onClick={() => void createHome()} disabled={saving}>
         Crear nuestro hogar
@@ -165,8 +165,8 @@ export function HouseholdScreen() {
 
 function SetupScreen() {
   return (
-    <main className="mx-auto flex min-h-dvh max-w-[430px] flex-col justify-center bg-canvas px-6">
-      <p className="text-center text-3xl font-black text-brand">A Medias</p>
+    <main className="mx-auto flex min-h-dvh max-w-[430px] flex-col justify-center bg-bg px-6">
+      <p className="text-center font-display text-3xl font-semibold text-primary">A Medias</p>
       <p className="mt-3 text-center text-sm font-semibold text-muted">{supabaseConfigError}</p>
       <p className="mt-2 text-center text-sm text-muted">Copiá .env.example a .env y completá la URL y la clave publishable del proyecto.</p>
     </main>

@@ -1,8 +1,11 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 import { AppIcon } from './AppIcon.tsx'
 
+export const inputClass =
+  'min-h-11 w-full rounded-2xl border border-line bg-sand px-3 py-2 text-base font-semibold text-text placeholder:text-muted'
+
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <section className={`mb-3 rounded-[22px] bg-white p-3.5 shadow-card ${className}`}>{children}</section>
+  return <section className={`mb-3 rounded-3xl bg-card p-4 shadow-card ${className}`}>{children}</section>
 }
 
 export function Button({
@@ -11,13 +14,13 @@ export function Button({
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'alt' | 'pink' }) {
   const tone = {
-    primary: 'bg-brand text-white',
-    alt: 'bg-chip text-brand',
-    pink: 'bg-pink text-white',
+    primary: 'bg-primary text-white',
+    alt: 'bg-sand text-primary',
+    pink: 'bg-primary text-white',
   }[variant]
   return (
     <button
-      className={`block min-h-11 w-full rounded-[18px] px-4 py-3 text-center text-base font-semibold disabled:opacity-50 ${tone} ${className}`}
+      className={`block min-h-11 w-full rounded-2xl px-4 py-3 text-center text-base font-semibold disabled:opacity-50 ${tone} ${className}`}
       {...props}
     />
   )
@@ -37,8 +40,8 @@ export function Chip({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-2xl border-2 px-3 text-sm font-semibold ${
-        active ? 'border-active bg-active text-white' : 'border-edge bg-white text-ink'
+      className={`inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-2xl px-3 text-sm font-semibold ${
+        active ? 'bg-primary text-white' : 'border border-line bg-card text-text'
       }`}
     >
       {active ? <AppIcon name="check" /> : null}
@@ -50,8 +53,8 @@ export function Chip({
 export function Progress({ value, color }: { value: number; color: string }) {
   const width = Math.max(0, Math.min(100, value))
   return (
-    <div className="h-2.5 overflow-hidden rounded-lg bg-line">
-      <div className="h-full rounded-lg" style={{ width: `${width}%`, background: color }} />
+    <div className="h-2.5 overflow-hidden rounded-full bg-sand">
+      <div className="h-full rounded-full" style={{ width: `${width}%`, background: color }} />
     </div>
   )
 }
@@ -70,17 +73,12 @@ export function Field({
   return (
     <label className="mb-3 block text-sm font-bold">
       <span className="mb-1 block text-muted">{label}</span>
-      <input
-        type={type}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="min-h-11 w-full rounded-2xl border-2 border-edge bg-white px-3 py-3 text-base font-semibold text-ink"
-      />
+      <input type={type} value={value} onChange={(event) => onChange(event.target.value)} className={inputClass} />
     </label>
   )
 }
 
 export function ErrorText({ children }: { children: ReactNode }) {
   if (!children) return null
-  return <p className="mt-2 text-center text-sm font-bold text-bad">{children}</p>
+  return <p className="mt-2 text-center text-sm font-bold text-alert-ink">{children}</p>
 }

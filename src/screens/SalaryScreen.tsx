@@ -18,7 +18,7 @@ export function SalaryScreen() {
   const [message, setMessage] = useState('')
   const [saving, setSaving] = useState(false)
 
-  if (!profile?.householdId || !data) return <p className="py-16 text-center font-extrabold text-muted">Cargando…</p>
+  if (!profile?.householdId || !data) return <p className="py-16 text-center font-bold text-muted">Cargando…</p>
 
   const current = data.bases[profile.id] ?? 0
   const previewBases = { ...data.bases, [profile.id]: amountFromDigits(digits) || current }
@@ -52,22 +52,22 @@ export function SalaryScreen() {
   return (
     <>
       <header className="mb-3 flex items-center justify-between">
-        <Link to="/" className="inline-flex min-h-11 items-center gap-1 font-semibold text-ink">
+        <Link to="/" className="inline-flex min-h-11 items-center gap-1 font-semibold text-text">
           <AppIcon name="chevron-left" /> Inicio
         </Link>
-        <span className="font-black text-brand">A Medias</span>
+        <span className="font-display font-semibold text-primary">A Medias</span>
       </header>
-      <h1 className="text-[22px] font-extrabold">Sueldo base de {label.toLowerCase()}</h1>
+      <h1 className="font-display text-[22px] font-semibold">Sueldo base de {label.toLowerCase()}</h1>
       <p className="mb-3 text-sm text-muted">Este monto define tu porcentaje de los gastos compartidos. Los extras van a la bolsa y no cuentan acá.</p>
       <Card>
         <p className="text-sm text-muted">Cargado ahora</p>
-        <p className="text-3xl font-black">{formatMoney(current)}</p>
+        <p className="font-display text-3xl font-bold">{formatMoney(current)}</p>
         <p className="mt-2 text-sm font-bold">
           {mine ? `Con esto te toca el ${mine.percent}% de los compartidos.` : 'Cuando estén las dos, se calcula el porcentaje.'}
         </p>
-        {preview.usedEvenSplit ? <p className="text-sm text-warn">Si alguna no carga sueldo, partimos 50/50.</p> : null}
+        {preview.usedEvenSplit ? <p className="text-sm text-alert-ink">Si alguna no carga sueldo, partimos 50/50.</p> : null}
       </Card>
-      <p className="text-center text-4xl font-black">{formatMoney(amountFromDigits(digits))}</p>
+      <p className="text-center font-display text-4xl font-bold">{formatMoney(amountFromDigits(digits))}</p>
       <div className="mt-3">
         <Keypad onKey={(key) => setDigits((value) => applyKey(value, key))} />
       </div>
