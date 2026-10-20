@@ -11,6 +11,7 @@ import { HomeScreen } from './screens/HomeScreen.tsx'
 import { RemindersScreen } from './screens/RemindersScreen.tsx'
 import { SalaryScreen } from './screens/SalaryScreen.tsx'
 import { SharedScreen } from './screens/SharedScreen.tsx'
+import { YearScreen } from './screens/YearScreen.tsx'
 
 export function App() {
   return (
@@ -30,6 +31,7 @@ export function App() {
                 <Route path="compartidos" element={<SharedScreen />} />
                 <Route path="recordatorios" element={<RemindersScreen />} />
                 <Route path="sueldo" element={<SalaryScreen />} />
+                <Route path="mi-anio" element={<YearScreen />} />
             </Route>
           </Routes>
         </MonthProvider>

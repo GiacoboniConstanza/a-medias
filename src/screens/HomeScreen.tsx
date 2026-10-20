@@ -56,6 +56,19 @@ export function HomeScreen() {
       <MonthSwitcher heading />
       <ViewToggle mode={profile.viewMode} onChange={(mode) => void changeMode(mode)} className="mb-3" />
       <SplitNotice notice={data.splitNotice} />
+      <Link
+        to="/mi-anio"
+        className="mb-3 flex min-h-11 items-center gap-3 rounded-3xl bg-primary px-4 py-3.5 text-white shadow-fab"
+      >
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-sage-light text-primary">
+          <AppIcon name="chart-pie" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-display text-base font-semibold">Tu balance {new Date().getFullYear()} está listo</span>
+          <span className="block text-xs font-semibold text-white">Mirá cómo te fue en el año</span>
+        </span>
+        <AppIcon name="arrow-right" />
+      </Link>
 
       <Card>
         {friendly ? (

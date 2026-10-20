@@ -8,6 +8,7 @@ import { monthEnd, monthKey } from './month.ts'
 import { effectiveSalary, visibleSplitNotice, type SalaryPoint } from './salary.ts'
 import { clockLabel, type ReminderPrefs, DEFAULT_REMINDER_PREFS } from './reminders.ts'
 import { supabase } from './supabase.ts'
+import { parseYearBalance, type YearReport } from './year.ts'
 
 const FUND_BAR = ['#4F6B57', '#6A784D', '#8FA37A']
 const GUSTOS_BAR = '#F4C542'
@@ -930,6 +931,12 @@ export async function markFixedPaid(input: {
     expense_id: expenseId,
   })
   fail(error)
+}
+
+export async function loadYearBalance(year: number): Promise<YearReport> {
+  const { data, error } = await supabase.rpc('year_balance', { target_year: year })
+  fail(error)
+  return parseYearBalance(data)
 }
 
 export async function undoFixedPayment(payment: FixedPayment): Promise<void> {

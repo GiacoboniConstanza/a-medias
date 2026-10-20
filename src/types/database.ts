@@ -452,6 +452,10 @@ export type Database = {
         Args: { target_month: string }
         Returns: boolean
       }
+      year_balance: {
+        Args: { target_year: number }
+        Returns: Record<string, unknown>
+      }
       preview_salary_split: {
         Args: { new_amount: number; effective_from: string; replacing: boolean }
         Returns: {
