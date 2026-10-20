@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { DonutBreakdown } from '../components/DonutBreakdown.tsx'
@@ -8,6 +8,7 @@ import { Button, Card } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { loadYearBalance } from '../lib/api.ts'
 import { formatMoney } from '../lib/format.ts'
+import { abbreviateMoney, monthRows, monthSpan } from '../lib/year-rows.ts'
 import {
   CATEGORY_COLORS,
   MONTH_NAMES,
@@ -301,85 +302,121 @@ function AccountingView({
   const totals = yearTotals(report.months, report.year, today)
   const percents = categoryPercents(report.categories)
   const moments = yearMoments(report, today)
+  const rows = monthRows(report.months, report.year, today)
+  const [openMonth, setOpenMonth] = useState<number | null>(null)
   return (
-    <>
-      <Card>
-        <h2 className="mb-2 font-display text-[17px] font-semibold">Resumen</h2>
-        <Table>
-          <tbody>
-            <tr>
-              <th className="py-2 text-left font-semibold">Ingresos</th>
-              <td className="py-2 text-right font-bold">{yearCell(totals.income)}</td>
-            </tr>
-            <tr>
-              <th className="py-2 text-left font-semibold">Gastos</th>
-              <td className="py-2 text-right font-bold text-alert-ink">{yearCell(totals.expenses)}</td>
-            </tr>
-            <tr>
-              <th className="py-2 text-left font-semibold">Ahorraste</th>
-              <td className="py-2 text-right font-bold text-primary">{yearCell(totals.saved)}</td>
-            </tr>
-          </tbody>
-        </Table>
+    <div className="mb-4 flex flex-col gap-4">
+      <Card className="mb-0">
+        <h2 className="mb-3 font-display text-[17px] font-semibold">Resumen</h2>
+        <ul>
+          <SummaryRow icon="arrow-down" label="Ingresos" value={totals.income} iconClass="bg-[#F2EADF] text-primary" />
+          <SummaryRow icon="arrow-up" label="Gastos" value={totals.expenses} iconClass="bg-[#FCE6EA] text-alert-ink" valueClass="text-alert-ink" />
+          <SummaryRow icon="piggy-bank" label="Ahorraste" value={totals.saved} iconClass="bg-sage-light text-primary" valueClass="text-primary" />
+        </ul>
       </Card>
-      <Card>
-        <h2 className="mb-2 font-display text-[17px] font-semibold">Mes por mes</h2>
-        <div className="overflow-x-auto">
-          <Table>
-            <thead>
-              <tr className="text-xs text-muted">
-                <th className="py-2 text-left font-bold">Mes</th>
-                <th className="py-2 text-right font-bold">Sueldo</th>
-                <th className="py-2 text-right font-bold">Extras</th>
-                <th className="py-2 text-right font-bold">Gastos</th>
-                <th className="py-2 text-right font-bold">Ahorro</th>
-              </tr>
-            </thead>
-            <tbody>
-              {report.months.map((month) => {
-                const future = isFutureMonth(report.year, month.month, today)
-                return (
-                  <tr key={month.month} className={future ? 'text-muted' : 'text-text'}>
-                    <th className="border-t border-dashed border-line py-2 text-left font-semibold">
-                      {monthHeading(month.month)}
-                      {future ? <span className="mt-0.5 block text-[11px] font-bold">aún no</span> : null}
-                    </th>
-                    <td className="border-t border-dashed border-line py-2 text-right">{yearCell(month.base)}</td>
-                    <td className="border-t border-dashed border-line py-2 text-right">{yearCell(month.extras)}</td>
-                    <td className="border-t border-dashed border-line py-2 text-right">{yearCell(month.expenses)}</td>
-                    <td className="border-t border-dashed border-line py-2 text-right">{yearCell(month.saved)}</td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </Table>
+      <Card className="mb-0">
+        <h2 className="mb-3 font-display text-[17px] font-semibold">Mes por mes</h2>
+        <ul>
+          {rows.map((row) => {
+            if (row.kind === 'empty') {
+              return (
+                <li key={`empty-${row.from}`} className="border-b border-line py-1.5 text-[13px] font-semibold leading-5 text-muted last:border-b-0">
+                  {monthSpan(row.from, row.to)} · sin registros
+                </li>
+              )
+            }
+            if (row.kind === 'future') {
+              const pending = row.from === row.to ? 'todavía no llega' : 'todavía no llegan'
+              return (
+                <li key={`future-${row.from}`} className="border-b border-line py-1.5 text-[13px] font-medium leading-5 text-muted last:border-b-0">
+                  {monthSpan(row.from, row.to)} · {pending}
+                </li>
+              )
+            }
+            const month = row.month
+            const open = openMonth === month.month
+            return (
+              <li key={month.month} className="border-b border-line last:border-b-0">
+                <button
+                  type="button"
+                  className="flex h-14 w-full items-center gap-2 text-left"
+                  aria-expanded={open}
+                  onClick={() => setOpenMonth((current) => (current === month.month ? null : month.month))}
+                >
+                  <span className="shrink-0 text-[15px] font-semibold">{monthHeading(month.month)}</span>
+                  <span className="flex min-w-0 flex-1 justify-end">
+                    {month.saved === null ? (
+                      <span className="font-display text-base font-semibold text-muted tabular-nums">—</span>
+                    ) : (
+                      <FitMoney value={month.saved} className={`w-full text-right font-display text-base font-semibold ${savingTone(month.saved)}`} />
+                    )}
+                  </span>
+                  <AppIcon name="chevron-down" className={`shrink-0 text-sm text-muted transition-transform duration-300 ease-out motion-reduce:transition-none ${open ? 'rotate-180' : ''}`} />
+                </button>
+                <div
+                  aria-hidden={!open}
+                  className={`grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none ${open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}
+                >
+                  <div className="overflow-hidden">
+                    <dl className="grid grid-cols-2 gap-3 py-3">
+                      <MonthFact label="Sueldo" value={month.base} />
+                      <MonthFact label="Extras" value={month.extras} />
+                      <MonthFact label="Gastos" value={month.expenses} />
+                      <MonthFact label="Ahorro" value={month.saved} valueClass={savingTone(month.saved)} />
+                    </dl>
+                  </div>
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+        <div className="mt-3 flex h-14 items-center justify-between rounded-2xl bg-sage-light px-3 font-display">
+          <span className="text-base font-semibold text-text">Total del año</span>
+          {totals.saved === null ? (
+            <span className="text-xl font-bold text-muted tabular-nums">—</span>
+          ) : (
+            <FitMoney value={totals.saved} className={`max-w-[58%] text-right text-xl font-bold ${savingTone(totals.saved)}`} />
+          )}
         </div>
       </Card>
-      <Card>
-        <h2 className="mb-2 font-display text-[17px] font-semibold">Categoría por categoría</h2>
+      <Card className="mb-0">
+        <h2 className="mb-3 font-display text-[17px] font-semibold">Categoría por categoría</h2>
         {report.categories.length === 0 ? (
           <p className="text-sm font-semibold text-muted">Todavía no hay gastos en categorías.</p>
         ) : (
-          <Table>
-            <tbody>
-              {report.categories.map((category, index) => (
-                <tr key={category.id}>
-                  <th className="border-t border-dashed border-line py-1 text-left font-semibold">
-                    <button type="button" className="inline-flex min-h-11 items-center gap-2" onClick={() => onCategory(category.id)}>
-                      <AppIcon name={category.icon} className="text-primary" />
-                      {category.name}
-                    </button>
-                  </th>
-                  <td className="border-t border-dashed border-line py-1 text-right font-extrabold text-alert-ink">{percents[index] ?? 0}%</td>
-                  <td className="border-t border-dashed border-line py-1 text-right">{formatMoney(category.total)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
+          <ul>
+            {report.categories.map((category, index) => {
+              const color = CATEGORY_COLORS[index % CATEGORY_COLORS.length] ?? CATEGORY_COLORS[0]
+              const percent = percents[index] ?? 0
+              return (
+                <li key={category.id} className="border-b border-line last:border-b-0">
+                  <button type="button" className="flex h-14 w-full items-center gap-3 text-left" onClick={() => onCategory(category.id)}>
+                    <span
+                      className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-sm ${color.ink === '#ffffff' ? '' : 'ring-1 ring-line ring-inset'}`}
+                      style={{ background: color.fill, color: color.ink }}
+                      aria-hidden="true"
+                    >
+                      <AppIcon name={category.icon} />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold leading-tight">{category.name}</span>
+                      <span className="mt-1 block h-1 overflow-hidden rounded-full bg-sand" aria-hidden="true">
+                        <span className="block h-full rounded-full" style={{ width: `${Math.min(percent, 100)}%`, background: color.fill }} />
+                      </span>
+                    </span>
+                    <span className="flex w-[7.25rem] shrink-0 flex-col items-end">
+                      <FitMoney value={category.total} className="w-full text-right font-display text-sm font-semibold" />
+                      <span className="text-[13px] font-semibold leading-none text-muted">{percent}%</span>
+                    </span>
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
         )}
       </Card>
-      <Card>
-        <h2 className="mb-2 font-display text-[17px] font-semibold">Gustos, ahorros y momentos</h2>
+      <Card className="mb-0">
+        <h2 className="mb-3 font-display text-[17px] font-semibold">Gustos, ahorros y momentos</h2>
         <Table>
           <tbody>
             <tr>
@@ -426,8 +463,74 @@ function AccountingView({
           ))}
         </ul>
       </Card>
-    </>
+    </div>
   )
+}
+
+function SummaryRow({
+  icon,
+  label,
+  value,
+  iconClass,
+  valueClass = '',
+}: {
+  icon: string
+  label: string
+  value: number | null
+  iconClass: string
+  valueClass?: string
+}) {
+  return (
+    <li className="flex min-h-14 items-center gap-3 border-b border-line last:border-b-0">
+      <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-full ${iconClass}`}>
+        <AppIcon name={icon} />
+      </span>
+      <span className="min-w-0 flex-1 text-[15px] font-semibold">{label}</span>
+      <span className={`shrink-0 font-display text-base font-semibold tabular-nums ${valueClass}`}>{yearCell(value)}</span>
+    </li>
+  )
+}
+
+function MonthFact({ label, value, valueClass = '' }: { label: string; value: number | null; valueClass?: string }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-[13px] font-semibold text-muted">{label}</dt>
+      <dd className={`font-display text-base font-semibold break-words tabular-nums ${valueClass}`}>{yearCell(value)}</dd>
+    </div>
+  )
+}
+
+function FitMoney({ value, className = '' }: { value: number; className?: string }) {
+  const full = formatMoney(value)
+  const boxRef = useRef<HTMLSpanElement>(null)
+  const probeRef = useRef<HTMLSpanElement>(null)
+  const [tight, setTight] = useState(false)
+
+  useLayoutEffect(() => {
+    const box = boxRef.current
+    const probe = probeRef.current
+    if (!box || !probe) return
+    const measure = () => setTight(probe.offsetWidth > box.clientWidth + 1)
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(box)
+    return () => observer.disconnect()
+  }, [full])
+
+  return (
+    <span ref={boxRef} className={`relative block min-w-0 truncate tabular-nums ${className}`}>
+      <span ref={probeRef} className="invisible absolute top-0 left-0 whitespace-nowrap" aria-hidden="true">
+        {full}
+      </span>
+      <span aria-hidden="true">{tight ? abbreviateMoney(value) : full}</span>
+      <span className="sr-only">{full}</span>
+    </span>
+  )
+}
+
+function savingTone(value: number | null): string {
+  if (value === null) return 'text-muted'
+  return value < 0 ? 'text-alert-ink' : 'text-primary'
 }
 
 function CategoryDetail({ category, year, today }: { category: YearCategory; year: number; today: Date }) {
