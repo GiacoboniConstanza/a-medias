@@ -1,4 +1,5 @@
-import { monthEnd, todayISO } from './month.ts'
+import { formatMoney } from './format.ts'
+import { monthEnd, monthKey, monthTitle, shiftMonth, todayISO } from './month.ts'
 
 export function goalProgress(saved: number, target: number): { label: string; arc: number } {
   if (target <= 0 || saved <= 0) return { label: '0%', arc: 0 }
@@ -52,4 +53,35 @@ export function shareLabel(amount: number, total: number): string {
 export function contributionInMonth(createdAt: string, month: string): boolean {
   const day = todayISO(new Date(createdAt))
   return day >= month && day <= monthEnd(month)
+}
+
+export function goalPaceLine(targetDate: string | null, months: number, monthlyEach: number | null): string {
+  const parts: string[] = []
+  if (targetDate) {
+    parts.push(monthTitle(targetDate))
+    parts.push(monthsLeftCopy(months))
+  }
+  if (monthlyEach) parts.push(`Si cada una suma ${formatMoney(monthlyEach)} por mes, llegan`)
+  return parts.join(' · ')
+}
+
+export function contributionMonths(contributions: { createdAt: string; amount: number }[]): { month: string; amount: number }[] {
+  const totals = new Map<string, number>()
+  for (const item of contributions) {
+    const key = monthKey(new Date(item.createdAt))
+    totals.set(key, (totals.get(key) ?? 0) + item.amount)
+  }
+  const keys = [...totals.keys()].sort()
+  const first = keys[0]
+  const last = keys[keys.length - 1]
+  if (!first || !last) return []
+  const rows: { month: string; amount: number }[] = []
+  let cursor = first
+  while (cursor <= last) {
+    rows.push({ month: cursor, amount: totals.get(cursor) ?? 0 })
+    const next = shiftMonth(cursor, 1)
+    if (next <= cursor) break
+    cursor = next
+  }
+  return rows
 }

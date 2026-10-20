@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from 'react'
 import { AppIcon } from '../components/AppIcon.tsx'
+import { DonutBreakdown, MonthBars, type DonutSlice } from '../components/DonutBreakdown.tsx'
 import { IconPicker } from '../components/IconPicker.tsx'
 import { amountFromDigits, applyKey, Keypad } from '../components/Keypad.tsx'
 import { MonthSwitcher } from '../components/MonthSwitcher.tsx'
@@ -14,10 +15,10 @@ import { monthSplit, partnerId } from '../lib/derive.ts'
 import { formatMoney } from '../lib/format.ts'
 import {
   contributionInMonth,
+  contributionMonths,
   evenMonthlyShare,
+  goalPaceLine,
   goalPhrase,
-  goalProgress,
-  monthsLeftCopy,
   monthsUntil,
   salaryShare,
   shareLabel,
@@ -34,6 +35,7 @@ export function GoalScreen() {
   const { data, loading, error, refresh } = useFinance()
   const [sheetOpen, setSheetOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [detailId, setDetailId] = useState<string | null>(null)
   const [toast, setToast] = useState('')
   const [name, setName] = useState('Vacaciones juntas')
   const [icon, setIcon] = useState('umbrella-beach')
@@ -58,10 +60,10 @@ export function GoalScreen() {
   const partnerName = data.names[partnerId(data, profile.id) ?? ''] ?? 'Tu compañera'
   const goal = data.goal
   const saved = goal?.byUser.reduce((sum, item) => sum + item.amount, 0) ?? 0
-  const progress = goalProgress(saved, goal?.target ?? 0)
   const remaining = Math.max((goal?.target ?? 0) - saved, 0)
   const months = goal?.targetDate ? monthsUntil(goal.targetDate) : 0
   const monthlyEach = evenMonthlyShare(remaining, months)
+  const pace = goalPaceLine(goal?.targetDate ?? null, months, monthlyEach)
   const suggested = salaryShare(remaining, months, myPercent)
   const monthContributions = (goal?.contributions ?? []).filter((item) => contributionInMonth(item.createdAt, month))
   const people = orderedPeople(data.names)
@@ -98,53 +100,28 @@ export function GoalScreen() {
       <MonthSwitcher heading className="mb-4" />
       {goal ? (
         <>
-          <Card className="text-center">
-            <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-[#EDE6F5] text-2xl text-[#5C4E86]">
-              <AppIcon name={goal.icon} />
-            </div>
-            <h2 className="mt-2 font-display text-xl font-semibold">{goal.name}</h2>
-            <ProgressRing label={progress.label} arc={progress.arc} />
-            <p className="font-display text-lg font-semibold">
-              {formatMoney(saved)} de {formatMoney(goal.target)}
+          <Card>
+            <DonutBreakdown
+              title={goal.name}
+              titleIcon={
+                <span className="grid h-7 w-7 place-items-center rounded-full bg-[#EDE6F5] text-sm text-[#5C4E86]" aria-hidden="true">
+                  <AppIcon name={goal.icon} />
+                </span>
+              }
+              center={{
+                kicker: 'Juntaron',
+                value: formatMoney(saved),
+                hint: `de ${formatMoney(goal.target)}`,
+              }}
+              track="#EDE6F5"
+              slices={goalSlices(people, goal.byUser, goal.target, remaining)}
+              onSelect={setDetailId}
+            />
+            {pace ? <p className="mt-3 text-center text-xs font-semibold leading-5 text-muted">{pace}</p> : null}
+            <p className={`text-center text-xs font-bold leading-5 text-primary ${pace ? 'mt-1' : 'mt-3'}`}>
+              {goalPhrase(saved, goal.target)}
             </p>
-            {goal.targetDate ? (
-              <p className="mt-1 text-sm font-semibold text-muted">
-                {monthTitle(goal.targetDate)} · {monthsLeftCopy(months)}
-              </p>
-            ) : null}
-            {monthlyEach ? (
-              <p className="mt-1 text-sm font-semibold text-text">Si cada una suma {formatMoney(monthlyEach)} por mes, llegan.</p>
-            ) : null}
-            <p className="mt-2 text-sm font-bold text-primary">{goalPhrase(saved, goal.target)}</p>
           </Card>
-
-          <h2 className="mb-2 font-display text-sm font-semibold text-muted">Aportes</h2>
-          <div className="mb-3 grid grid-cols-2 gap-2">
-            {people.map((person, index) => {
-              const amount = monthAmount(monthContributions, person.id)
-              const total = monthContributions.reduce((sum, item) => sum + item.amount, 0)
-              return (
-                <article key={person.id} className="h-full rounded-3xl bg-card p-3 shadow-card">
-                  <span
-                    className={`grid h-11 w-11 place-items-center rounded-full font-display text-lg font-semibold ${personTone(person.name, index).circle}`}
-                    aria-hidden="true"
-                  >
-                    {initials(person.name)}
-                  </span>
-                  <p className="mt-2 font-semibold">{person.name}</p>
-                  {amount > 0 ? (
-                    <>
-                      <p className="font-display text-lg font-semibold leading-tight">{formatMoney(amount)}</p>
-                      <p className="text-sm font-semibold text-muted">{shareLabel(amount, total)}</p>
-                    </>
-                  ) : (
-                    <p className="text-sm font-semibold text-muted">Todavía no sumó</p>
-                  )}
-                </article>
-              )
-            })}
-          </div>
-          <SplitBar people={people} contributions={monthContributions} />
 
           <button
             type="button"
@@ -201,6 +178,11 @@ export function GoalScreen() {
             ) : null}
           </section>
 
+          <PersonSheet
+            person={people.find((person) => person.id === detailId) ?? null}
+            contributions={goal.contributions}
+            onClose={() => setDetailId(null)}
+          />
           <ContributeSheet
             open={sheetOpen}
             suggested={suggested}
@@ -265,52 +247,81 @@ export function GoalScreen() {
   )
 }
 
-function ProgressRing({ label, arc }: { label: string; arc: number }) {
-  const radius = 46
-  const circ = 2 * Math.PI * radius
-  const spoken = label === '<1%' ? 'Menos del 1 por ciento de la meta' : `${label.replace('%', '')} por ciento de la meta`
-  return (
-    <div className="relative mx-auto my-3 grid h-40 w-40 place-items-center" role="img" aria-label={spoken}>
-      <svg viewBox="0 0 120 120" className="absolute inset-0 h-full w-full" aria-hidden="true">
-        <circle cx="60" cy="60" r={radius} fill="none" stroke="#EDE6F5" strokeWidth="10" />
-        <circle
-          className="goal-ring"
-          cx="60"
-          cy="60"
-          r={radius}
-          fill="none"
-          stroke="#A79BCB"
-          strokeWidth="10"
-          strokeLinecap="round"
-          transform="rotate(-90 60 60)"
-          style={{ strokeDasharray: circ, strokeDashoffset: circ - arc * circ }}
-        />
-      </svg>
-      <p className="font-display text-4xl font-bold leading-none" aria-hidden="true">
-        {label}
-      </p>
-    </div>
-  )
+function goalSlices(
+  people: { id: string; name: string }[],
+  byUser: { userId: string; amount: number }[],
+  target: number,
+  remaining: number,
+): DonutSlice[] {
+  const basis = target > 0 ? target : byUser.reduce((sum, item) => sum + item.amount, 0)
+  return [
+    ...people.map((person, index) => {
+      const amount = byUser.find((item) => item.userId === person.id)?.amount ?? 0
+      const color = personTone(person.name, index).bar
+      return {
+        id: person.id,
+        label: person.name,
+        amount,
+        color,
+        percent: shareLabel(amount, basis),
+        marker: initials(person.name),
+        ink: color === '#A79BCB' ? '#202808' : '#ffffff',
+        detail: amount > 0 ? undefined : 'Todavía no sumó',
+      }
+    }),
+    {
+      id: 'falta',
+      label: 'Falta',
+      amount: remaining,
+      color: '#EDE6F5',
+      percent: shareLabel(remaining, basis),
+      ink: '#202808',
+      selectable: false,
+      soft: true,
+    },
+  ]
 }
 
-function SplitBar({
-  people,
+function PersonSheet({
+  person,
   contributions,
+  onClose,
 }: {
-  people: { id: string; name: string }[]
+  person: { id: string; name: string } | null
   contributions: GoalContribution[]
+  onClose: () => void
 }) {
-  const total = contributions.reduce((sum, item) => sum + item.amount, 0)
+  const mine = contributions.filter((item) => item.userId === person?.id)
+  const total = mine.reduce((sum, item) => sum + item.amount, 0)
+  const index = person ? personRank(person.name) : 0
+  const color = person ? personTone(person.name, index).bar : '#4F6B57'
+  const rows = contributionMonths(mine).map((row) => ({
+    key: row.month,
+    label: monthTitle(row.month),
+    amount: row.amount,
+  }))
+
   return (
-    <div className="flex h-3 overflow-hidden rounded-full bg-[#EDE6F5]" aria-hidden="true">
-      {total > 0
-        ? people.map((person, index) => {
-            const amount = monthAmount(contributions, person.id)
-            if (amount <= 0) return null
-            return <i key={person.id} style={{ width: `${(amount / total) * 100}%`, background: personTone(person.name, index).bar }} />
-          })
-        : null}
-    </div>
+    <Sheet
+      open={Boolean(person)}
+      title={person?.name ?? 'Aportes'}
+      onClose={onClose}
+      footer={
+        <button type="button" className={quietButton} onClick={onClose}>
+          Cerrar
+        </button>
+      }
+    >
+      {total > 0 ? (
+        <>
+          <p className="text-sm font-semibold text-muted">Aportó</p>
+          <p className="mb-3 font-display text-3xl font-bold leading-none">{formatMoney(total)}</p>
+          <MonthBars rows={rows} color={color} />
+        </>
+      ) : (
+        <p className="py-6 text-center text-sm font-semibold text-muted">Todavía no sumó</p>
+      )}
+    </Sheet>
   )
 }
 
@@ -438,8 +449,4 @@ function initials(name: string): string {
   const first = parts[0]?.[0] ?? ''
   const second = parts[1]?.[0] ?? ''
   return `${first}${second}`.toUpperCase()
-}
-
-function monthAmount(contributions: GoalContribution[], userId: string): number {
-  return contributions.filter((item) => item.userId === userId).reduce((sum, item) => sum + item.amount, 0)
 }

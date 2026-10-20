@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { evenMonthlyShare, goalPhrase, goalProgress, monthsLeftCopy, monthsUntil, salaryShare, shareLabel } from './goal.ts'
+import {
+  contributionMonths,
+  evenMonthlyShare,
+  goalPaceLine,
+  goalPhrase,
+  goalProgress,
+  monthsLeftCopy,
+  monthsUntil,
+  salaryShare,
+  shareLabel,
+} from './goal.ts'
 
 describe('progreso de la meta', () => {
   it('muestra un arco mínimo cuando todavía no llega al 1%', () => {
@@ -24,5 +34,22 @@ describe('progreso de la meta', () => {
   it('marca una parte chica sin redondearla a cero', () => {
     expect(shareLabel(1, 1_000)).toBe('<1%')
     expect(shareLabel(0, 100)).toBe('0%')
+  })
+
+  it('arma la línea de ritmo y agrupa los aportes por mes', () => {
+    expect(goalPaceLine('2027-03-01', 5, 100_000)).toBe(
+      'Marzo 2027 · faltan 5 meses · Si cada una suma $ 100.000 por mes, llegan',
+    )
+    expect(
+      contributionMonths([
+        { createdAt: '2026-01-15T15:00:00.000Z', amount: 1000 },
+        { createdAt: '2026-01-20T15:00:00.000Z', amount: 500 },
+        { createdAt: '2026-03-02T15:00:00.000Z', amount: 200 },
+      ]),
+    ).toEqual([
+      { month: '2026-01-01', amount: 1500 },
+      { month: '2026-02-01', amount: 0 },
+      { month: '2026-03-01', amount: 200 },
+    ])
   })
 })
