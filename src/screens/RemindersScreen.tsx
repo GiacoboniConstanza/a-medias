@@ -1,39 +1,148 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AppIcon } from '../components/AppIcon.tsx'
-import { IconPicker } from '../components/IconPicker.tsx'
-import { Button, Card, Chip, ErrorText } from '../components/ui.tsx'
+import { FixedExpenseSheet, type FixedDraft } from '../components/FixedExpenseSheet.tsx'
+import { MonthSwitcher } from '../components/MonthSwitcher.tsx'
+import { SectionHeader } from '../components/SectionHeader.tsx'
+import { Card, ErrorText } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
 import { useMonth } from '../context/MonthProvider.tsx'
-import { createFixedExpense, markFixedPaid, undoFixedPayment } from '../lib/api.ts'
+import {
+  createFixedExpense,
+  deleteFixedExpense,
+  loadReminderPreferences,
+  markFixedPaid,
+  saveReminderPreferences,
+  setFixedExpensePaused,
+  undoFixedPayment,
+  updateFixedExpense,
+  type FixedItem,
+} from '../lib/api.ts'
+import { dueLabel, dueVisual, editedCaption, scheduleAmount } from '../lib/fixed.ts'
 import { formatMoney } from '../lib/format.ts'
-import { isCurrentMonth, longDate, shortDate, todayISO } from '../lib/month.ts'
+import { isCurrentMonth, monthKey, monthName, shiftMonth, shortDate, todayISO } from '../lib/month.ts'
+import { pushIsConfigured, subscribeToPush } from '../lib/push/permissions.ts'
 import { pushPlan } from '../lib/push/plan.ts'
+import {
+  DEFAULT_REMINDER_PREFS,
+  laterCopy,
+  nextAskAt,
+  reminderFootnote,
+  reminderTimesValid,
+  shouldAskToday,
+  type ReminderPrefs,
+} from '../lib/reminders.ts'
+
+const HOURS = Array.from({ length: 24 }, (_, hour) => String(hour).padStart(2, '0'))
+const MINUTE_STEPS = ['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55']
+const timeSelect = 'min-h-[52px] w-full rounded-2xl bg-sand px-1 font-display text-2xl font-semibold text-text scheme-light'
+const addButton = 'mb-3 block min-h-[52px] w-full rounded-2xl bg-primary text-base font-semibold text-white'
+const payButton = 'h-11 shrink-0 rounded-2xl bg-primary px-3 text-sm font-semibold text-white disabled:opacity-50'
+const undoButton = 'h-11 shrink-0 rounded-2xl bg-sand px-3 text-sm font-semibold text-primary disabled:opacity-50'
 
 export function RemindersScreen() {
   const { profile } = useAuth()
   const { month } = useMonth()
   const { data, loading, error, refresh } = useFinance()
-  const [dismissed, setDismissed] = useState(false)
-  const [open, setOpen] = useState(false)
-  const [title, setTitle] = useState('')
-  const [icon, setIcon] = useState('house')
-  const [amount, setAmount] = useState('')
-  const [dueDay, setDueDay] = useState('10')
-  const [shared, setShared] = useState(true)
+  const [now, setNow] = useState(() => new Date())
+  const [prefs, setPrefs] = useState<ReminderPrefs | null>(null)
+  const [creating, setCreating] = useState(false)
+  const [editing, setEditing] = useState<FixedItem | null>(null)
   const [message, setMessage] = useState('')
+  const [sheetError, setSheetError] = useState('')
+  const [toast, setToast] = useState('')
   const [saving, setSaving] = useState(false)
-  const now = new Date()
+  const saveChain = useRef(Promise.resolve())
 
-  if (!profile?.householdId) return null
-  if (loading && !data) return <p className="py-16 text-center font-bold text-muted">Cargando…</p>
-  if (!data) return <p className="py-16 text-center font-bold text-alert-ink">{error}</p>
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 30_000)
+    return () => window.clearInterval(timer)
+  }, [])
 
-  const today = todayISO(now)
-  const loggedToday = data.lastLoggedOn === today
-  const silentDays = data.lastLoggedOn ? daysBetween(data.lastLoggedOn, today) : null
-  const current = isCurrentMonth(month, now)
+  useEffect(() => {
+    if (!toast) return
+    const timeout = window.setTimeout(() => setToast(''), 3200)
+    return () => window.clearTimeout(timeout)
+  }, [toast])
+
+  useEffect(() => {
+    if (!profile) return
+    let active = true
+    loadReminderPreferences(profile.id)
+      .then((next) => {
+        if (active) setPrefs(next)
+      })
+      .catch((caught: unknown) => {
+        if (!active) return
+        setPrefs({ ...DEFAULT_REMINDER_PREFS })
+        setMessage(caught instanceof Error ? caught.message : 'No pude leer tus horarios.')
+      })
+    return () => {
+      active = false
+    }
+  }, [profile])
+
+  useEffect(() => {
+    if (!editing || !data) return
+    if (!data.fixed.some((item) => item.id === editing.id)) setEditing(null)
+  }, [data, editing])
+
+  const liveEditing = editing ? (data?.fixed.find((item) => item.id === editing.id) ?? null) : null
+  const shownPrefs = prefs ?? DEFAULT_REMINDER_PREFS
+
+  function persist(next: ReminderPrefs) {
+    if (!profile) return
+    setPrefs(next)
+    const userId = profile.id
+    saveChain.current = saveChain.current.then(async () => {
+      try {
+        await saveReminderPreferences(userId, next)
+      } catch (caught) {
+        setMessage(caught instanceof Error ? caught.message : 'No pude guardar el recordatorio.')
+      }
+    })
+  }
+
+  async function toggleReminder(enabled: boolean) {
+    if (!prefs || !profile) return
+    persist({ ...prefs, enabled })
+    if (!enabled || !pushIsConfigured()) return
+    try {
+      const readiness = await subscribeToPush(profile.id)
+      if (readiness === 'denied') setToast('El celular no dio permiso. El aviso sigue en Avisos.')
+    } catch (caught) {
+      setMessage(caught instanceof Error ? caught.message : 'No pude preparar los avisos del celular.')
+    }
+  }
+
+  function changeTime(which: 'first' | 'second', value: string) {
+    if (!prefs) return
+    const next = {
+      ...prefs,
+      firstTime: which === 'first' ? value : prefs.firstTime,
+      secondTime: which === 'second' ? value : prefs.secondTime,
+    }
+    if (!reminderTimesValid(next.firstTime, next.secondTime)) {
+      setMessage('Elegí dos horarios distintos, el segundo después del primero.')
+      return
+    }
+    setMessage('')
+    persist(next)
+  }
+
+  function markReviewed() {
+    if (!prefs) return
+    persist({ ...prefs, reviewedOn: todayISO(now), hiddenUntil: null })
+    setToast('Hoy no te vuelvo a preguntar.')
+  }
+
+  function askLater() {
+    if (!prefs) return
+    const next = nextAskAt(now, prefs.firstTime, prefs.secondTime)
+    persist({ ...prefs, hiddenUntil: next.toISOString() })
+    setToast(laterCopy(now, next))
+  }
 
   async function pay(id: string) {
     const fixed = data?.fixed.find((item) => item.id === id)
@@ -54,10 +163,11 @@ export function RemindersScreen() {
         ownerId: profile.id,
         payerId: profile.id,
         month,
-        paidOn: current ? today : `${month.slice(0, 8)}${String(fixed.dueDay).padStart(2, '0')}`,
+        paidOn: isCurrentMonth(month, now) ? todayISO(now) : `${month.slice(0, 8)}${String(fixed.dueDay).padStart(2, '0')}`,
         categoryId: category.id,
       })
       await refresh()
+      setToast('Marcado como pagado.')
     } catch (caught) {
       setMessage(caught instanceof Error ? caught.message : 'No pude marcarlo como pagado.')
     } finally {
@@ -73,6 +183,7 @@ export function RemindersScreen() {
     try {
       await undoFixedPayment(payment)
       await refresh()
+      setToast('Deshice el pago.')
     } catch (caught) {
       setMessage(caught instanceof Error ? caught.message : 'No pude deshacer el pago.')
     } finally {
@@ -80,164 +191,349 @@ export function RemindersScreen() {
     }
   }
 
-  async function addFixed() {
-    const value = Number(amount)
-    const day = Number(dueDay)
-    if (!title.trim() || !Number.isFinite(value) || value <= 0 || day < 1 || day > 28) {
-      setMessage('Completá nombre, monto y un día del 1 al 28.')
-      return
-    }
+  async function saveDraft(draft: FixedDraft) {
+    if (!profile?.householdId) return
     setSaving(true)
-    setMessage('')
+    setSheetError('')
     try {
-      await createFixedExpense({
-        householdId: profile?.householdId as string,
-        ownerId: shared ? null : (profile?.id ?? null),
-        categoryId: null,
-        title,
-        icon,
-        amount: value,
-        dueDay: day,
-        isShared: shared,
-      })
-      setTitle('')
-      setAmount('')
-      setOpen(false)
+      if (!liveEditing) {
+        await createFixedExpense({
+          householdId: profile.householdId,
+          ownerId: draft.shared ? null : profile.id,
+          categoryId: null,
+          title: draft.title,
+          icon: draft.icon,
+          amount: draft.amount,
+          dueDay: draft.dueDay,
+          isShared: draft.shared,
+          remindDaysBefore: draft.remindDaysBefore,
+          effectiveFrom: month,
+          createdBy: profile.id,
+        })
+        setToast('Listo, guardé el gasto fijo.')
+      } else {
+        const revision =
+          draft.amountChanged && draft.applies
+            ? {
+                amount: draft.amount,
+                effectiveFrom: draft.applies === 'next' ? shiftMonth(month, 1) : month,
+                createdBy: profile.id,
+              }
+            : null
+        await updateFixedExpense({
+          id: liveEditing.id,
+          ownerId: draft.shared ? null : profile.id,
+          categoryId: liveEditing.isShared === draft.shared ? liveEditing.categoryId : null,
+          title: draft.title,
+          icon: draft.icon,
+          dueDay: draft.dueDay,
+          isShared: draft.shared,
+          remindDaysBefore: draft.remindDaysBefore,
+          expectedAmount: scheduleAmount(liveEditing.revisions, monthKey(now), revision),
+          updatedBy: profile.id,
+          revision,
+        })
+        setToast('Listo, actualicé el gasto fijo.')
+      }
+      setCreating(false)
+      setEditing(null)
       await refresh()
     } catch (caught) {
-      setMessage(caught instanceof Error ? caught.message : 'No pude crear el recordatorio.')
+      setSheetError(caught instanceof Error ? caught.message : 'No pude guardar el gasto fijo.')
     } finally {
       setSaving(false)
     }
   }
 
+  async function pause(paused: boolean) {
+    if (!liveEditing || !profile) return
+    setSaving(true)
+    setSheetError('')
+    try {
+      await setFixedExpensePaused(liveEditing.id, paused, profile.id)
+      await refresh()
+      setToast(paused ? 'Quedó en pausa. No genera vencimientos.' : 'Volvió a generar vencimientos.')
+    } catch (caught) {
+      setSheetError(caught instanceof Error ? caught.message : 'No pude cambiar la pausa.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function remove() {
+    if (!liveEditing) return
+    setSaving(true)
+    setSheetError('')
+    try {
+      await deleteFixedExpense(liveEditing.id)
+      setEditing(null)
+      setCreating(false)
+      await refresh()
+      setToast('Eliminé el gasto fijo.')
+    } catch (caught) {
+      setSheetError(caught instanceof Error ? caught.message : 'No pude eliminar el gasto fijo.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (!profile?.householdId) return null
+  if (loading && !data) return <p className="py-16 text-center font-bold text-muted">Cargando…</p>
+  if (!data) return <p className="py-16 text-center font-bold text-alert-ink">{error}</p>
+
+  const dues = data.fixed.filter((item) => item.applies && !item.pausedAt)
+  const paused = data.fixed.filter((item) => item.applies && item.pausedAt)
+  const silentDays = data.lastLoggedOn ? daysBetween(data.lastLoggedOn, todayISO(now)) : null
+  const ask = Boolean(prefs && shouldAskToday(now, prefs))
+
   return (
     <>
-      <div className="-mx-5 -mt-6 mb-4 bg-primary px-5 pb-8 pt-8 text-center text-white">
-        <p className="font-display text-5xl font-semibold">
-          {now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
-        </p>
-        <p className="text-sm font-semibold text-white">{longDate(now)}</p>
-      </div>
-      {current && !loggedToday && !dismissed ? (
+      <SectionHeader icon="bell" title="Avisos" />
+      <MonthSwitcher className="mb-4" />
+      {ask ? (
         <Card>
           <p className="inline-flex items-center gap-1 text-xs font-semibold text-muted">
-            <AppIcon name="mug-hot" /> A MEDIAS · ahora
+            <AppIcon name="bell" /> A MEDIAS · ahora
           </p>
-          <b>¿Gastaste algo hoy?</b>
-          <p className="text-sm font-semibold text-text">Anotalo en dos toques así no se te escapa.</p>
-          <div className="mt-2">
-            <Link to="/cargar" className="mr-1 inline-flex min-h-11 items-center rounded-2xl bg-primary px-3 text-sm font-semibold text-white">
-              Sí, cargar
+          <b className="mt-1 block font-display text-xl font-semibold">{pushPlan.daily.title}</b>
+          <p className="text-sm font-semibold text-text">{pushPlan.daily.body}</p>
+          <div className="mt-3 grid gap-2">
+            <Link to="/cargar" className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-primary px-3 text-sm font-semibold text-white">
+              Anotar gasto
             </Link>
-            <button type="button" className="min-h-11 rounded-2xl bg-sand px-3 text-sm font-semibold text-text" onClick={() => setDismissed(true)}>
-              Hoy no
+            <button type="button" className="min-h-11 rounded-2xl bg-sand px-3 text-sm font-semibold text-text" onClick={markReviewed}>
+              No gasté nada
+            </button>
+            <button type="button" className="min-h-11 rounded-2xl border border-line bg-card px-3 text-sm font-semibold text-text" onClick={askLater}>
+              Más tarde
             </button>
           </div>
         </Card>
       ) : null}
       <Card>
         <b className="inline-flex items-center gap-2 text-[17px]">
-          <AppIcon name="calendar-days" className="text-primary" /> Vencimientos de {monthNameOnly(month)}
+          <AppIcon name="calendar-days" className="text-primary" /> Vencimientos de {monthName(month)}
         </b>
-        {data.fixed.length === 0 ? <p className="mt-2 text-sm text-muted">No hay gastos fijos este hogar.</p> : null}
-        {data.fixed.map((item) => {
-          const state = item.payment ? 'paid' : dueState(item.dueDay, month, now)
-          return (
-            <div key={item.id} className="flex items-center gap-2.5 border-b border-line py-2 last:border-0">
-              <div
-                className={`grid h-7 w-7 place-items-center rounded-full text-sm font-bold ${
-                  state === 'paid' ? 'bg-good text-white' : state === 'soon' || state === 'late' ? 'bg-warn text-text' : 'border-2 border-warn-soft bg-transparent text-transparent'
-                }`}
-              >
-                {state === 'paid' ? <AppIcon name="check" /> : state === 'soon' || state === 'late' ? <AppIcon name="triangle-exclamation" /> : ''}
-              </div>
-              <div className="flex-1">
-                <b>
-                  <AppIcon name={item.icon} /> {item.title}
-                </b>
-                <p className="text-sm text-muted">
-                  {item.payment
-                    ? `Pagado el ${shortDate(item.payment.paidOn)} · ${data.names[item.payment.payerId] ?? ''}`
-                    : `${dueLabel(item.dueDay, month, now)} · ${formatMoney(item.amount)}${item.isShared ? '' : ' · privado'}`}
-                </p>
-              </div>
-              {item.payment ? (
-                <button type="button" className="min-h-11 px-2 text-sm font-semibold text-primary" onClick={() => void undo(item.id)} disabled={saving}>
-                  Deshacer
-                </button>
-              ) : (
-                <button type="button" className="min-h-11 px-2 text-sm font-semibold text-primary" onClick={() => void pay(item.id)} disabled={saving}>
-                  Pagué
-                </button>
-              )}
-            </div>
-          )
-        })}
+        {dues.length === 0 ? <p className="mt-2 text-sm font-semibold text-muted">No hay vencimientos este mes.</p> : null}
+        <ul className="mt-1">
+          {dues.map((item) => (
+            <DueRow
+              key={item.id}
+              item={item}
+              month={month}
+              now={now}
+              names={data.names}
+              saving={saving}
+              onEdit={() => {
+                setCreating(false)
+                setSheetError('')
+                setEditing(item)
+              }}
+              onPay={() => void pay(item.id)}
+              onUndo={() => void undo(item.id)}
+            />
+          ))}
+        </ul>
       </Card>
-      {current && silentDays !== null && silentDays >= pushPlan.silence.daysWithoutExpenses ? (
+      {silentDays !== null && silentDays >= pushPlan.silence.daysWithoutExpenses ? (
         <Card className="flex items-start gap-2 bg-sand text-sm font-semibold text-text">
           <AppIcon name="bell" className="mt-0.5 text-primary" />
           {pushPlan.silence.body.replace('unos días', `${silentDays} días`)}
         </Card>
       ) : null}
-      <Button type="button" variant="alt" onClick={() => setOpen((currentOpen) => !currentOpen)}>
-        + Gasto fijo
-      </Button>
-      {open ? (
+      {paused.length > 0 ? (
         <Card>
-          <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Alquiler, luz, obra social…" className="mb-2 min-h-11 w-full rounded-2xl bg-sand px-3 py-2 font-bold text-text" />
-          <IconPicker value={icon} onChange={setIcon} />
-          <input value={amount} onChange={(event) => setAmount(event.target.value.replace(/\D/g, ''))} inputMode="numeric" placeholder="Monto" className="mt-2 min-h-11 w-full rounded-2xl bg-sand px-3 py-2 font-bold text-text" />
-          <input value={dueDay} onChange={(event) => setDueDay(event.target.value.replace(/\D/g, '').slice(0, 2))} inputMode="numeric" placeholder="Día de vencimiento" className="mt-2 min-h-11 w-full rounded-2xl bg-sand px-3 py-2 font-bold text-text" />
-          <div className="my-2 flex flex-wrap gap-2">
-            <Chip active={shared} onClick={() => setShared(true)}>
-              <AppIcon name="user-group" /> Compartido
-            </Chip>
-            <Chip active={!shared} onClick={() => setShared(false)}>
-              <AppIcon name="lock" /> Privado
-            </Chip>
-          </div>
-          <Button type="button" onClick={() => void addFixed()} disabled={saving}>
-            Guardar
-          </Button>
+          <b className="text-[17px]">En pausa</b>
+          <p className="text-sm font-semibold text-muted">No generan vencimientos hasta que los actives.</p>
+          <ul className="mt-1">
+            {paused.map((item) => (
+              <li key={item.id} className="border-b border-line py-2 last:border-0">
+                <button
+                  type="button"
+                  className="flex min-h-11 w-full items-center gap-2 text-left"
+                  aria-label={`Editar ${item.title}`}
+                  onClick={() => {
+                    setCreating(false)
+                    setSheetError('')
+                    setEditing(item)
+                  }}
+                >
+                  <span className="min-w-0 flex-1">
+                    <b className="block truncate">
+                      <AppIcon name={item.icon} /> {item.title}
+                    </b>
+                    <p className="text-sm font-semibold text-muted">En pausa{item.isShared ? '' : ' · privado'}</p>
+                  </span>
+                  <b className="shrink-0 font-display text-base font-semibold">{formatMoney(item.amount)}</b>
+                  <AppIcon name="pen" className="shrink-0 text-primary" />
+                </button>
+              </li>
+            ))}
+          </ul>
         </Card>
       ) : null}
-      <p className="mt-4 text-center text-xs text-muted">
-        El aviso diario de las {pushPlan.daily.localTime} (“{pushPlan.daily.title}”) y los vencimientos con {pushPlan.dues.daysBefore} días de anticipación quedan preparados, sin enviarlos al celular todavía.
-      </p>
+      <button
+        type="button"
+        className={addButton}
+        onClick={() => {
+          setEditing(null)
+          setSheetError('')
+          setCreating(true)
+        }}
+      >
+        + Gasto fijo
+      </button>
+      <Card>
+        <div className="flex items-center justify-between gap-3">
+          <p id="reminder-label" className="text-base font-semibold text-text">
+            Recordarme a las
+          </p>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={shownPrefs.enabled}
+            aria-labelledby="reminder-label"
+            disabled={!prefs || saving}
+            onClick={() => void toggleReminder(!shownPrefs.enabled)}
+            className={`relative h-11 w-16 shrink-0 rounded-full border border-line disabled:opacity-50 ${
+              shownPrefs.enabled ? 'bg-primary' : 'bg-sand'
+            }`}
+          >
+            <span
+              className={`absolute left-1 top-1 h-8 w-8 rounded-full bg-white shadow-soft transition-transform motion-reduce:transition-none ${
+                shownPrefs.enabled ? 'translate-x-6' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+        <div className="mt-3 flex items-center gap-2">
+          <TimeSelect label="Primer horario" value={shownPrefs.firstTime} onChange={(value) => changeTime('first', value)} />
+          <span className="shrink-0 text-sm font-semibold text-muted">y</span>
+          <TimeSelect label="Segundo horario" value={shownPrefs.secondTime} onChange={(value) => changeTime('second', value)} />
+        </div>
+      </Card>
+      <p className="mt-4 text-center text-xs font-semibold text-muted">{reminderFootnote(shownPrefs)}</p>
       <ErrorText>{message}</ErrorText>
+      {toast ? (
+        <p
+          role="status"
+          className="fixed bottom-28 left-1/2 z-50 max-w-[20rem] -translate-x-1/2 rounded-2xl bg-primary px-4 py-3 text-center text-sm font-semibold text-white shadow-fab"
+        >
+          {toast}
+        </p>
+      ) : null}
+      <FixedExpenseSheet
+        open={creating || liveEditing !== null}
+        expense={creating ? null : liveEditing}
+        saving={saving}
+        error={sheetError}
+        onClose={() => {
+          setCreating(false)
+          setEditing(null)
+          setSheetError('')
+        }}
+        onSubmit={(draft) => void saveDraft(draft)}
+        onPause={(next) => void pause(next)}
+        onDelete={() => void remove()}
+      />
     </>
   )
 }
 
-function monthNameOnly(month: string): string {
-  const [year, monthNumber] = month.split('-')
-  const date = new Date(Number(year), Number(monthNumber) - 1, 1)
-  return new Intl.DateTimeFormat('es-AR', { month: 'long' }).format(date)
+function DueRow({
+  item,
+  month,
+  now,
+  names,
+  saving,
+  onEdit,
+  onPay,
+  onUndo,
+}: {
+  item: FixedItem
+  month: string
+  now: Date
+  names: Record<string, string>
+  saving: boolean
+  onEdit: () => void
+  onPay: () => void
+  onUndo: () => void
+}) {
+  const state = item.payment ? 'paid' : dueVisual(item.dueDay, month, now)
+  const meta = item.payment
+    ? `Pagado el ${shortDate(item.payment.paidOn)} · ${names[item.payment.payerId] ?? ''}`
+    : dueLabel(item.dueDay, month, now)
+  const caption = item.updatedAt ? editedCaption(item.updatedAt, names[item.updatedBy ?? ''] ?? '') : null
+  return (
+    <li className="flex items-center gap-2 border-b border-line py-2 last:border-0">
+      <button type="button" onClick={onEdit} className="flex min-h-11 min-w-0 flex-1 items-center gap-2 text-left" aria-label={`Editar ${item.title}`}>
+        <span
+          className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-sm ${
+            state === 'paid' ? 'bg-good text-white' : state === 'late' ? 'bg-warn text-text' : 'border-2 border-line bg-transparent text-transparent'
+          }`}
+          aria-hidden="true"
+        >
+          {state === 'paid' ? <AppIcon name="check" /> : state === 'late' ? <AppIcon name="triangle-exclamation" /> : ''}
+        </span>
+        <span className="min-w-0 flex-1">
+          <b className="block truncate">
+            <AppIcon name={item.icon} /> {item.title}
+          </b>
+          <p className="text-sm font-semibold text-muted">
+            {meta}
+            {item.isShared ? '' : ' · privado'}
+          </p>
+          {caption ? <p className="text-xs font-semibold text-muted">{caption}</p> : null}
+        </span>
+        <b className="shrink-0 font-display text-base font-semibold">{formatMoney(item.amount)}</b>
+        <AppIcon name="pen" className="shrink-0 text-primary" />
+      </button>
+      {item.payment ? (
+        <button type="button" className={undoButton} onClick={onUndo} disabled={saving}>
+          Deshacer
+        </button>
+      ) : (
+        <button type="button" className={payButton} onClick={onPay} disabled={saving}>
+          Pagué
+        </button>
+      )}
+    </li>
+  )
+}
+
+function TimeSelect({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+  const [hour = '14', minute = '00'] = value.split(':')
+  const minutes = MINUTE_STEPS.includes(minute) ? MINUTE_STEPS : [minute, ...MINUTE_STEPS]
+  return (
+    <div className="flex min-w-0 flex-1 items-center gap-1">
+      <select aria-label={`${label}, hora`} value={hour} onChange={(event) => onChange(`${event.target.value}:${minute}`)} className={timeSelect}>
+        {HOURS.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+      <span className="font-display text-xl font-semibold text-muted" aria-hidden="true">
+        :
+      </span>
+      <select
+        aria-label={`${label}, minutos`}
+        value={minute}
+        onChange={(event) => onChange(`${hour}:${event.target.value}`)}
+        className={timeSelect}
+      >
+        {minutes.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+    </div>
+  )
 }
 
 function daysBetween(from: string, to: string): number {
   const start = new Date(`${from}T00:00:00`)
   const end = new Date(`${to}T00:00:00`)
   return Math.round((end.getTime() - start.getTime()) / 86_400_000)
-}
-
-function dueState(dueDay: number, month: string, today: Date): 'future' | 'soon' | 'late' {
-  if (!isCurrentMonth(month, today)) return 'future'
-  const diff = dueDay - today.getDate()
-  if (diff < 0) return 'late'
-  if (diff <= pushPlan.dues.daysBefore) return 'soon'
-  return 'future'
-}
-
-function dueLabel(dueDay: number, month: string, today: Date): string {
-  const [year, monthNumber] = month.split('-')
-  const due = `${year}-${monthNumber}-${String(dueDay).padStart(2, '0')}`
-  if (!isCurrentMonth(month, today)) return `Vence el ${shortDate(due)}`
-  const diff = dueDay - today.getDate()
-  if (diff < 0) return `Venció hace ${Math.abs(diff)} días`
-  if (diff === 0) return 'Vence hoy'
-  if (diff === 1) return 'Vence mañana'
-  return `Vence en ${diff} días`
 }

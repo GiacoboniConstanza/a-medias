@@ -179,6 +179,15 @@ insert into public.fixed_expenses (
   ('dddddddd-0005-4000-8000-000000000005', '01010101-0101-4101-8101-010101010101', null, 'aaaaaaaa-0006-4000-8000-000000000006', 'Expensas', '🏢', 'building', 35000, 18, true),
   ('dddddddd-0006-4000-8000-000000000006', '01010101-0101-4101-8101-010101010101', '22222222-2222-4222-8222-222222222222', 'aaaaaaaa-000b-4000-8000-00000000000b', 'Osde', '🩺', 'stethoscope', 45000, 25, false);
 
+insert into public.fixed_expense_amounts (fixed_expense_id, amount, effective_from, created_by)
+select
+  fe.id,
+  fe.expected_amount,
+  date '2026-10-01',
+  coalesce(fe.owner_id, '11111111-1111-4111-8111-111111111111'::uuid)
+from public.fixed_expenses as fe
+where fe.household_id = '01010101-0101-4101-8101-010101010101';
+
 insert into public.fixed_payments (fixed_expense_id, month, paid_on, payer_id, amount, expense_id) values
   ('dddddddd-0001-4000-8000-000000000001', '2026-10-01', '2026-10-01', '11111111-1111-4111-8111-111111111111', 250000, 'bbbbbbbb-0001-4000-8000-000000000001'),
   ('dddddddd-0002-4000-8000-000000000002', '2026-10-01', '2026-10-05', '22222222-2222-4222-8222-222222222222', 18300, 'bbbbbbbb-0002-4000-8000-000000000002'),

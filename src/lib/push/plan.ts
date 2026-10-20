@@ -1,17 +1,17 @@
 /**
  * Contrato de las notificaciones push web.
- * La tabla `push_subscriptions` ya existe y estas copias están definidas,
- * pero la app todavía no pide permiso, no llama a PushManager y el service
- * worker de la PWA no escucha el evento `push`.
+ * `public/push-handler.js` escucha `push` dentro del service worker.
+ * Si existe `VITE_VAPID_PUBLIC_KEY`, la app puede pedir permiso y guardar la
+ * suscripción. Sin esa clave no pide permiso y nadie envía avisos al celular.
  */
-export const PUSH_STATUS = 'not_implemented' as const
+export const PUSH_STATUS = 'not_configured' as const
 
 export const pushPlan = {
   status: PUSH_STATUS,
   daily: {
     title: '¿Gastaste algo hoy?',
     body: 'Anotalo en dos toques así no se te escapa.',
-    localTime: '21:30',
+    defaultTimes: ['14:00', '21:30'] as const,
   },
   dues: {
     daysBefore: 2,

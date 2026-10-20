@@ -240,6 +240,10 @@ export type Database = {
           expected_amount: number
           due_day: number
           is_shared: boolean
+          remind_days_before: number
+          paused_at: string | null
+          updated_at: string | null
+          updated_by: string | null
           created_at: string
         },
         {
@@ -253,9 +257,70 @@ export type Database = {
           expected_amount: number
           due_day: number
           is_shared: boolean
+          remind_days_before?: number
+          paused_at?: string | null
           created_at?: string
         },
-        { title?: string; expected_amount?: number; due_day?: number }
+        {
+          title?: string
+          emoji?: string
+          icon?: string
+          owner_id?: string | null
+          category_id?: string | null
+          expected_amount?: number
+          due_day?: number
+          is_shared?: boolean
+          remind_days_before?: number
+          paused_at?: string | null
+          updated_by?: string | null
+        }
+      >
+      fixed_expense_amounts: Table<
+        {
+          id: string
+          fixed_expense_id: string
+          amount: number
+          effective_from: string
+          created_by: string
+          created_at: string
+        },
+        {
+          id?: string
+          fixed_expense_id: string
+          amount: number
+          effective_from: string
+          created_by: string
+          created_at?: string
+        },
+        { amount?: number; created_by?: string }
+      >
+      reminder_preferences: Table<
+        {
+          user_id: string
+          enabled: boolean
+          first_time: string
+          second_time: string
+          reviewed_on: string | null
+          hidden_until: string | null
+          updated_at: string
+        },
+        {
+          user_id: string
+          enabled?: boolean
+          first_time?: string
+          second_time?: string
+          reviewed_on?: string | null
+          hidden_until?: string | null
+          updated_at?: string
+        },
+        {
+          enabled?: boolean
+          first_time?: string
+          second_time?: string
+          reviewed_on?: string | null
+          hidden_until?: string | null
+          updated_at?: string
+        }
       >
       fixed_payments: Table<
         {

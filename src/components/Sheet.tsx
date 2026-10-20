@@ -12,7 +12,7 @@ export function Sheet({
   title: string
   onClose: () => void
   children: ReactNode
-  footer: ReactNode
+  footer?: ReactNode
 }) {
   const titleId = useId()
   const dialogRef = useRef<HTMLDivElement>(null)
@@ -137,8 +137,8 @@ export function Sheet({
         <h2 id={titleId} className="px-5 pb-2 font-display text-xl font-semibold">
           {title}
         </h2>
-        <div className="overflow-y-auto px-5 pb-3">{children}</div>
-        <div className="mt-auto border-t border-line px-5 pb-6 pt-3">{footer}</div>
+        <div className={`overflow-y-auto px-5 ${footer ? 'pb-3' : 'pb-6'}`}>{children}</div>
+        {footer ? <div className="mt-auto border-t border-line px-5 pb-6 pt-3">{footer}</div> : null}
       </div>
     </div>,
     document.body,

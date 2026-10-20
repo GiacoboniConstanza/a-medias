@@ -3,7 +3,9 @@ import { bagBalances, type BagKind } from './bag.ts'
 import { money } from './format.ts'
 import { DEFAULT_ICON } from './icons.ts'
 import type { ExpenseSpan } from './expense-range.ts'
+import { amountForMonth, type AmountRevision } from './fixed.ts'
 import { monthEnd } from './month.ts'
+import { clockLabel, type ReminderPrefs, DEFAULT_REMINDER_PREFS } from './reminders.ts'
 import { supabase } from './supabase.ts'
 
 const FUND_BAR = ['#4F6B57', '#6A784D', '#8FA37A']
@@ -93,9 +95,16 @@ export type FixedItem = {
   title: string
   icon: string
   amount: number
+  applies: boolean
+  revisions: AmountRevision[]
   dueDay: number
   isShared: boolean
   categoryId: string | null
+  ownerId: string | null
+  remindDaysBefore: number
+  pausedAt: string | null
+  updatedAt: string | null
+  updatedBy: string | null
   payment: FixedPayment | null
 }
 
@@ -144,6 +153,7 @@ export async function loadFinance(householdId: string, userId: string, month: st
     goals,
     contributions,
     fixedExpenses,
+    fixedAmounts,
     fixedPayments,
     settlement,
   ] = await Promise.all([
@@ -177,9 +187,10 @@ export async function loadFinance(householdId: string, userId: string, month: st
     supabase.from('goal_contributions').select('id, goal_id, user_id, amount, created_at'),
     supabase
       .from('fixed_expenses')
-      .select('id, title, icon, expected_amount, due_day, is_shared, category_id')
+      .select('id, title, icon, expected_amount, due_day, is_shared, category_id, owner_id, remind_days_before, paused_at, updated_at, updated_by')
       .eq('household_id', householdId)
       .order('due_day', { ascending: true }),
+    supabase.from('fixed_expense_amounts').select('fixed_expense_id, amount, effective_from'),
     supabase.from('fixed_payments').select('id, fixed_expense_id, paid_on, payer_id, amount, expense_id').eq('month', month),
     supabase
       .from('settlements')
@@ -202,6 +213,7 @@ export async function loadFinance(householdId: string, userId: string, month: st
   fail(goals.error)
   fail(contributions.error)
   fail(fixedExpenses.error)
+  fail(fixedAmounts.error)
   fail(fixedPayments.error)
   fail(settlement.error)
 
@@ -299,6 +311,12 @@ export async function loadFinance(householdId: string, userId: string, month: st
     : null
 
   const paymentByFixed = new Map((fixedPayments.data ?? []).map((payment) => [payment.fixed_expense_id, payment]))
+  const revisionsByFixed = new Map<string, AmountRevision[]>()
+  for (const revision of fixedAmounts.data ?? []) {
+    const list = revisionsByFixed.get(revision.fixed_expense_id) ?? []
+    list.push({ effectiveFrom: revision.effective_from.slice(0, 10), amount: money(revision.amount) })
+    revisionsByFixed.set(revision.fixed_expense_id, list)
+  }
 
   return {
     inviteCode: household.data.invite_code,
@@ -337,14 +355,23 @@ export async function loadFinance(householdId: string, userId: string, month: st
     goal,
     fixed: (fixedExpenses.data ?? []).map((expense) => {
       const payment = paymentByFixed.get(expense.id)
+      const revisions = revisionsByFixed.get(expense.id) ?? []
+      const resolved = amountForMonth(revisions, month)
       return {
         id: expense.id,
         title: expense.title,
         icon: expense.icon || DEFAULT_ICON,
-        amount: money(expense.expected_amount),
+        amount: resolved ?? money(expense.expected_amount),
+        applies: resolved !== null,
+        revisions,
         dueDay: expense.due_day,
         isShared: expense.is_shared,
         categoryId: expense.category_id,
+        ownerId: expense.owner_id,
+        remindDaysBefore: expense.remind_days_before,
+        pausedAt: expense.paused_at,
+        updatedAt: expense.updated_at,
+        updatedBy: expense.updated_by,
         payment: payment
           ? {
               id: payment.id,
@@ -668,18 +695,127 @@ export async function createFixedExpense(input: {
   amount: number
   dueDay: number
   isShared: boolean
+  remindDaysBefore: number
+  effectiveFrom: string
+  createdBy: string
 }): Promise<void> {
-  const { error } = await supabase.from('fixed_expenses').insert({
-    household_id: input.householdId,
-    owner_id: input.ownerId,
-    category_id: input.categoryId,
-    title: input.title.trim(),
-    icon: input.icon,
-    emoji: input.icon,
-    expected_amount: input.amount,
-    due_day: input.dueDay,
-    is_shared: input.isShared,
+  const created = await supabase
+    .from('fixed_expenses')
+    .insert({
+      household_id: input.householdId,
+      owner_id: input.ownerId,
+      category_id: input.categoryId,
+      title: input.title.trim(),
+      icon: input.icon,
+      emoji: input.icon,
+      expected_amount: input.amount,
+      due_day: input.dueDay,
+      is_shared: input.isShared,
+      remind_days_before: input.remindDaysBefore,
+    })
+    .select('id')
+    .single()
+  fail(created.error)
+  const revision = await supabase.from('fixed_expense_amounts').insert({
+    fixed_expense_id: created.data.id,
+    amount: input.amount,
+    effective_from: input.effectiveFrom,
+    created_by: input.createdBy,
   })
+  if (revision.error) {
+    await supabase.from('fixed_expenses').delete().eq('id', created.data.id)
+    fail(revision.error)
+  }
+}
+
+export async function updateFixedExpense(input: {
+  id: string
+  ownerId: string | null
+  categoryId: string | null
+  title: string
+  icon: string
+  dueDay: number
+  isShared: boolean
+  remindDaysBefore: number
+  expectedAmount: number
+  updatedBy: string
+  revision: { amount: number; effectiveFrom: string; createdBy: string } | null
+}): Promise<void> {
+  const { error } = await supabase
+    .from('fixed_expenses')
+    .update({
+      owner_id: input.ownerId,
+      category_id: input.categoryId,
+      title: input.title.trim(),
+      icon: input.icon,
+      emoji: input.icon,
+      due_day: input.dueDay,
+      is_shared: input.isShared,
+      remind_days_before: input.remindDaysBefore,
+      expected_amount: input.expectedAmount,
+      updated_by: input.updatedBy,
+    })
+    .eq('id', input.id)
+  fail(error)
+  if (!input.revision) return
+  const revision = await supabase.from('fixed_expense_amounts').upsert(
+    {
+      fixed_expense_id: input.id,
+      amount: input.revision.amount,
+      effective_from: input.revision.effectiveFrom,
+      created_by: input.revision.createdBy,
+    },
+    { onConflict: 'fixed_expense_id,effective_from' },
+  )
+  fail(revision.error)
+}
+
+export async function setFixedExpensePaused(id: string, paused: boolean, userId: string): Promise<void> {
+  const { error } = await supabase
+    .from('fixed_expenses')
+    .update({
+      paused_at: paused ? new Date().toISOString() : null,
+      updated_by: userId,
+    })
+    .eq('id', id)
+  fail(error)
+}
+
+export async function deleteFixedExpense(id: string): Promise<void> {
+  const { error } = await supabase.from('fixed_expenses').delete().eq('id', id)
+  fail(error)
+}
+
+export async function loadReminderPreferences(userId: string): Promise<ReminderPrefs> {
+  const { data, error } = await supabase
+    .from('reminder_preferences')
+    .select('enabled, first_time, second_time, reviewed_on, hidden_until')
+    .eq('user_id', userId)
+    .maybeSingle()
+  fail(error)
+  if (!data) return { ...DEFAULT_REMINDER_PREFS }
+  return {
+    enabled: data.enabled,
+    firstTime: clockLabel(data.first_time),
+    secondTime: clockLabel(data.second_time),
+    reviewedOn: data.reviewed_on?.slice(0, 10) ?? null,
+    hiddenUntil: data.hidden_until,
+  }
+}
+
+export async function saveReminderPreferences(userId: string, prefs: ReminderPrefs): Promise<void> {
+  const { error } = await supabase.from('reminder_preferences').upsert(
+    {
+      user_id: userId,
+      enabled: prefs.enabled,
+      first_time: prefs.firstTime,
+      second_time: prefs.secondTime,
+      reviewed_on: prefs.reviewedOn,
+      hidden_until: prefs.hiddenUntil,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'user_id' },
+  )
   fail(error)
 }
 
