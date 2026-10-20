@@ -5,8 +5,9 @@ import { DonutBreakdown } from '../components/DonutBreakdown.tsx'
 import { IncomeChart } from '../components/IncomeChart.tsx'
 import { Sheet } from '../components/Sheet.tsx'
 import { Button, Card } from '../components/ui.tsx'
+import { ViewToggle } from '../components/ViewToggle.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
-import { loadYearBalance } from '../lib/api.ts'
+import { loadYearBalance, saveViewMode } from '../lib/api.ts'
 import { formatMoney } from '../lib/format.ts'
 import { abbreviateMoney, monthRows, monthSpan } from '../lib/year-rows.ts'
 import {
@@ -27,16 +28,16 @@ import {
   type YearCategory,
   type YearReport,
 } from '../lib/year.ts'
+import type { ViewMode } from '../types/database.ts'
 
 const ARROW = 'grid h-11 w-11 shrink-0 place-items-center rounded-full bg-card text-lg text-primary shadow-soft disabled:opacity-40'
 
 export function YearScreen() {
-  const { profile } = useAuth()
+  const { profile, refreshProfile } = useAuth()
   const [year, setYear] = useState(() => new Date().getFullYear())
   const [report, setReport] = useState<YearReport | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [accounting, setAccounting] = useState(profile?.viewMode === 'accounting')
   const [categoryId, setCategoryId] = useState<string | null>(null)
   const today = new Date()
 
@@ -63,8 +64,15 @@ export function YearScreen() {
   }, [year])
 
   if (!profile) return null
+  const me = profile
   const category = report?.categories.find((item) => item.id === categoryId) ?? null
   const ready = report && yearHasData(report, today) ? report : null
+  const accounting = me.viewMode === 'accounting'
+
+  async function changeMode(mode: ViewMode) {
+    await saveViewMode(me.id, mode)
+    await refreshProfile()
+  }
 
   return (
     <>
@@ -79,7 +87,7 @@ export function YearScreen() {
           <AppIcon name="lock" /> Solo vos
         </span>
       </header>
-      <div className="mb-3.5 flex items-center justify-between gap-3">
+      <div className="mb-3 flex items-center justify-between gap-3">
         <button type="button" className={ARROW} aria-label="Año anterior" disabled={year <= 2000} onClick={() => setYear((value) => value - 1)}>
           <AppIcon name="chevron-left" />
         </button>
@@ -88,23 +96,17 @@ export function YearScreen() {
           <AppIcon name="chevron-right" />
         </button>
       </div>
+      <ViewToggle mode={me.viewMode} onChange={(mode) => void changeMode(mode)} className="mb-3" />
 
       {loading ? <YearSkeleton /> : null}
       {!loading && error ? <p className="py-10 text-center font-extrabold text-alert-ink">{error}</p> : null}
       {!loading && !error && !ready ? <EmptyYear year={year} /> : null}
       {!loading && ready ? (
-        <>
-          {accounting ? <AccountingView report={ready} today={today} onCategory={setCategoryId} /> : <FriendlyView report={ready} today={today} onCategory={setCategoryId} />}
-          <button
-            type="button"
-            aria-pressed={accounting}
-            className="mb-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-[20px] border-2 border-primary bg-transparent px-4 py-3 text-center font-extrabold text-primary"
-            onClick={() => setAccounting((value) => !value)}
-          >
-            <AppIcon name={accounting ? 'chart-pie' : 'table-list'} />
-            {accounting ? 'Ver en vista amigable' : 'Ver en vista contable'}
-          </button>
-        </>
+        accounting ? (
+          <AccountingView report={ready} today={today} onCategory={setCategoryId} />
+        ) : (
+          <FriendlyView report={ready} today={today} onCategory={setCategoryId} />
+        )
       ) : null}
 
       <Sheet
@@ -305,7 +307,7 @@ function AccountingView({
   const rows = monthRows(report.months, report.year, today)
   const [openMonth, setOpenMonth] = useState<number | null>(null)
   return (
-    <div className="mb-4 flex flex-col gap-4">
+    <div className="flex flex-col gap-4">
       <Card className="mb-0">
         <h2 className="mb-3 font-display text-[17px] font-semibold">Resumen</h2>
         <ul>
