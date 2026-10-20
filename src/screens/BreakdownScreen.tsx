@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
 import { useMonth } from '../context/MonthProvider.tsx'
 import { loadPayerExpenses, saveViewMode, type ExpenseItem } from '../lib/api.ts'
+import { monthSplit } from '../lib/derive.ts'
 import { expenseSpan } from '../lib/expense-range.ts'
 import { formatMoney } from '../lib/format.ts'
 import { DEFAULT_ICON } from '../lib/icons.ts'
@@ -69,6 +70,8 @@ export function BreakdownScreen() {
   if (!data) return <p className="py-16 text-center font-bold text-alert-ink">{error}</p>
 
   const categories = data.categories.filter((category) => category.ownerId === null || category.ownerId === me.id)
+  const mine = monthSplit(data).rows.find((row) => row.id === me.id)
+  const shareLine = `Tu parte de los compartidos es ${mine?.percent ?? 0}% · ${formatMoney(mine?.share ?? 0)}`
   const friendly = me.viewMode === 'friendly'
   const source = listLoading ? [] : expenses
   const visible = friendly || categoryIds.length === 0 ? source : source.filter((expense) => categoryIds.includes(expense.categoryId))
@@ -163,6 +166,8 @@ export function BreakdownScreen() {
           </button>
         </p>
       ) : null}
+
+      <p className="mb-3 text-sm font-semibold text-text">{shareLine}</p>
 
       {listError ? <p className="mb-3 text-center text-sm font-bold text-alert-ink">{listError}</p> : null}
 

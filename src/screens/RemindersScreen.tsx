@@ -4,6 +4,7 @@ import { AppIcon } from '../components/AppIcon.tsx'
 import { FixedExpenseSheet, type FixedDraft } from '../components/FixedExpenseSheet.tsx'
 import { MonthSwitcher } from '../components/MonthSwitcher.tsx'
 import { SectionHeader } from '../components/SectionHeader.tsx'
+import { SplitNotice } from '../components/SplitNotice.tsx'
 import { Card, ErrorText } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
@@ -290,6 +291,7 @@ export function RemindersScreen() {
     <>
       <SectionHeader icon="bell" title="Avisos" />
       <MonthSwitcher className="mb-4" />
+      <SplitNotice notice={data.splitNotice} />
       {ask ? (
         <Card>
           <p className="inline-flex items-center gap-1 text-xs font-semibold text-muted">

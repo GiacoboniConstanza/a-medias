@@ -61,6 +61,33 @@ export function splitShared(total: number, people: SplitPerson[]): SplitResult {
   const percentDrift = 100 - rows.reduce((sum, row) => sum + row.percent, 0)
   if (rows[0] && total !== 0) rows[0].percent += percentDrift
 
+  return finishSplit(total, rows, missingBase)
+}
+
+export function splitByPercents(
+  total: number,
+  people: { id: string; name: string; percent: number; paid: number }[],
+  usedEvenSplit: boolean,
+): SplitResult {
+  const shares = shareAmounts(
+    total,
+    people.map((person) => person.percent),
+  )
+  const rows = people.map((person, index) => {
+    const share = shares[index] ?? 0
+    return {
+      id: person.id,
+      name: person.name,
+      percent: person.percent,
+      share,
+      paid: Math.round(person.paid),
+      balance: Math.round(person.paid) - share,
+    }
+  })
+  return finishSplit(total, rows, usedEvenSplit)
+}
+
+function finishSplit(total: number, rows: SplitRow[], usedEvenSplit: boolean): SplitResult {
   let debtorId: string | null = null
   let creditorId: string | null = null
   let amount = 0
@@ -78,7 +105,7 @@ export function splitShared(total: number, people: SplitPerson[]): SplitResult {
     }
   }
 
-  return { total: Math.round(total), rows, debtorId, creditorId, amount, usedEvenSplit: missingBase }
+  return { total: Math.round(total), rows, debtorId, creditorId, amount, usedEvenSplit }
 }
 
 export function debtSentence(meId: string, result: SplitResult): string {

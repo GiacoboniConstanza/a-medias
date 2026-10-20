@@ -4,7 +4,8 @@ import { money } from './format.ts'
 import { DEFAULT_ICON } from './icons.ts'
 import type { ExpenseSpan } from './expense-range.ts'
 import { amountForMonth, type AmountRevision } from './fixed.ts'
-import { monthEnd } from './month.ts'
+import { monthEnd, monthKey } from './month.ts'
+import { effectiveSalary, visibleSplitNotice, type SalaryPoint } from './salary.ts'
 import { clockLabel, type ReminderPrefs, DEFAULT_REMINDER_PREFS } from './reminders.ts'
 import { supabase } from './supabase.ts'
 
@@ -116,10 +117,28 @@ export type SettlementItem = {
   creditorId: string
 }
 
+export type SplitNotice = {
+  effectiveFrom: string
+  myPercent: number
+  partnerPercent: number
+}
+
+export type SalaryPreview = {
+  myOldPercent: number
+  myNewPercent: number
+  partnerOldPercent: number
+  partnerNewPercent: number
+  sharedTotal: number
+}
+
 export type FinanceData = {
   inviteCode: string
   names: Record<string, string>
   bases: Record<string, number>
+  splitPercents: Record<string, number>
+  splitEven: boolean
+  salaryHistory: SalaryPoint[]
+  splitNotice: SplitNotice | null
   categories: Category[]
   monthExpenses: ExpenseItem[]
   lastLoggedOn: string | null
@@ -142,7 +161,10 @@ export async function loadFinance(householdId: string, userId: string, month: st
   const [
     household,
     profiles,
-    incomes,
+    salaries,
+    percents,
+    evenSplit,
+    notices,
     extras,
     funds,
     allocations,
@@ -159,7 +181,14 @@ export async function loadFinance(householdId: string, userId: string, month: st
   ] = await Promise.all([
     supabase.from('households').select('invite_code').eq('id', householdId).single(),
     supabase.from('profiles').select('id, display_name').eq('household_id', householdId),
-    supabase.from('monthly_incomes').select('user_id, base_amount').eq('household_id', householdId).eq('month', month),
+    supabase
+      .from('base_salaries')
+      .select('id, amount, effective_from, created_at')
+      .eq('user_id', userId)
+      .order('effective_from', { ascending: false }),
+    supabase.rpc('household_split_percents', { target_month: month }),
+    supabase.rpc('household_split_is_even', { target_month: month }),
+    supabase.from('split_notices').select('effective_from, recipient_percent, partner_percent, created_at'),
     supabase.from('income_extras').select('id, amount, label, received_on').eq('user_id', userId),
     supabase.from('savings_funds').select('id, name, icon, target_amount, target_date').eq('user_id', userId),
     supabase.from('extra_allocations').select('extra_id, fund_id, amount').eq('user_id', userId),
@@ -202,7 +231,10 @@ export async function loadFinance(householdId: string, userId: string, month: st
 
   fail(household.error)
   fail(profiles.error)
-  fail(incomes.error)
+  fail(salaries.error)
+  fail(percents.error)
+  fail(evenSplit.error)
+  fail(notices.error)
   fail(extras.error)
   fail(funds.error)
   fail(allocations.error)
@@ -221,8 +253,33 @@ export async function loadFinance(householdId: string, userId: string, month: st
   const names: Record<string, string> = {}
   for (const profile of profiles.data ?? []) names[profile.id] = profile.display_name
 
-  const bases: Record<string, number> = {}
-  for (const income of incomes.data ?? []) bases[income.user_id] = money(income.base_amount)
+  const salaryHistory: SalaryPoint[] = (salaries.data ?? []).map((row) => ({
+    id: row.id,
+    amount: money(row.amount),
+    effectiveFrom: row.effective_from.slice(0, 10),
+    createdAt: row.created_at,
+  }))
+  const bases: Record<string, number> = {
+    [userId]: effectiveSalary(salaryHistory, month),
+  }
+  const splitPercents: Record<string, number> = {}
+  for (const row of percents.data ?? []) splitPercents[row.user_id] = row.percent
+  const noticeRow = visibleSplitNotice(
+    (notices.data ?? []).map((row) => ({
+      effectiveFrom: row.effective_from.slice(0, 10),
+      createdAt: row.created_at,
+      myPercent: row.recipient_percent,
+      partnerPercent: row.partner_percent,
+    })),
+    monthKey(),
+  )
+  const splitNotice: SplitNotice | null = noticeRow
+    ? {
+        effectiveFrom: noticeRow.effectiveFrom,
+        myPercent: noticeRow.myPercent,
+        partnerPercent: noticeRow.partnerPercent,
+      }
+    : null
 
   const balance = bagBalances(
     (allocations.data ?? []).map((allocation) => ({
@@ -322,6 +379,10 @@ export async function loadFinance(householdId: string, userId: string, month: st
     inviteCode: household.data.invite_code,
     names,
     bases,
+    splitPercents,
+    splitEven: evenSplit.data ?? false,
+    salaryHistory,
+    splitNotice,
     categories: (categories.data ?? []).map((category) => ({
       id: category.id,
       name: category.name,
@@ -451,31 +512,53 @@ export async function saveViewMode(userId: string, viewMode: ViewMode): Promise<
   fail(error)
 }
 
-export async function saveBaseSalary(input: {
+export async function saveSalaryRevision(input: {
+  id: string | null
   userId: string
-  householdId: string
-  month: string
   amount: number
+  effectiveFrom: string
 }): Promise<void> {
-  const existing = await supabase
-    .from('monthly_incomes')
-    .select('id')
-    .eq('user_id', input.userId)
-    .eq('month', input.month)
-    .maybeSingle()
-  fail(existing.error)
-  if (existing.data) {
-    const { error } = await supabase.from('monthly_incomes').update({ base_amount: input.amount }).eq('id', existing.data.id)
+  if (input.id) {
+    const { error } = await supabase
+      .from('base_salaries')
+      .update({ amount: input.amount, effective_from: input.effectiveFrom })
+      .eq('id', input.id)
     fail(error)
     return
   }
-  const { error } = await supabase.from('monthly_incomes').insert({
+  const { error } = await supabase.from('base_salaries').insert({
     user_id: input.userId,
-    household_id: input.householdId,
-    month: input.month,
-    base_amount: input.amount,
+    amount: input.amount,
+    effective_from: input.effectiveFrom,
   })
   fail(error)
+}
+
+export async function deleteSalaryRevision(id: string): Promise<void> {
+  const { error } = await supabase.from('base_salaries').delete().eq('id', id)
+  fail(error)
+}
+
+export async function previewSalarySplit(input: {
+  amount: number
+  effectiveFrom: string
+  replacing: boolean
+}): Promise<SalaryPreview> {
+  const { data, error } = await supabase.rpc('preview_salary_split', {
+    new_amount: input.amount,
+    effective_from: input.effectiveFrom,
+    replacing: input.replacing,
+  })
+  fail(error)
+  const row = data?.[0]
+  if (!row) throw new Error('No pude calcular el reparto.')
+  return {
+    myOldPercent: row.my_old_percent,
+    myNewPercent: row.my_new_percent,
+    partnerOldPercent: row.partner_old_percent,
+    partnerNewPercent: row.partner_new_percent,
+    sharedTotal: money(row.shared_total),
+  }
 }
 
 export async function createCategory(input: {

@@ -132,7 +132,6 @@ export function SharedScreen() {
           <thead>
             <tr className="text-muted">
               <th className="py-1 font-bold" />
-              <th className="font-bold">Base</th>
               <th className="font-bold">%</th>
               <th className="font-bold">Le toca</th>
               <th className="text-right font-bold">Pagó</th>
@@ -142,7 +141,6 @@ export function SharedScreen() {
             {split.rows.map((row) => (
               <tr key={row.id} className="border-t border-line">
                 <td className="py-1.5">{row.name}</td>
-                <td>{formatMoney(data.bases[row.id] ?? 0)}</td>
                 <td>{row.percent}%</td>
                 <td>{formatMoney(row.share)}</td>
                 <td className="text-right">{formatMoney(row.paid)}</td>

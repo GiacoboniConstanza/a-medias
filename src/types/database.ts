@@ -33,6 +33,42 @@ export type Database = {
         },
         { household_id?: string | null; display_name?: string; view_mode?: ViewMode }
       >
+      base_salaries: Table<
+        {
+          id: string
+          user_id: string
+          amount: number
+          effective_from: string
+          created_at: string
+        },
+        {
+          id?: string
+          user_id: string
+          amount: number
+          effective_from: string
+          created_at?: string
+        },
+        { amount?: number; effective_from?: string }
+      >
+      split_notices: Table<
+        {
+          id: string
+          recipient_id: string
+          effective_from: string
+          recipient_percent: number
+          partner_percent: number
+          created_at: string
+        },
+        {
+          id?: string
+          recipient_id: string
+          effective_from: string
+          recipient_percent: number
+          partner_percent: number
+          created_at?: string
+        },
+        { recipient_percent?: number; partner_percent?: number }
+      >
       monthly_incomes: Table<
         {
           id: string
@@ -407,6 +443,24 @@ export type Database = {
           movement_label: string
         }
         Returns: string
+      }
+      household_split_percents: {
+        Args: { target_month: string }
+        Returns: { user_id: string; percent: number }[]
+      }
+      household_split_is_even: {
+        Args: { target_month: string }
+        Returns: boolean
+      }
+      preview_salary_split: {
+        Args: { new_amount: number; effective_from: string; replacing: boolean }
+        Returns: {
+          my_old_percent: number
+          my_new_percent: number
+          partner_old_percent: number
+          partner_new_percent: number
+          shared_total: number
+        }[]
       }
     }
   }

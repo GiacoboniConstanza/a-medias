@@ -3,6 +3,7 @@ import { AppIcon } from '../components/AppIcon.tsx'
 import { MonthSwitcher } from '../components/MonthSwitcher.tsx'
 import { Plant, plantStage } from '../components/Plant.tsx'
 import { ViewToggle } from '../components/ViewToggle.tsx'
+import { SplitNotice } from '../components/SplitNotice.tsx'
 import { Card } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
@@ -54,6 +55,7 @@ export function HomeScreen() {
       <p className="mb-4 text-sm font-bold text-muted">Hola, {profile.displayName}</p>
       <MonthSwitcher heading />
       <ViewToggle mode={profile.viewMode} onChange={(mode) => void changeMode(mode)} className="mb-3" />
+      <SplitNotice notice={data.splitNotice} />
 
       <Card>
         {friendly ? (
@@ -125,6 +127,9 @@ export function HomeScreen() {
             <div>
               <p className="text-xs text-muted">Sueldo base</p>
               <p className="font-display text-lg font-bold">{formatMoney(pocket.base)}</p>
+              <Link to="/sueldo" className="inline-flex min-h-11 items-center text-sm font-semibold text-primary">
+                Mi sueldo
+              </Link>
             </div>
             <div className="text-right">
               <p className="text-xs text-muted">
@@ -136,6 +141,9 @@ export function HomeScreen() {
         ) : (
           <>
             <Row label="Sueldo base" value={formatMoney(pocket.base)} />
+            <Link to="/sueldo" className="inline-flex min-h-11 items-center text-sm font-semibold text-primary">
+              Mi sueldo
+            </Link>
             <Row label="Extras (a la bolsa, no cuenta)" value={formatMoney(pocket.extras)} tone="alert" />
           </>
         )}
