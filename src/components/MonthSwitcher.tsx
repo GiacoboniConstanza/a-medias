@@ -3,11 +3,11 @@ import { useMonth } from '../context/MonthProvider.tsx'
 
 const ARROW = 'grid h-11 w-11 shrink-0 place-items-center rounded-full bg-card text-lg text-primary shadow-soft'
 
-export function MonthSwitcher({ heading = false }: { heading?: boolean }) {
+export function MonthSwitcher({ heading = false, className = 'mb-3' }: { heading?: boolean; className?: string }) {
   const { title, isCurrent, previous, next, goToday } = useMonth()
   const Title = heading ? 'h1' : 'p'
   return (
-    <div className="mb-3">
+    <div className={className}>
       <div className="flex items-center justify-between gap-3">
         <button type="button" onClick={previous} className={ARROW} aria-label="Mes anterior">
           <AppIcon name="chevron-left" />

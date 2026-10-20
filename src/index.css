@@ -53,9 +53,14 @@ input {
   animation-fill-mode: both, none;
 }
 
+.goal-ring {
+  transition: stroke-dashoffset 700ms ease-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .bubble-motion,
-  .sheet-motion {
+  .sheet-motion,
+  .goal-ring {
     animation: none !important;
     transition: none !important;
   }

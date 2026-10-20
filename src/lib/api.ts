@@ -63,6 +63,13 @@ export type ExtraItem = {
   parts: ExtraPart[]
 }
 
+export type GoalContribution = {
+  id: string
+  userId: string
+  amount: number
+  createdAt: string
+}
+
 export type GoalItem = {
   id: string
   name: string
@@ -70,6 +77,7 @@ export type GoalItem = {
   target: number
   targetDate: string | null
   byUser: { userId: string; amount: number }[]
+  contributions: GoalContribution[]
 }
 
 export type FixedPayment = {
@@ -166,7 +174,7 @@ export async function loadFinance(householdId: string, userId: string, month: st
       .eq('household_id', householdId)
       .order('created_at', { ascending: false })
       .limit(1),
-    supabase.from('goal_contributions').select('goal_id, user_id, amount'),
+    supabase.from('goal_contributions').select('id, goal_id, user_id, amount, created_at'),
     supabase
       .from('fixed_expenses')
       .select('id, title, icon, expected_amount, due_day, is_shared, category_id')
@@ -265,6 +273,7 @@ export async function loadFinance(householdId: string, userId: string, month: st
     .sort((a, b) => b.happenedOn.localeCompare(a.happenedOn))
 
   const goalRow = goals.data?.[0]
+  const goalContributions = (contributions.data ?? []).filter((contribution) => contribution.goal_id === goalRow?.id)
   const goal: GoalItem | null = goalRow
     ? {
         id: goalRow.id,
@@ -273,13 +282,19 @@ export async function loadFinance(householdId: string, userId: string, month: st
         target: money(goalRow.target_amount),
         targetDate: goalRow.target_date,
         byUser: Object.entries(
-          (contributions.data ?? [])
-            .filter((contribution) => contribution.goal_id === goalRow.id)
-            .reduce<Record<string, number>>((totals, contribution) => {
-              totals[contribution.user_id] = (totals[contribution.user_id] ?? 0) + money(contribution.amount)
-              return totals
-            }, {}),
+          goalContributions.reduce<Record<string, number>>((totals, contribution) => {
+            totals[contribution.user_id] = (totals[contribution.user_id] ?? 0) + money(contribution.amount)
+            return totals
+          }, {}),
         ).map(([userId, amount]) => ({ userId, amount })),
+        contributions: goalContributions
+          .map((contribution) => ({
+            id: contribution.id,
+            userId: contribution.user_id,
+            amount: money(contribution.amount),
+            createdAt: contribution.created_at,
+          }))
+          .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
       }
     : null
 
