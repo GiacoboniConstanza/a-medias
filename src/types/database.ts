@@ -277,6 +277,7 @@ export type Database = {
           due_day: number
           is_shared: boolean
           remind_days_before: number
+          remind: boolean
           paused_at: string | null
           updated_at: string | null
           updated_by: string | null
@@ -294,6 +295,7 @@ export type Database = {
           due_day: number
           is_shared: boolean
           remind_days_before?: number
+          remind?: boolean
           paused_at?: string | null
           created_at?: string
         },
@@ -307,6 +309,7 @@ export type Database = {
           due_day?: number
           is_shared?: boolean
           remind_days_before?: number
+          remind?: boolean
           paused_at?: string | null
           updated_by?: string | null
         }
@@ -336,6 +339,11 @@ export type Database = {
           enabled: boolean
           first_time: string
           second_time: string
+          ask_times: string[]
+          due_lead_days: number
+          notify_shared: boolean
+          sunday_summary: boolean
+          push_enabled: boolean
           reviewed_on: string | null
           hidden_until: string | null
           updated_at: string
@@ -345,6 +353,11 @@ export type Database = {
           enabled?: boolean
           first_time?: string
           second_time?: string
+          ask_times?: string[]
+          due_lead_days?: number
+          notify_shared?: boolean
+          sunday_summary?: boolean
+          push_enabled?: boolean
           reviewed_on?: string | null
           hidden_until?: string | null
           updated_at?: string
@@ -353,8 +366,31 @@ export type Database = {
           enabled?: boolean
           first_time?: string
           second_time?: string
+          ask_times?: string[]
+          due_lead_days?: number
+          notify_shared?: boolean
+          sunday_summary?: boolean
+          push_enabled?: boolean
           reviewed_on?: string | null
           hidden_until?: string | null
+          updated_at?: string
+        }
+      >
+      daily_statuses: Table<
+        {
+          user_id: string
+          day: string
+          kind: 'logged' | 'clear'
+          updated_at: string
+        },
+        {
+          user_id: string
+          day: string
+          kind: 'logged' | 'clear'
+          updated_at?: string
+        },
+        {
+          kind?: 'logged' | 'clear'
           updated_at?: string
         }
       >

@@ -6,7 +6,7 @@ import type { ExpenseSpan } from './expense-range.ts'
 import { amountForMonth, type AmountRevision } from './fixed.ts'
 import { monthEnd, monthKey } from './month.ts'
 import { effectiveSalary, visibleSplitNotice, type SalaryPoint } from './salary.ts'
-import { clockLabel, type ReminderPrefs, DEFAULT_REMINDER_PREFS } from './reminders.ts'
+import { sortedTimes, type DailyKind, type ReminderPrefs, DEFAULT_REMINDER_PREFS } from './reminders.ts'
 import { supabase } from './supabase.ts'
 import { parseYearBalance, type YearReport } from './year.ts'
 
@@ -104,6 +104,7 @@ export type FixedItem = {
   categoryId: string | null
   ownerId: string | null
   remindDaysBefore: number
+  remind: boolean
   pausedAt: string | null
   updatedAt: string | null
   updatedBy: string | null
@@ -217,7 +218,7 @@ export async function loadFinance(householdId: string, userId: string, month: st
     supabase.from('goal_contributions').select('id, goal_id, user_id, amount, created_at'),
     supabase
       .from('fixed_expenses')
-      .select('id, title, icon, expected_amount, due_day, is_shared, category_id, owner_id, remind_days_before, paused_at, updated_at, updated_by')
+      .select('id, title, icon, expected_amount, due_day, is_shared, category_id, owner_id, remind_days_before, remind, paused_at, updated_at, updated_by')
       .eq('household_id', householdId)
       .order('due_day', { ascending: true }),
     supabase.from('fixed_expense_amounts').select('fixed_expense_id, amount, effective_from'),
@@ -431,6 +432,7 @@ export async function loadFinance(householdId: string, userId: string, month: st
         categoryId: expense.category_id,
         ownerId: expense.owner_id,
         remindDaysBefore: expense.remind_days_before,
+        remind: expense.remind,
         pausedAt: expense.paused_at,
         updatedAt: expense.updated_at,
         updatedBy: expense.updated_by,
@@ -780,6 +782,7 @@ export async function createFixedExpense(input: {
   dueDay: number
   isShared: boolean
   remindDaysBefore: number
+  remind: boolean
   effectiveFrom: string
   createdBy: string
 }): Promise<void> {
@@ -796,6 +799,7 @@ export async function createFixedExpense(input: {
       due_day: input.dueDay,
       is_shared: input.isShared,
       remind_days_before: input.remindDaysBefore,
+      remind: input.remind,
     })
     .select('id')
     .single()
@@ -821,6 +825,7 @@ export async function updateFixedExpense(input: {
   dueDay: number
   isShared: boolean
   remindDaysBefore: number
+  remind: boolean
   expectedAmount: number
   updatedBy: string
   revision: { amount: number; effectiveFrom: string; createdBy: string } | null
@@ -836,6 +841,7 @@ export async function updateFixedExpense(input: {
       due_day: input.dueDay,
       is_shared: input.isShared,
       remind_days_before: input.remindDaysBefore,
+      remind: input.remind,
       expected_amount: input.expectedAmount,
       updated_by: input.updatedBy,
     })
@@ -873,32 +879,74 @@ export async function deleteFixedExpense(id: string): Promise<void> {
 export async function loadReminderPreferences(userId: string): Promise<ReminderPrefs> {
   const { data, error } = await supabase
     .from('reminder_preferences')
-    .select('enabled, first_time, second_time, reviewed_on, hidden_until')
+    .select('enabled, first_time, second_time, ask_times, due_lead_days, notify_shared, sunday_summary, push_enabled, reviewed_on, hidden_until')
     .eq('user_id', userId)
     .maybeSingle()
   fail(error)
-  if (!data) return { ...DEFAULT_REMINDER_PREFS }
+  if (!data) return { ...DEFAULT_REMINDER_PREFS, times: [...DEFAULT_REMINDER_PREFS.times] }
+  const times = sortedTimes(data.ask_times?.length ? data.ask_times : [data.first_time, data.second_time])
   return {
     enabled: data.enabled,
-    firstTime: clockLabel(data.first_time),
-    secondTime: clockLabel(data.second_time),
+    times: times.length > 0 ? times : [...DEFAULT_REMINDER_PREFS.times],
     reviewedOn: data.reviewed_on?.slice(0, 10) ?? null,
     hiddenUntil: data.hidden_until,
+    dueLeadDays: data.due_lead_days,
+    notifyShared: data.notify_shared,
+    sundaySummary: data.sunday_summary,
+    pushEnabled: data.push_enabled,
   }
 }
 
 export async function saveReminderPreferences(userId: string, prefs: ReminderPrefs): Promise<void> {
+  const times = sortedTimes(prefs.times)
+  const first = times[0] ?? DEFAULT_REMINDER_PREFS.times[0] ?? '14:00'
+  const last = times[times.length - 1] ?? first
   const { error } = await supabase.from('reminder_preferences').upsert(
     {
       user_id: userId,
       enabled: prefs.enabled,
-      first_time: prefs.firstTime,
-      second_time: prefs.secondTime,
+      first_time: first,
+      second_time: last,
+      ask_times: times.length > 0 ? times : [first],
+      due_lead_days: prefs.dueLeadDays,
+      notify_shared: prefs.notifyShared,
+      sunday_summary: prefs.sundaySummary,
+      push_enabled: prefs.pushEnabled,
       reviewed_on: prefs.reviewedOn,
       hidden_until: prefs.hiddenUntil,
       updated_at: new Date().toISOString(),
     },
     { onConflict: 'user_id' },
+  )
+  fail(error)
+}
+
+export async function loadDailyStatuses(userId: string, since: string): Promise<{ day: string; kind: DailyKind }[]> {
+  const { data, error } = await supabase
+    .from('daily_statuses')
+    .select('day, kind')
+    .eq('user_id', userId)
+    .gte('day', since)
+    .order('day', { ascending: false })
+  fail(error)
+  return (data ?? []).map((row) => ({
+    day: row.day.slice(0, 10),
+    kind: row.kind === 'clear' ? 'clear' : 'logged',
+  }))
+}
+
+export async function markDayClear(userId: string, day: string): Promise<void> {
+  const existing = await supabase.from('daily_statuses').select('kind').eq('user_id', userId).eq('day', day).maybeSingle()
+  fail(existing.error)
+  if (existing.data?.kind === 'logged') return
+  const { error } = await supabase.from('daily_statuses').upsert(
+    {
+      user_id: userId,
+      day,
+      kind: 'clear',
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'user_id,day' },
   )
   fail(error)
 }

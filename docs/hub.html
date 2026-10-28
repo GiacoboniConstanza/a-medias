@@ -1,0 +1,203 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Hub · Coty y Maru (Lura)</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#FBF3EA;--card:#FFFAF4;--sage:#4F6B57;--ls:#C7DDAE;--ok:#6A784D;--y:#F4C542;--br:#DEC59E;--cu:#C4866D;--dcu:#85503C;--pk:#F7B7C4;--lav:#A79BCB;--tx:#202808;--sec:#6B6656;--bd:#E8DCCB}
+body{font-family:Nunito,sans-serif;background:#efe3d4;color:var(--tx);padding:36px}
+.h,h1{font-family:Fredoka,Quicksand,sans-serif}
+h1{text-align:center;font-size:34px;color:var(--sage)}h1 small{display:block;font:600 15px Nunito;color:var(--sec);margin-top:4px}
+.wrap{display:flex;flex-wrap:wrap;gap:40px 44px;justify-content:center;align-items:flex-start;margin:26px auto 0;max-width:1900px}
+.shot{width:390px;padding:4px 0 6px}
+.lbl{font:600 18px Fredoka;color:var(--sage);margin-bottom:10px}
+.cap{font-size:13px;color:var(--sec);margin-top:12px;line-height:1.45;padding:0 4px}
+.cap b{color:var(--sage)}
+.phone{width:390px;height:844px;background:var(--bg);border-radius:46px;border:10px solid #2c2a22;position:relative;overflow:hidden;padding:46px 18px 0;box-shadow:0 22px 44px #4f6b5733}
+.phone:before{content:"";position:absolute;top:9px;left:50%;transform:translateX(-50%);width:110px;height:24px;background:#2c2a22;border-radius:14px;z-index:9}
+/* header pattern */
+.hdr{display:flex;justify-content:space-between;align-items:center;min-height:44px;margin-bottom:16px}
+.tt{font:600 15px Nunito;color:var(--sec);display:flex;align-items:center;gap:7px}
+.pill{background:var(--ls);color:var(--sage);font-weight:800;font-size:12px;padding:6px 12px;border-radius:14px;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}
+.pill.lav{background:#ECE8F6;color:#5f548c}
+.big{font:700 29px Fredoka;line-height:1.1}
+.month{display:flex;align-items:center;justify-content:space-between;margin:0 0 12px}.month .h{font-size:28px;font-weight:700}
+.rb{width:44px;height:44px;border-radius:50%;background:var(--card);display:flex;align-items:center;justify-content:center;color:var(--sage);box-shadow:0 3px 8px #85503c1f;flex:none}
+.tog{display:flex;background:#f1e5d6;border-radius:24px;padding:4px;margin-bottom:12px}
+.tog span{flex:1;text-align:center;padding:9px;border-radius:20px;font-weight:800;font-size:14px;color:#7b7563}
+.tog .on{background:var(--sage);color:#fff}
+.card{background:var(--card);border-radius:24px;padding:14px 16px;margin-bottom:10px;box-shadow:0 4px 14px #85503c14}
+.ct{font:600 14px Fredoka;color:var(--sec);display:flex;align-items:center;gap:7px}
+.amt{font:700 26px Fredoka}
+.sm{font-size:12.5px;color:var(--sec)}
+.row{display:flex;align-items:center;gap:12px}
+.two{display:flex;height:10px;border-radius:6px;overflow:hidden;margin:6px 0 4px}
+.debt{background:#fdeee9}
+.ic{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none}
+.nav{position:absolute;left:0;right:0;bottom:0;height:74px;background:var(--card);display:flex;justify-content:space-around;align-items:center;border-top:1px solid #f0e3d3;padding-bottom:6px;z-index:2}
+.nav div{display:flex;flex-direction:column;align-items:center;font-size:10.5px;font-weight:700;color:#a49c88;gap:3px;min-width:56px}.nav i{font-size:18px}
+.nav .on{color:var(--sage)}.nav .on i{background:var(--ls);padding:6px 14px;border-radius:14px}
+.fab{position:absolute;right:20px;bottom:90px;width:58px;height:58px;border-radius:50%;background:var(--sage);color:#fff;font-size:24px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 18px #4f6b5766;z-index:3}
+.ex{font-size:10px;color:#b4a993;font-weight:700}
+/* hub module cards */
+.mod{display:flex;align-items:center;gap:14px;background:var(--card);border-radius:24px;padding:13px 16px;margin-bottom:10px;box-shadow:0 4px 14px #85503c14;min-height:74px}
+.mod .nm{font:600 14px Fredoka;color:var(--sec)}
+.mod .val{font:700 20px Fredoka;line-height:1.2}
+.mod .chev{color:#c9b9a3;font-size:14px}
+.bar{height:8px;border-radius:5px;background:#F2EADF;overflow:hidden;margin-top:6px}.bar i{display:block;height:100%;border-radius:5px}
+.dots{display:flex;gap:5px;margin-top:6px}.dots i{width:22px;height:8px;border-radius:5px;background:#F2EADF}.dots i.d{background:var(--ok)}
+/* toggles */
+.sw{width:52px;height:32px;border-radius:16px;background:#e3d8c9;position:relative;flex:none}
+.sw:after{content:"";position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #0003}
+.sw.on{background:var(--sage)}.sw.on:after{left:23px}
+.sw.on:before{content:"\f00c";font:900 11px "Font Awesome 6 Free";color:#fff;position:absolute;left:9px;top:10px}
+.sw.lock:after{background:#fff}
+.sw.lav.on{background:#7E70AE}
+/* memos */
+.memo{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:22px;padding:12px 14px 12px 10px;margin-bottom:10px;box-shadow:0 4px 14px #85503c12}
+.chk{width:44px;height:44px;display:flex;align-items:center;justify-content:center;flex:none}
+.chk span{width:28px;height:28px;border-radius:50%;border:2.5px solid #cbbda8;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px}
+.chk.done span{background:var(--sage);border-color:var(--sage)}
+.memo .tx{font-weight:700;font-size:15.5px}
+.memo .meta{font-size:12.5px;color:var(--sec);margin-top:2px}
+.memo.shared{background:#F6F3FB;box-shadow:inset 4px 0 0 #A79BCB,0 4px 14px #85503c12}
+.sec{font:700 13px Nunito;color:#8a8370;margin:16px 4px 8px}
+.done .tx{text-decoration:line-through;color:#a49c88}
+/* sheet */
+.dim{position:absolute;inset:0;background:#2c2a2266;z-index:4}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--bg);border-radius:32px 32px 0 0;padding:12px 20px 26px;z-index:5;box-shadow:0 -10px 30px #0002}
+.grab{width:44px;height:5px;border-radius:3px;background:#dccfbf;margin:0 auto 14px}
+.field{background:#fff;border:2px solid var(--ls);border-radius:20px;padding:14px 16px;font-size:16px;font-weight:700;min-height:88px}
+.f{background:var(--card);border-radius:20px;padding:12px 14px;margin-top:10px;display:flex;align-items:center;gap:12px;box-shadow:0 3px 10px #85503c10;min-height:64px}
+.f .k{font-weight:800;font-size:15px}.f .d{font-size:12.5px;color:var(--sec);margin-top:1px}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;border-radius:20px;padding:14px;font-weight:800;font-size:16px;min-height:52px}
+.solid{background:var(--sage);color:#fff}
+/* habits */
+.week{display:flex;justify-content:space-between;margin-top:6px}
+.wk{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11.5px;font-weight:800;color:#a49c88;width:40px;padding:4px 0 6px;border-radius:16px}
+.wk.today{background:#EEF4E6;color:var(--sage)}
+.hab{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:22px;padding:6px 10px 6px 16px;margin-bottom:8px;box-shadow:0 4px 14px #85503c12;min-height:58px}
+.hab .tx{flex:1;font-weight:700;font-size:15.5px}.hab .tx small{display:block;font-size:12px;color:var(--sec);font-weight:600}
+.hb{min-width:92px;height:44px;border-radius:22px;display:flex;align-items:center;justify-content:center;gap:6px;font-weight:800;font-size:14px;border:2px solid var(--ls);color:var(--sage);background:transparent}
+.hb.on{background:var(--sage);border-color:var(--sage);color:#fff}
+/* food */
+.mac{display:flex;gap:8px;margin-top:12px}.mac>div{flex:1;background:#F6EFE5;border-radius:16px;padding:9px 10px}
+.mac b{display:block;font:700 15px Fredoka}.mac .bar{height:6px;margin-top:5px;background:#EADFCF}
+.meal{display:flex;align-items:center;gap:12px;background:var(--card);border-radius:22px;padding:12px 16px;margin-bottom:9px;box-shadow:0 4px 14px #85503c12;min-height:64px}
+.meal .tx{flex:1}.meal .nm{font-weight:800;font-size:15px}.meal .d{font-size:12.5px;color:var(--sec)}
+.meal .k{font:700 15px Fredoka;text-align:right}.meal .k small{display:block;font:700 11.5px Nunito;color:var(--ok)}
+.add{border:2px dashed var(--bd);background:transparent;box-shadow:none}
+</style></head><body>
+<h1>El hub · una plantita para todo<small>Módulos que cada una activa · estética Lura · datos de ejemplo</small></h1>
+<div class="wrap">
+<div class="shot" id="s1"><div class="lbl">1 · Inicio de Coty (hub)</div><div class="phone">
+<div class="hdr"><span class="tt"><i class="fa-solid fa-seedling"></i> Hola, Coty</span><div class="rb"><i class="fa-solid fa-sliders"></i></div></div>
+<div class="big">Miércoles 21</div>
+<div class="card" style="display:flex;align-items:center;gap:6px;padding:10px 16px 10px 0;margin-top:14px;margin-bottom:12px;background:linear-gradient(160deg,#FFFAF4,#EEF4E6)">
+<svg width="172" height="160" viewBox="0 0 160 150" style="flex:none" aria-hidden="true">
+<circle cx="130" cy="28" r="15" fill="#F4C542"/><g stroke="#F4C542" stroke-width="3" stroke-linecap="round"><path d="M130 6v4M130 46v4M108 28h4M148 28h4M115 13l3 3M142 40l3 3M145 13l-3 3"/></g>
+<path d="M80 112 C80 92 79 66 78 36" stroke="#6A784D" stroke-width="4" fill="none" stroke-linecap="round"/>
+<path d="M79 100 C64 100 54 90 55 80 C69 80 79 88 79 100Z" fill="#C7DDAE"/>
+<path d="M80 90 C95 89 105 79 104 68 C90 69 80 77 80 90Z" fill="#6A784D"/>
+<path d="M79 76 C65 74 58 64 60 54 C73 56 80 64 79 76Z" fill="#C7DDAE"/>
+<path d="M79 64 C92 62 100 53 99 44 C87 46 79 53 79 64Z" fill="none" stroke="#C7DDAE" stroke-width="2.2" stroke-dasharray="4 3"/>
+<path d="M78 52 C68 50 62 43 63 35 C73 37 78 44 78 52Z" fill="none" stroke="#C7DDAE" stroke-width="2.2" stroke-dasharray="4 3"/>
+<path d="M80 104 Q92 106 100 101" stroke="#6A784D" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+<circle cx="104" cy="101" r="7.5" fill="#E98C9E"/><circle cx="102" cy="98.5" r="2" fill="#fff" opacity=".7"/>
+<g fill="#A79BCB"><circle cx="78" cy="23" r="5"/><circle cx="84.5" cy="28" r="5"/><circle cx="82" cy="35" r="5"/><circle cx="74" cy="35" r="5"/><circle cx="71.5" cy="28" r="5"/></g><circle cx="78" cy="29.5" r="3.4" fill="#F4C542"/>
+<path d="M50 118 h60 l-7 28 h-46z" fill="#C4866D"/><rect x="46" y="110" width="68" height="11" rx="5.5" fill="#DEC59E"/>
+</svg>
+<div><div class="h" style="font-size:20px;font-weight:600;color:var(--ok);line-height:1.2">Tu plantita creció hoy</div>
+<div class="sm" style="margin-top:6px;font-weight:700">3 hojas nuevas. Te faltan 2 hábitos para completarla.</div></div></div>
+<div class="mod"><svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="22" fill="#FFF1C2"/><path d="M22 31 C22 25 22 21 21.5 15" stroke="#6A784D" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M22 26 C16 26 13 22 13.5 18 C19 18 22 21.5 22 26Z" fill="#C7DDAE"/><path d="M22 22 C27 21 30 17 29.5 13 C25 13.5 21.5 17 22 22Z" fill="#6A784D"/><circle cx="21.5" cy="11" r="4.2" fill="#F4C542"/><path d="M21.5 9 v4" stroke="#85503C" stroke-width="1.3" stroke-linecap="round"/><path d="M15 31 h14 l-2 7 h-10z" fill="#C4866D"/><rect x="14" y="29" width="16" height="4" rx="2" fill="#DEC59E"/></svg><div style="flex:1"><div class="nm">Finanzas</div><div class="val">$ 613.600 <span class="sm" style="font:700 12.5px Nunito">gastado en octubre</span></div></div><i class="fa-solid fa-chevron-right chev"></i></div>
+<div class="mod"><svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="22" fill="#E3EED4"/><path d="M22 31 C22 25 22 21 21.5 15" stroke="#6A784D" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M22 28 C16 28 13 24 13.5 20 C19 20 22 23.5 22 28Z" fill="#C7DDAE"/><path d="M22 23 C27 22 30 18 29.5 14 C25 14.5 21.5 18 22 23Z" fill="#6A784D"/><path d="M21.6 17 C17.5 16 15.5 13 16 10 C20 10.5 22 13.5 21.6 17Z" fill="#C7DDAE"/><path d="M15 31 h14 l-2 7 h-10z" fill="#C4866D"/><rect x="14" y="29" width="16" height="4" rx="2" fill="#DEC59E"/></svg><div style="flex:1"><div class="nm">Hábitos</div><div class="val">3 de 5 hoy</div><div class="dots"><i class="d"></i><i class="d"></i><i class="d"></i><i></i><i></i></div></div><i class="fa-solid fa-chevron-right chev"></i></div>
+<div class="mod"><svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="22" fill="#FCE6EA"/><path d="M22 31 C22 25 22 21 21.5 15" stroke="#6A784D" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M22 26 C16 26 13 22 13.5 18 C19 18 22 21.5 22 26Z" fill="#C7DDAE"/><path d="M22 20 Q26 19 28 21" stroke="#6A784D" stroke-width="1.6" fill="none"/><circle cx="29" cy="24.5" r="4.3" fill="#E98C9E"/><circle cx="27.6" cy="23.2" r="1.2" fill="#fff" opacity=".7"/><path d="M21.6 16 C25 15 27 12.5 26.5 10 C23.5 10.5 21.4 13 21.6 16Z" fill="#6A784D"/><path d="M15 31 h14 l-2 7 h-10z" fill="#C4866D"/><rect x="14" y="29" width="16" height="4" rx="2" fill="#DEC59E"/></svg><div style="flex:1"><div class="nm">Comidas</div><div class="val">62 de 100 g <span class="sm" style="font:700 12.5px Nunito">de proteína</span></div><div class="bar"><i style="width:62%;background:#E98C9E"></i></div></div><i class="fa-solid fa-chevron-right chev"></i></div>
+<div class="mod"><svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="22" fill="#ECE8F6"/><path d="M22 31 C22 25 22 21 21.5 15" stroke="#6A784D" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M22 27 C16 27 13 23 13.5 19 C19 19 22 22.5 22 27Z" fill="#C7DDAE"/><path d="M22 22 C27 21 30 17 29.5 13.5 C25 14 21.5 17.5 22 22Z" fill="#6A784D"/><circle cx="21.5" cy="8.6" r="2.5" fill="#A79BCB"/><circle cx="24.7" cy="11.0" r="2.5" fill="#A79BCB"/><circle cx="23.5" cy="14.8" r="2.5" fill="#A79BCB"/><circle cx="19.5" cy="14.8" r="2.5" fill="#A79BCB"/><circle cx="18.3" cy="11.0" r="2.5" fill="#A79BCB"/><circle cx="21.5" cy="12" r="1.6" fill="#F4C542"/><path d="M15 31 h14 l-2 7 h-10z" fill="#C4866D"/><rect x="14" y="29" width="16" height="4" rx="2" fill="#DEC59E"/></svg><div style="flex:1"><div class="nm">Memos</div><div class="val">2 pendientes</div><div class="sm" style="margin-top:2px;color:#5f548c;font-weight:700"><i class="fa-solid fa-user-group" style="font-size:10px"></i> 1 con Maru</div></div><i class="fa-solid fa-chevron-right chev"></i></div>
+<div class="nav"><div class=on><i class="fa-solid fa-house"></i>Inicio</div><div><i class="fa-solid fa-wallet"></i>Finanzas</div><div><i class="fa-solid fa-seedling"></i>Hábitos</div><div><i class="fa-solid fa-bowl-food"></i>Comidas</div><div><i class="fa-solid fa-note-sticky"></i>Memos</div></div>
+</div><div class="cap">La plantita grande junta todo: <b>una hoja por hábito hecho</b> (las punteadas son los que faltan), <b>un fruto</b> que madura con las comidas y <b>una flor lavanda</b> por los memos. Cada módulo tiene su brotecito como ícono. El menú de abajo muestra solo los módulos activos.</div></div>
+<div class="shot" id="s2"><div class="lbl">2 · Inicio de Maru (solo Finanzas)</div><div class="phone">
+<div class="hdr"><span class="tt"><i class="fa-solid fa-house"></i> Hola, Maru</span></div>
+<div class="month"><div class="rb"><i class="fa-solid fa-chevron-left"></i></div><span class="h">Octubre 2026</span><div class="rb"><i class="fa-solid fa-chevron-right"></i></div></div>
+<div class="tog"><span class="on"><i class="fa-solid fa-check"></i> Amigable</span><span>Contable</span></div>
+<div class="card" style="display:flex;align-items:center;gap:8px;padding:6px 14px 6px 6px"><svg width="104" height="104" viewBox="0 0 120 120"><circle cx="92" cy="26" r="15" fill="#F4C542"/><g stroke="#F4C542" stroke-width="3" stroke-linecap="round"><path d="M92 4v4M92 44v4M70 26h4M110 26h4M77 11l3 3M104 38l3 3M107 11l-3 3"/></g>
+<path d="M60 92 C60 70 58 58 56 44" stroke="#6A784D" stroke-width="4" fill="none" stroke-linecap="round"/>
+<path d="M57 60 C40 58 32 46 34 36 C48 36 58 46 57 60Z" fill="#C7DDAE"/><path d="M58 52 C72 48 80 36 78 26 C64 28 56 38 58 52Z" fill="#6A784D"/><path d="M59 74 C74 74 84 64 84 54 C70 54 60 62 59 74Z" fill="#C7DDAE"/>
+<path d="M36 90 h48 l-6 24 h-36z" fill="#C4866D"/><rect x="32" y="84" width="56" height="10" rx="5" fill="#DEC59E"/></svg>
+<div><div class="ct"><i class="fa-solid fa-seedling" style="color:var(--ok)"></i>Te queda</div><div class="amt" style="font-size:28px;color:var(--ok)">$ 812.300</div><div class="sm" style="font-weight:700;color:var(--ok)">Vas bien este mes</div></div></div>
+<div class="memo shared" style="margin-bottom:10px"><div class="chk"><span></span></div><div style="flex:1"><div class="tx">Comprar alimento para los gatos</div><div class="meta" style="color:#5f548c;font-weight:700"><i class="fa-solid fa-note-sticky"></i> Memo de Coty</div></div></div>
+<div class="card"><div class="ct"><i class="fa-solid fa-basket-shopping" style="color:var(--cu)"></i>Gastos del mes</div><div class="amt" style="font-size:22px">$ 392.700</div>
+<div class="two"><i style="width:36%;background:var(--lav)"></i><i style="width:64%;background:var(--pk)"></i></div>
+<div class="sm" style="display:flex;justify-content:space-between"><span><i class="fa-solid fa-circle" style="color:var(--lav);font-size:8px"></i> Compartidos $ 140.800</span><span><i class="fa-solid fa-circle" style="color:var(--pk);font-size:8px"></i> Privados $ 251.900</span></div></div>
+<div class="card debt row"><div class="ic" style="background:var(--pk);color:#fff"><i class="fa-solid fa-handshake"></i></div><div style="flex:1"><div class="sm">Gastos compartidos</div><b class="h" style="font-size:17px">Le debés a Coty $ 84.000</b></div><i class="fa-solid fa-chevron-right" style="color:var(--cu)"></i></div>
+<div class="fab"><i class="fa-solid fa-plus"></i></div>
+<div class="nav"><div class=on><i class="fa-solid fa-house"></i>Inicio</div><div><i class="fa-solid fa-receipt"></i>Gastos</div><div><i class="fa-solid fa-bag-shopping"></i>Bolsa</div><div><i class="fa-solid fa-umbrella-beach"></i>Meta</div><div><i class="fa-solid fa-bell"></i>Avisos</div></div>
+</div><div class="cap">Maru entra directo a A Medias, igual que hoy: sin hub ni íconos de cosas que no usa. El memo que Coty compartió aparece como <b>una tarjetita lavanda con check</b>; si lo tacha, a Coty le figura hecho. Mantiene la plantita aprobada.</div></div>
+<div class="shot" id="s3"><div class="lbl">3 · Mis módulos (así lo ve Maru)</div><div class="phone">
+<div class="hdr"><span class="tt"><i class="fa-solid fa-sliders"></i> Ajustes</span><div class="rb"><i class="fa-solid fa-xmark"></i></div></div>
+<div class="big">Mis módulos</div>
+<div class="card row" style="margin-top:14px;padding:12px 16px;gap:14px;background:linear-gradient(160deg,#FFFAF4,#EEF4E6)">
+<svg width="96" height="78" viewBox="0 0 96 78" aria-hidden="true" style="flex:none">
+<path d="M26 40 C26 30 25 22 24 14" stroke="#6A784D" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+<path d="M25 30 C17 30 12 24 13 18 C21 18 25 23 25 30Z" fill="#C7DDAE"/><path d="M25 24 C32 23 36 17 35 11 C28 12 24.5 17 25 24Z" fill="#6A784D"/><circle cx="24" cy="10" r="4.5" fill="#F4C542"/>
+<path d="M8 46 h82 l-6 26 h-70z" fill="#C4866D"/><rect x="4" y="40" width="90" height="9" rx="4.5" fill="#DEC59E"/>
+<ellipse cx="46" cy="39" rx="4" ry="3" fill="#A07F5A"/><ellipse cx="61" cy="39" rx="4" ry="3" fill="#A07F5A"/><ellipse cx="76" cy="39" rx="4" ry="3" fill="#A07F5A"/></svg>
+<div class="sm" style="font-size:14px;font-weight:700;color:var(--tx);line-height:1.35">Elegí qué querés ver. Lo que apagues queda como semillita, por si algún día lo querés.</div></div>
+<div class="f" style="margin-top:10px"><svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="22" fill="#FFF1C2"/><path d="M22 31 C22 25 22 21 21.5 15" stroke="#6A784D" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M22 26 C16 26 13 22 13.5 18 C19 18 22 21.5 22 26Z" fill="#C7DDAE"/><path d="M22 22 C27 21 30 17 29.5 13 C25 13.5 21.5 17 22 22Z" fill="#6A784D"/><circle cx="21.5" cy="11" r="4.2" fill="#F4C542"/><path d="M21.5 9 v4" stroke="#85503C" stroke-width="1.3" stroke-linecap="round"/><path d="M15 31 h14 l-2 7 h-10z" fill="#C4866D"/><rect x="14" y="29" width="16" height="4" rx="2" fill="#DEC59E"/></svg><div style="flex:1"><div class="k">Finanzas</div><div class="d">Tu único módulo activo</div></div><div class="sw on lock"></div></div><div class="f" style="margin-top:10px"><svg style="filter:grayscale(.85);opacity:.55" width="44" height="44" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="22" fill="#E3EED4"/><path d="M22 31 C22 25 22 21 21.5 15" stroke="#6A784D" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M22 28 C16 28 13 24 13.5 20 C19 20 22 23.5 22 28Z" fill="#C7DDAE"/><path d="M22 23 C27 22 30 18 29.5 14 C25 14.5 21.5 18 22 23Z" fill="#6A784D"/><path d="M21.6 17 C17.5 16 15.5 13 16 10 C20 10.5 22 13.5 21.6 17Z" fill="#C7DDAE"/><path d="M15 31 h14 l-2 7 h-10z" fill="#C4866D"/><rect x="14" y="29" width="16" height="4" rx="2" fill="#DEC59E"/></svg><div style="flex:1"><div class="k">Hábitos</div><div class="d">Lo que querés hacer cada día</div></div><div class="sw"></div></div><div class="f" style="margin-top:10px"><svg style="filter:grayscale(.85);opacity:.55" width="44" height="44" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="22" fill="#FCE6EA"/><path d="M22 31 C22 25 22 21 21.5 15" stroke="#6A784D" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M22 26 C16 26 13 22 13.5 18 C19 18 22 21.5 22 26Z" fill="#C7DDAE"/><path d="M22 20 Q26 19 28 21" stroke="#6A784D" stroke-width="1.6" fill="none"/><circle cx="29" cy="24.5" r="4.3" fill="#E98C9E"/><circle cx="27.6" cy="23.2" r="1.2" fill="#fff" opacity=".7"/><path d="M21.6 16 C25 15 27 12.5 26.5 10 C23.5 10.5 21.4 13 21.6 16Z" fill="#6A784D"/><path d="M15 31 h14 l-2 7 h-10z" fill="#C4866D"/><rect x="14" y="29" width="16" height="4" rx="2" fill="#DEC59E"/></svg><div style="flex:1"><div class="k">Comidas</div><div class="d">Qué comés y tus macros</div></div><div class="sw"></div></div><div class="f" style="margin-top:10px"><svg style="filter:grayscale(.85);opacity:.55" width="44" height="44" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="22" fill="#ECE8F6"/><path d="M22 31 C22 25 22 21 21.5 15" stroke="#6A784D" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M22 27 C16 27 13 23 13.5 19 C19 19 22 22.5 22 27Z" fill="#C7DDAE"/><path d="M22 22 C27 21 30 17 29.5 13.5 C25 14 21.5 17.5 22 22Z" fill="#6A784D"/><circle cx="21.5" cy="8.6" r="2.5" fill="#A79BCB"/><circle cx="24.7" cy="11.0" r="2.5" fill="#A79BCB"/><circle cx="23.5" cy="14.8" r="2.5" fill="#A79BCB"/><circle cx="19.5" cy="14.8" r="2.5" fill="#A79BCB"/><circle cx="18.3" cy="11.0" r="2.5" fill="#A79BCB"/><circle cx="21.5" cy="12" r="1.6" fill="#F4C542"/><path d="M15 31 h14 l-2 7 h-10z" fill="#C4866D"/><rect x="14" y="29" width="16" height="4" rx="2" fill="#DEC59E"/></svg><div style="flex:1"><div class="k">Memos</div><div class="d">Notas y cosas para acordarte</div></div><div class="sw"></div></div>
+<div class="sm" style="margin:12px 6px 0;display:flex;gap:8px;line-height:1.4"><i class="fa-solid fa-circle-info" style="color:var(--sage);margin-top:3px"></i><span>Siempre queda al menos un módulo prendido, por eso Finanzas no se puede apagar ahora. Aunque no uses Memos, vas a ver en tu Inicio los que Coty comparta con vos.</span></div>
+</div><div class="cap">Lista simple de interruptores (prendido = sage sólido con check). <b>Cada módulo es una plantita en la jardinera:</b> los activos están brotados y los apagados quedan como semilla. Finanzas no se puede apagar acá porque es su único módulo activo.</div></div>
+<div class="shot" id="s4"><div class="lbl">4 · Memos de Coty</div><div class="phone">
+<div class="hdr"><span class="tt"><i class="fa-solid fa-note-sticky"></i> Memos</span></div>
+<div class="big">Mis memos</div>
+<div class="row" style="margin:8px 2px 0;gap:8px"><svg width="30" height="30" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="22" fill="#ECE8F6"/><path d="M22 31 C22 25 22 21 21.5 15" stroke="#6A784D" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M22 27 C16 27 13 23 13.5 19 C19 19 22 22.5 22 27Z" fill="#C7DDAE"/><path d="M22 22 C27 21 30 17 29.5 13.5 C25 14 21.5 17.5 22 22Z" fill="#6A784D"/><circle cx="21.5" cy="8.6" r="2.5" fill="#A79BCB"/><circle cx="24.7" cy="11.0" r="2.5" fill="#A79BCB"/><circle cx="23.5" cy="14.8" r="2.5" fill="#A79BCB"/><circle cx="19.5" cy="14.8" r="2.5" fill="#A79BCB"/><circle cx="18.3" cy="11.0" r="2.5" fill="#A79BCB"/><circle cx="21.5" cy="12" r="1.6" fill="#F4C542"/><path d="M15 31 h14 l-2 7 h-10z" fill="#C4866D"/><rect x="14" y="29" width="16" height="4" rx="2" fill="#DEC59E"/></svg><span class="sm" style="font-size:13.5px;font-weight:700;color:var(--ok)">Esta semana tachaste 4. ¡Tu plantita florece!</span></div>
+<div class="sec">Con Maru</div>
+<div class="memo shared"><div class="chk"><span></span></div><div style="flex:1"><div class="tx">Comprar alimento para los gatos</div><div class="meta"><span class="pill lav" style="padding:3px 9px;font-size:11px"><i class="fa-solid fa-user-group"></i> Las dos</span></div></div></div>
+<div class="sec">Solo vos</div>
+<div class="memo"><div class="chk"><span></span></div><div style="flex:1"><div class="tx">Pedir turno con la dermatóloga</div><div class="meta"><i class="fa-regular fa-clock"></i> Jueves 23 · 10:00</div></div></div>
+<div class="memo done"><div class="chk done"><span><i class="fa-solid fa-check"></i></span></div><div style="flex:1"><div class="tx">Renovar el registro</div><div class="meta">Hecho ayer</div></div></div>
+<div class="fab"><i class="fa-solid fa-plus"></i></div>
+<div class="nav"><div><i class="fa-solid fa-house"></i>Inicio</div><div><i class="fa-solid fa-wallet"></i>Finanzas</div><div><i class="fa-solid fa-seedling"></i>Hábitos</div><div><i class="fa-solid fa-bowl-food"></i>Comidas</div><div class=on><i class="fa-solid fa-note-sticky"></i>Memos</div></div>
+</div><div class="cap">Dos grupos y nada más: <b>Con Maru</b> (lavanda, pill "Las dos") y <b>Solo vos</b>. Check grande de 44 px. Los hechos se ven tachados y suaves. La plantita aparece como frase chiquita de ánimo.</div></div>
+<div class="shot" id="s5"><div class="lbl">5 · Nuevo memo (hoja de abajo)</div><div class="phone">
+<div class="hdr"><span class="tt"><i class="fa-solid fa-note-sticky"></i> Memos</span></div>
+<div class="big">Mis memos</div>
+<div class="row" style="margin:8px 2px 0;gap:8px"><svg width="30" height="30" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="22" fill="#ECE8F6"/><path d="M22 31 C22 25 22 21 21.5 15" stroke="#6A784D" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M22 27 C16 27 13 23 13.5 19 C19 19 22 22.5 22 27Z" fill="#C7DDAE"/><path d="M22 22 C27 21 30 17 29.5 13.5 C25 14 21.5 17.5 22 22Z" fill="#6A784D"/><circle cx="21.5" cy="8.6" r="2.5" fill="#A79BCB"/><circle cx="24.7" cy="11.0" r="2.5" fill="#A79BCB"/><circle cx="23.5" cy="14.8" r="2.5" fill="#A79BCB"/><circle cx="19.5" cy="14.8" r="2.5" fill="#A79BCB"/><circle cx="18.3" cy="11.0" r="2.5" fill="#A79BCB"/><circle cx="21.5" cy="12" r="1.6" fill="#F4C542"/><path d="M15 31 h14 l-2 7 h-10z" fill="#C4866D"/><rect x="14" y="29" width="16" height="4" rx="2" fill="#DEC59E"/></svg><span class="sm" style="font-size:13.5px;font-weight:700;color:var(--ok)">Esta semana tachaste 4. ¡Tu plantita florece!</span></div>
+<div class="sec">Con Maru</div>
+<div class="memo shared"><div class="chk"><span></span></div><div style="flex:1"><div class="tx">Comprar alimento para los gatos</div><div class="meta"><span class="pill lav" style="padding:3px 9px;font-size:11px"><i class="fa-solid fa-user-group"></i> Las dos</span></div></div></div>
+<div class="sec">Solo vos</div>
+<div class="memo"><div class="chk"><span></span></div><div style="flex:1"><div class="tx">Pedir turno con la dermatóloga</div><div class="meta"><i class="fa-regular fa-clock"></i> Jueves 23 · 10:00</div></div></div>
+<div class="memo done"><div class="chk done"><span><i class="fa-solid fa-check"></i></span></div><div style="flex:1"><div class="tx">Renovar el registro</div><div class="meta">Hecho ayer</div></div></div>
+<div class="fab"><i class="fa-solid fa-plus"></i></div>
+<div class="nav"><div><i class="fa-solid fa-house"></i>Inicio</div><div><i class="fa-solid fa-wallet"></i>Finanzas</div><div><i class="fa-solid fa-seedling"></i>Hábitos</div><div><i class="fa-solid fa-bowl-food"></i>Comidas</div><div class=on><i class="fa-solid fa-note-sticky"></i>Memos</div></div>
+<div class="dim"></div>
+<div class="sheet"><div class="grab"></div>
+<div class="row" style="justify-content:space-between;margin-bottom:12px"><span class="h" style="font-size:22px;font-weight:600">Nuevo memo</span><div class="rb"><i class="fa-solid fa-xmark"></i></div></div>
+<div class="field">Llevar a Mishi a la veterinaria<span style="display:inline-block;width:2px;height:18px;background:var(--sage);vertical-align:-3px;margin-left:2px"></span></div>
+<div class="f"><div class="ic" style="width:40px;height:40px;background:#F2EADF;color:var(--dcu)"><i class="fa-regular fa-clock"></i></div><div style="flex:1"><div class="k">Recordarme</div><div class="d">Opcional</div></div><span style="font-weight:800;color:var(--sage)">Elegir</span></div>
+<div class="f" style="background:#F6F3FB"><div class="ic" style="width:40px;height:40px;background:#ECE8F6;color:#5f548c"><i class="fa-solid fa-user-group"></i></div><div style="flex:1"><div class="k">Compartir con Maru</div><div class="d">Lo ve en su Inicio y cualquiera lo puede tachar</div></div><div class="sw lav on"></div></div>
+<div class="btn solid" style="margin-top:16px"><i class="fa-solid fa-check"></i> Guardar</div>
+</div>
+</div><div class="cap">Solo tres cosas: el texto, un recordatorio opcional y <b>Compartir con Maru</b> (apagado por defecto; prendido se pinta lavanda, el color de lo compartido).</div></div>
+<div class="shot" id="s6"><div class="lbl">6 · Hábitos</div><div class="phone">
+<div class="hdr"><span class="tt"><i class="fa-solid fa-seedling"></i> Hábitos</span><span class="pill"><i class="fa-solid fa-lock"></i> Solo vos</span></div>
+<div class="month"><div class="rb"><i class="fa-solid fa-chevron-left"></i></div><span class="h">Esta semana</span><div class="rb"><i class="fa-solid fa-chevron-right"></i></div></div>
+<div class="card" style="padding:12px 12px 10px">
+<div class="row" style="justify-content:space-between;padding:0 4px"><span class="ct"><i class="fa-solid fa-sun" style="color:var(--y)"></i>Tu semana en brotes</span><span class="sm" style="font-weight:800;color:var(--ok)">2 de 3 días</span></div>
+<div class="week"><div class="wk"><svg width="36" height="54" viewBox="0 0 36 54"><path d="M18 46 C18 38 18 18 18 12" stroke="#6A784D" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M18 16 C12 16 9 12 9.5 8 C15 8 18 12 18 16Z" fill="#C7DDAE"/><path d="M18 13 C24 12 27 8 26.5 4 C21 5 17.6 8 18 13Z" fill="#6A784D"/><path d="M18 26 C12 26 9.5 22 10 19 C15 19 18 22 18 26Z" fill="#C7DDAE"/><rect x="6" y="46" width="24" height="6" rx="3" fill="#E8DCCB"/></svg><span>L</span></div><div class="wk"><svg width="36" height="54" viewBox="0 0 36 54"><ellipse cx="18" cy="44" rx="4" ry="3" fill="#DEC59E"/><rect x="6" y="46" width="24" height="6" rx="3" fill="#E8DCCB"/></svg><span>M</span></div><div class="wk today"><svg width="36" height="54" viewBox="0 0 36 54"><path d="M18 46 C18 38 18 26 18 20" stroke="#6A784D" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M18 24 C12 24 9 20 9.5 16 C15 16 18 20 18 24Z" fill="#C7DDAE"/><path d="M18 21 C24 20 27 16 26.5 12 C21 13 17.6 16 18 21Z" fill="#6A784D"/><path d="M18 34 C12 34 9.5 30 10 27 C15 27 18 30 18 34Z" fill="#C7DDAE"/><rect x="6" y="46" width="24" height="6" rx="3" fill="#E8DCCB"/></svg><span>M</span></div><div class="wk"><svg width="36" height="54" viewBox="0 0 36 54"><rect x="6" y="46" width="24" height="6" rx="3" fill="#E8DCCB"/></svg><span>J</span></div><div class="wk"><svg width="36" height="54" viewBox="0 0 36 54"><rect x="6" y="46" width="24" height="6" rx="3" fill="#E8DCCB"/></svg><span>V</span></div><div class="wk"><svg width="36" height="54" viewBox="0 0 36 54"><rect x="6" y="46" width="24" height="6" rx="3" fill="#E8DCCB"/></svg><span>S</span></div><div class="wk"><svg width="36" height="54" viewBox="0 0 36 54"><rect x="6" y="46" width="24" height="6" rx="3" fill="#E8DCCB"/></svg><span>D</span></div></div></div>
+<div class="sec" style="display:flex;justify-content:space-between;margin-top:12px"><span>Hoy · miércoles</span><span style="color:var(--ok)">3 de 5</span></div>
+<div class="hab"><div class="tx">Tomar 2 litros de agua</div><div class="hb on"><i class="fa-solid fa-check"></i> Hecho</div></div><div class="hab"><div class="tx">Caminar 30 minutos</div><div class="hb on"><i class="fa-solid fa-check"></i> Hecho</div></div><div class="hab"><div class="tx">Leer 10 páginas</div><div class="hb on"><i class="fa-solid fa-check"></i> Hecho</div></div><div class="hab"><div class="tx">Estirar<small>5 minutos</small></div><div class="hb">Marcar</div></div><div class="hab"><div class="tx">Dormir antes de las 24</div><div class="hb">Marcar</div></div>
+<div class="meal add" style="min-height:52px;padding:6px 16px"><div class="ic" style="width:36px;height:36px;background:#F2EADF;color:var(--sec)"><i class="fa-solid fa-plus"></i></div><div class="tx"><div class="nm" style="color:var(--sec)">Nuevo hábito</div></div></div>
+<div class="nav"><div><i class="fa-solid fa-house"></i>Inicio</div><div><i class="fa-solid fa-wallet"></i>Finanzas</div><div class=on><i class="fa-solid fa-seedling"></i>Hábitos</div><div><i class="fa-solid fa-bowl-food"></i>Comidas</div><div><i class="fa-solid fa-note-sticky"></i>Memos</div></div>
+</div><div class="cap">Cada día de la semana es <b>un brote que crece</b> según cuántos hábitos hiciste; si no hiciste ninguno queda la semilla y los días que vienen son una maceta vacía (sin culpas, sin rachas rotas en rojo). Botón "Hecho" sage sólido con check, bien grande. Sin botón flotante para que no tape la lista.</div></div>
+<div class="shot" id="s7"><div class="lbl">7 · Comidas</div><div class="phone">
+<div class="hdr"><span class="tt"><i class="fa-solid fa-bowl-food"></i> Comidas</span><span class="pill"><i class="fa-solid fa-lock"></i> Solo vos</span></div>
+<div class="month"><div class="rb"><i class="fa-solid fa-chevron-left"></i></div><span class="h">Hoy</span><div class="rb"><i class="fa-solid fa-chevron-right"></i></div></div>
+<div class="card">
+<div class="row" style="gap:14px"><svg width="64" height="64" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="22" fill="#FCE6EA"/><path d="M22 31 C22 25 22 21 21.5 15" stroke="#6A784D" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M22 26 C16 26 13 22 13.5 18 C19 18 22 21.5 22 26Z" fill="#C7DDAE"/><path d="M22 20 Q26 19 28 21" stroke="#6A784D" stroke-width="1.6" fill="none"/><circle cx="29" cy="24.5" r="4.3" fill="#E98C9E"/><circle cx="27.6" cy="23.2" r="1.2" fill="#fff" opacity=".7"/><path d="M21.6 16 C25 15 27 12.5 26.5 10 C23.5 10.5 21.4 13 21.6 16Z" fill="#6A784D"/><path d="M15 31 h14 l-2 7 h-10z" fill="#C4866D"/><rect x="14" y="29" width="16" height="4" rx="2" fill="#DEC59E"/></svg><div style="flex:1"><div class="ct">Proteína</div><div class="amt" style="font-size:26px">62 <span style="font-size:16px;color:var(--sec)">de 100 g</span></div><div class="bar" style="height:10px"><i style="width:62%;background:#E98C9E"></i></div></div></div>
+<div class="mac"><div><span class="sm">Carbohidratos</span><b>140 g</b><div class="bar"><i style="width:65%;background:var(--y)"></i></div></div><div><span class="sm">Grasas</span><b>38 g</b><div class="bar"><i style="width:55%;background:var(--br)"></i></div></div><div><span class="sm">Calorías</span><b>1.240 <span style="font:700 11px Nunito;color:var(--sec)">kcal</span></b><div class="bar"><i style="width:68%;background:var(--ls)"></i></div></div></div></div>
+<div class="sec">Lo que comiste</div>
+<div class="meal"><div class="ic" style="width:40px;height:40px;background:#FFF1C2;color:var(--dcu)"><i class="fa-solid fa-mug-hot"></i></div><div class="tx"><div class="nm">Desayuno</div><div class="d">Yogur con avena y banana</div></div><div class="k">380 <span class="sm" style="font:700 11px Nunito">kcal</span><small>18 g prot.</small></div></div>
+<div class="meal"><div class="ic" style="width:40px;height:40px;background:#E3EED4;color:var(--sage)"><i class="fa-solid fa-utensils"></i></div><div class="tx"><div class="nm">Almuerzo</div><div class="d">Pollo con ensalada y arroz</div></div><div class="k">620 <span class="sm" style="font:700 11px Nunito">kcal</span><small>38 g prot.</small></div></div>
+<div class="meal"><div class="ic" style="width:40px;height:40px;background:#FCE6EA;color:var(--dcu)"><i class="fa-solid fa-cookie"></i></div><div class="tx"><div class="nm">Merienda</div><div class="d">Mate y tostadas</div></div><div class="k">240 <span class="sm" style="font:700 11px Nunito">kcal</span><small>6 g prot.</small></div></div>
+<div class="meal add"><div class="ic" style="width:40px;height:40px;background:#F2EADF;color:var(--sec)"><i class="fa-solid fa-plus"></i></div><div class="tx"><div class="nm" style="color:var(--sec)">Agregar cena</div></div></div>
+<div class="nav"><div><i class="fa-solid fa-house"></i>Inicio</div><div><i class="fa-solid fa-wallet"></i>Finanzas</div><div><i class="fa-solid fa-seedling"></i>Hábitos</div><div class=on><i class="fa-solid fa-bowl-food"></i>Comidas</div><div><i class="fa-solid fa-note-sticky"></i>Memos</div></div>
+</div><div class="cap">Un solo número protagonista (proteína), con <b>el brote con fruto</b> que madura a medida que llegás a la meta. Los otros macros quedan chiquitos abajo. Comidas del día en tarjetas simples.</div></div>
+</div><div class="ex" style="text-align:center;margin-top:20px">Datos de ejemplo</div></body></html>

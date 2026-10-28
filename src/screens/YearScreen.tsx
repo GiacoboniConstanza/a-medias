@@ -87,6 +87,7 @@ export function YearScreen() {
           <AppIcon name="lock" /> Solo vos
         </span>
       </header>
+      <ViewToggle mode={me.viewMode} onChange={(mode) => void changeMode(mode)} className="mb-3" />
       <div className="mb-3 flex items-center justify-between gap-3">
         <button type="button" className={ARROW} aria-label="Año anterior" disabled={year <= 2000} onClick={() => setYear((value) => value - 1)}>
           <AppIcon name="chevron-left" />
@@ -96,7 +97,6 @@ export function YearScreen() {
           <AppIcon name="chevron-right" />
         </button>
       </div>
-      <ViewToggle mode={me.viewMode} onChange={(mode) => void changeMode(mode)} className="mb-3" />
 
       {loading ? <YearSkeleton /> : null}
       {!loading && error ? <p className="py-10 text-center font-extrabold text-alert-ink">{error}</p> : null}

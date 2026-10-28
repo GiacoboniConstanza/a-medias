@@ -93,7 +93,8 @@ input {
   .year-rise,
   .year-bar,
   .year-line,
-  .year-ring {
+  .year-ring,
+  .swipe-motion {
     animation: none !important;
     transition: none !important;
   }

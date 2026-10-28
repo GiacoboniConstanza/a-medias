@@ -174,3 +174,29 @@ export function iconByName(name: string | null | undefined): IconDefinition {
   if (name && ICONS[name]) return ICONS[name]
   return ICONS[DEFAULT_ICON] ?? faTag
 }
+
+const SAGE_SURFACE = { background: '#E3EED4', color: '#4F6B57' }
+const COPPER_SURFACE = { background: '#FCE6EA', color: '#85503C' }
+const GOLD_SURFACE = { background: '#FFF1C2', color: '#85503C' }
+const BLUE_SURFACE = { background: '#E6EFF7', color: '#3D5874' }
+const LAVENDER_SURFACE = { background: '#EDE6F5', color: '#5C5180' }
+
+const ICON_SURFACES: Record<string, { background: string; color: string }> = {
+  wifi: BLUE_SURFACE,
+  laptop: BLUE_SURFACE,
+  lightbulb: GOLD_SURFACE,
+  bolt: GOLD_SURFACE,
+  fire: COPPER_SURFACE,
+  'gas-pump': COPPER_SURFACE,
+  heart: COPPER_SURFACE,
+  pills: COPPER_SURFACE,
+  stethoscope: COPPER_SURFACE,
+  book: LAVENDER_SURFACE,
+  'graduation-cap': LAVENDER_SURFACE,
+  music: LAVENDER_SURFACE,
+  star: LAVENDER_SURFACE,
+}
+
+export function iconSurface(name: string): { background: string; color: string } {
+  return ICON_SURFACES[name] ?? SAGE_SURFACE
+}

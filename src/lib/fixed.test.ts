@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { amountForMonth, dueLabel, dueVisual, editedCaption, scheduleAmount, withRevision } from './fixed.ts'
+import {
+  amountForMonth,
+  dueBucket,
+  dueLabel,
+  dueTone,
+  dueVisual,
+  editedCaption,
+  scheduleAmount,
+  shareSentence,
+  showPayLink,
+  withRevision,
+} from './fixed.ts'
 
 describe('historial de montos', () => {
   const rent = [
@@ -41,13 +52,32 @@ describe('vencimientos', () => {
     expect(dueVisual(28, '2026-09-01', today)).toBe('late')
   })
 
-  it('describe el vencimiento', () => {
+  it('describe el vencimiento en texto corto', () => {
     expect(dueLabel(18, '2026-10-01', today)).toBe('Venció hace 2 días')
     expect(dueLabel(19, '2026-10-01', today)).toBe('Venció hace 1 día')
-    expect(dueLabel(20, '2026-10-01', today)).toBe('Vence hoy')
-    expect(dueLabel(21, '2026-10-01', today)).toBe('Vence mañana')
-    expect(dueLabel(1, '2026-09-01', today)).toBe('Venció el 01/09')
-    expect(dueLabel(1, '2026-11-01', today)).toBe('Vence el 01/11')
+    expect(dueLabel(20, '2026-10-01', today)).toBe('Hoy')
+    expect(dueLabel(21, '2026-10-01', today)).toBe('en 1 día')
+    expect(dueLabel(23, '2026-10-01', today)).toBe('en 3 días')
+    expect(dueLabel(1, '2026-09-01', today)).toBe('Venció hace 49 días')
+    expect(dueLabel(1, '2026-11-01', today)).toBe('en 12 días')
+  })
+
+  it('agrupa hoy, esta semana y más adelante', () => {
+    expect(dueBucket(20, '2026-10-01', today)).toBe('today')
+    expect(dueBucket(18, '2026-10-01', today)).toBe('today')
+    expect(dueBucket(23, '2026-10-01', today)).toBe('week')
+    expect(dueBucket(28, '2026-10-01', today)).toBe('later')
+    expect(dueTone(20, '2026-10-01', today)).toBe('today')
+    expect(dueTone(23, '2026-10-01', today)).toBe('soon')
+    expect(dueTone(18, '2026-10-01', today)).toBe('late')
+    expect(showPayLink(20, '2026-10-01', today)).toBe(true)
+    expect(showPayLink(18, '2026-10-01', today)).toBe(true)
+    expect(showPayLink(23, '2026-10-01', today)).toBe(false)
+  })
+
+  it('arma el reparto con el porcentaje real', () => {
+    expect(shareSentence(60, 40, 'Maru', false)).toBe('Se reparte 60/40 con Maru por sueldo base')
+    expect(shareSentence(50, 50, 'Maru', true)).toBe('Se reparte 50/50 con Maru')
   })
 })
 

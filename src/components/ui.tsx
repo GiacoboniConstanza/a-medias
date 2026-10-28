@@ -80,6 +80,36 @@ export function Field({
   )
 }
 
+export function Toggle({
+  checked,
+  labelledBy,
+  onClick,
+  disabled,
+}: {
+  checked: boolean
+  labelledBy: string
+  onClick: () => void
+  disabled?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-labelledby={labelledBy}
+      disabled={disabled}
+      onClick={onClick}
+      className={`relative h-11 w-16 shrink-0 rounded-full border border-line disabled:opacity-50 ${checked ? 'bg-primary' : 'bg-sand'}`}
+    >
+      <span
+        className={`absolute left-1 top-1.5 h-8 w-8 rounded-full bg-white shadow-soft transition-transform motion-reduce:transition-none ${
+          checked ? 'translate-x-6' : 'translate-x-0'
+        }`}
+      />
+    </button>
+  )
+}
+
 export function ErrorText({ children }: { children: ReactNode }) {
   if (!children) return null
   return <p className="mt-2 text-center text-sm font-bold text-alert-ink">{children}</p>

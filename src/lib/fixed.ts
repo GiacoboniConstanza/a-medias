@@ -1,4 +1,4 @@
-import { monthKey, shortDate } from './month.ts'
+import { monthKey } from './month.ts'
 
 export type AmountRevision = {
   effectiveFrom: string
@@ -38,19 +38,62 @@ export function dueVisual(dueDay: number, month: string, today: Date): DueVisual
   return dueDay < today.getDate() ? 'late' : 'upcoming'
 }
 
+export function dueDate(dueDay: number, month: string): Date {
+  const [yearText, monthText] = month.split('-')
+  const year = Number(yearText)
+  const monthIndex = Number(monthText) - 1
+  const last = new Date(year, monthIndex + 1, 0).getDate()
+  return new Date(year, monthIndex, Math.min(Math.max(dueDay, 1), last))
+}
+
+export function dayDiff(dueDay: number, month: string, today: Date): number {
+  const due = dueDate(dueDay, month)
+  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  return Math.round((due.getTime() - start.getTime()) / 86_400_000)
+}
+
+export type DueBucket = 'today' | 'week' | 'later'
+export type DueTone = 'today' | 'soon' | 'late'
+
+export function dueBucket(dueDay: number, month: string, today: Date): DueBucket {
+  const diff = dayDiff(dueDay, month, today)
+  if (diff <= 0) return 'today'
+  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+  const weekday = start.getDay()
+  const untilSunday = weekday === 0 ? 0 : 7 - weekday
+  if (diff <= untilSunday) return 'week'
+  return 'later'
+}
+
+export function dueTone(dueDay: number, month: string, today: Date): DueTone {
+  const diff = dayDiff(dueDay, month, today)
+  if (diff < 0) return 'late'
+  if (diff === 0) return 'today'
+  return 'soon'
+}
+
 export function dueLabel(dueDay: number, month: string, today: Date): string {
-  const [year, monthNumber] = month.split('-')
-  const due = `${year}-${monthNumber}-${String(dueDay).padStart(2, '0')}`
-  if (month > monthKey(today)) return `Vence el ${shortDate(due)}`
-  if (month < monthKey(today)) return `Venció el ${shortDate(due)}`
-  const diff = dueDay - today.getDate()
-  if (diff < 0) {
-    const days = Math.abs(diff)
-    return `Venció hace ${days} ${days === 1 ? 'día' : 'días'}`
-  }
-  if (diff === 0) return 'Vence hoy'
-  if (diff === 1) return 'Vence mañana'
-  return `Vence en ${diff} días`
+  const diff = dayDiff(dueDay, month, today)
+  if (diff === 0) return 'Hoy'
+  if (diff > 0) return `en ${diff} ${diff === 1 ? 'día' : 'días'}`
+  const days = Math.abs(diff)
+  return `Venció hace ${days} ${days === 1 ? 'día' : 'días'}`
+}
+
+export function showPayLink(dueDay: number, month: string, today: Date): boolean {
+  return dayDiff(dueDay, month, today) <= 0
+}
+
+export function shareSentence(myPercent: number, partnerPercent: number, partnerName: string, even: boolean): string {
+  const name = partnerName.trim() || 'tu compañera'
+  const sentence = `Se reparte ${myPercent}/${partnerPercent} con ${name}`
+  return even ? sentence : `${sentence} por sueldo base`
+}
+
+export function remindSwitchLabel(days: number): string {
+  if (days <= 0) return 'Avisarme el mismo día'
+  if (days === 1) return 'Avisarme 1 día antes'
+  return `Avisarme ${days} días antes`
 }
 
 export function editedCaption(updatedAt: string, name: string): string {

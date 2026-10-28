@@ -1,5 +1,5 @@
 begin;
-select plan(12);
+select plan(14);
 
 insert into auth.users (id, email, raw_user_meta_data)
 values
@@ -66,6 +66,9 @@ values
 insert into public.reminder_preferences (user_id, first_time, second_time)
 values ('12121212-1212-4121-8121-121212121212', '14:00', '21:30');
 
+insert into public.daily_statuses (user_id, day, kind)
+values ('12121212-1212-4121-8121-121212121212', '2026-10-20', 'clear');
+
 reset role;
 select set_config(
   'test.invite',
@@ -113,6 +116,20 @@ select is(
   (select count(*) from public.reminder_preferences where user_id = '12121212-1212-4121-8121-121212121212'),
   0::bigint,
   'los horarios de aviso son solo de su dueña'
+);
+
+select is(
+  (select count(*) from public.daily_statuses where user_id = '12121212-1212-4121-8121-121212121212'),
+  0::bigint,
+  'el estado diario es solo de su dueña'
+);
+
+select throws_ok(
+  $$insert into public.daily_statuses (user_id, day, kind)
+    values ('12121212-1212-4121-8121-121212121212', '2026-10-21', 'clear')$$,
+  '42501',
+  'new row violates row-level security policy for table "daily_statuses"',
+  'no puede escribir el estado diario de la otra'
 );
 
 update public.fixed_expenses
