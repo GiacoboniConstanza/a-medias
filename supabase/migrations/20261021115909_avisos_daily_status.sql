@@ -99,7 +99,7 @@ create trigger expenses_sync_logged_day
   execute function private.sync_logged_day();
 
 insert into public.daily_statuses (user_id, day, kind)
-select owner_id, spent_on, 'logged'
+select distinct on (owner_id, spent_on) owner_id, spent_on, 'logged'
 from public.expenses
 on conflict (user_id, day) do update
   set kind = 'logged',
