@@ -2,20 +2,25 @@ import { useEffect, useState } from 'react'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { ExtraSheet, FundSheet, GustoSheet, MoveSheet } from '../components/bag/forms.tsx'
 import { MonthSwitcher } from '../components/MonthSwitcher.tsx'
+import { PotPlant } from '../components/Plant.tsx'
 import { AudiencePill, SectionHeader } from '../components/SectionHeader.tsx'
-import { Card, Progress } from '../components/ui.tsx'
+import { ViewToggle } from '../components/ViewToggle.tsx'
+import { Card } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
-import type { BagMovementItem, ExtraItem, FundItem } from '../lib/api.ts'
+import { useMonth } from '../context/MonthProvider.tsx'
+import { saveViewMode, type BagMovementItem, type ExtraItem, type FundItem } from '../lib/api.ts'
 import { monthBagSplit } from '../lib/bag.ts'
 import { formatMoney } from '../lib/format.ts'
 import { gustosStatus } from '../lib/gustos.ts'
-import { shortDate } from '../lib/month.ts'
+import { monthName, shortDate } from '../lib/month.ts'
+import type { ViewMode } from '../types/database.ts'
 
 type MoveMode = 'to_fund' | 'to_gustos' | 'use'
 
 export function ExtrasScreen() {
-  const { profile } = useAuth()
+  const { profile, refreshProfile } = useAuth()
+  const { month } = useMonth()
   const { data, loading, error, refresh } = useFinance()
   const [fundOpen, setFundOpen] = useState(false)
   const [editing, setEditing] = useState<FundItem | null>(null)
@@ -23,7 +28,6 @@ export function ExtrasScreen() {
   const [gustoOpen, setGustoOpen] = useState(false)
   const [moveMode, setMoveMode] = useState<MoveMode | null>(null)
   const [moveFund, setMoveFund] = useState<FundItem | null>(null)
-  const [historyOpen, setHistoryOpen] = useState(false)
   const [toast, setToast] = useState('')
 
   useEffect(() => {
@@ -64,99 +68,109 @@ export function ExtrasScreen() {
     setMoveMode(mode)
   }
 
+  async function changeMode(mode: ViewMode) {
+    if (!profile) return
+    await saveViewMode(profile.id, mode)
+    await refreshProfile()
+  }
+
+  const latestExtra = [...data.extrasThisMonth].sort((a, b) => b.receivedOn.localeCompare(a.receivedOn))[0]
+
   return (
     <>
-      <SectionHeader icon="bag-shopping" title="Bolsa de extras" aside={<AudiencePill icon="lock">Solo vos</AudiencePill>} />
+      <SectionHeader icon="bag-shopping" title="Bolsa" aside={<AudiencePill icon="lock">Solo vos</AudiencePill>} />
       <MonthSwitcher heading />
+      <ViewToggle mode={profile.viewMode} onChange={(mode) => void changeMode(mode)} className="mb-3" />
 
       <Card>
-        <h2 className="font-display text-sm font-semibold text-muted">Tu bolsa este mes</h2>
-        <p className="mt-1 font-display text-3xl font-bold leading-none">{formatMoney(split.total)}</p>
+        <h2 className="flex items-center gap-1.5 font-display text-sm font-semibold text-muted">
+          <AppIcon name="sun" className="text-warn" /> Extras de {monthName(month)}
+        </h2>
+        <p className="mt-1 font-display text-[26px] font-bold leading-none text-alert-ink">{formatMoney(split.total)}</p>
+        {latestExtra ? (
+          <p className="mt-1 text-xs font-semibold text-muted">
+            {data.extrasThisMonth.length === 1
+              ? `${latestExtra.label} · ${shortDate(latestExtra.receivedOn)}`
+              : `${data.extrasThisMonth.length} extras este mes`}
+          </p>
+        ) : null}
         <div
-          className="my-2 flex h-2.5 overflow-hidden rounded-full bg-sand"
+          className="my-2 flex h-2.5 overflow-hidden rounded-md bg-sand"
           role="img"
-          aria-label={`Fondos ${formatMoney(split.funds)}, gustos ${formatMoney(split.gustos)}`}
+          aria-label={`A tus fondos ${formatMoney(split.funds)}, a gustos ${formatMoney(split.gustos)}`}
         >
-          <i className="h-full bg-primary" style={{ width: `${fundWidth}%` }} />
-          <i className="h-full bg-warn" style={{ width: `${gustosWidth}%` }} />
+          <i className="h-full bg-sage-light" style={{ width: `${fundWidth}%` }} />
+          <i className="h-full bg-blush" style={{ width: `${gustosWidth}%` }} />
         </div>
         <div className="flex justify-between gap-2 text-xs font-semibold text-muted">
           <span className="inline-flex items-center gap-1">
-            <AppIcon name="circle" className="text-[8px] text-primary" /> Fondos {formatMoney(split.funds)}
+            <AppIcon name="circle" className="text-[8px] text-sage-light" /> A tus fondos {formatMoney(split.funds)}
           </span>
           <span className="inline-flex items-center gap-1">
-            <AppIcon name="circle" className="text-[8px] text-warn" /> Gustos {formatMoney(split.gustos)}
+            <AppIcon name="circle" className="text-[8px] text-blush" /> A gustos {formatMoney(split.gustos)}
           </span>
         </div>
-        <button type="button" onClick={() => setExtraOpen(true)} className="mt-3 block min-h-[52px] w-full rounded-2xl bg-primary text-base font-semibold text-white">
-          + Cargar un extra
+        <button type="button" onClick={() => setExtraOpen(true)} className="mt-3 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-primary text-base font-semibold text-white">
+          <AppIcon name="plus" /> Cargar un extra
         </button>
       </Card>
 
-      <section className="mb-3" aria-labelledby="fondos-titulo">
-        <h2 id="fondos-titulo" className="mb-2 font-display text-lg font-semibold">
-          Mis fondos
-        </h2>
-        {data.funds.length === 0 ? <EmptyFunds /> : null}
-        <div className="grid grid-cols-2 gap-3">
-          {data.funds.map((fund) => (
-            <article key={fund.id} className="flex flex-col rounded-3xl bg-card p-3 shadow-card">
-              <button type="button" onClick={() => openFund(fund)} className="min-h-11 text-left">
-                <span className="flex items-center gap-2">
-                  <FundRing value={fund.target === 0 ? 0 : (fund.saved / fund.target) * 100} />
-                  <span className="min-w-0">
-                    <span className="flex items-center gap-1 font-display text-sm font-semibold">
-                      <AppIcon name={fund.icon} className="text-primary" />
-                      <span className="truncate">{fund.name}</span>
-                    </span>
-                    <span className="mt-0.5 block text-xs font-semibold text-muted">
-                      {formatMoney(Math.max(fund.saved, 0))} de {formatMoney(fund.target)}
-                    </span>
-                  </span>
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => openMove('to_gustos', fund)}
-                className="mt-2 min-h-11 rounded-2xl border-2 border-primary px-2 text-sm font-semibold text-primary"
-              >
-                Devolver a gustos
-              </button>
-              <button
-                type="button"
-                onClick={() => openMove('use', fund)}
-                className="mt-2 min-h-11 rounded-2xl bg-sand px-2 text-sm font-semibold text-text"
-              >
-                Usar
-              </button>
-            </article>
-          ))}
-          <button
-            type="button"
-            onClick={() => openFund(null)}
-            className="flex h-full min-h-44 flex-col items-center justify-center gap-2 rounded-3xl border-2 border-dashed border-primary bg-card px-3 text-base font-semibold text-primary"
-          >
-            <AppIcon name="plus" />
-            Nuevo fondo
-          </button>
+      <Card>
+        <div className="flex items-center justify-between gap-2">
+          <h2 id="fondos-titulo" className="flex items-center gap-1.5 font-display text-sm font-semibold text-muted">
+            <AppIcon name="seedling" className="text-good" /> Mis fondos
+          </h2>
+          {data.funds.length > 0 ? (
+            <button type="button" onClick={() => openFund(null)} className="inline-flex min-h-11 items-center gap-1 text-sm font-extrabold text-primary">
+              <AppIcon name="plus" /> Nuevo fondo
+            </button>
+          ) : null}
         </div>
-      </section>
+        {data.funds.length === 0 ? (
+          <EmptyFunds onCreate={() => openFund(null)} />
+        ) : (
+          <div className="mt-1 grid grid-cols-3 gap-2">
+            {data.funds.map((fund) => {
+              const percent = fundPercent(fund.saved, fund.target)
+              return (
+                <article key={fund.id} className="min-w-0 text-center">
+                  <button type="button" onClick={() => openFund(fund)} className="w-full min-h-11" aria-label={`Editar ${fund.name}`}>
+                    <PotPlant variant="fondo" progress={percent} className="mx-auto aspect-[92/104] w-full max-w-[92px]" />
+                    <b className="mt-0.5 block truncate text-sm">{fund.name}</b>
+                    <span className="block font-display text-[15px] font-bold leading-tight text-primary">{percent}%</span>
+                    <span className="block text-xs font-semibold text-muted">{formatMoney(Math.max(fund.saved, 0))}</span>
+                  </button>
+                  <div className="flex items-center justify-center gap-1">
+                    <button type="button" onClick={() => openMove('use', fund)} className="min-h-11 px-1 text-xs font-extrabold text-primary">
+                      Usar
+                    </button>
+                    <button type="button" onClick={() => openMove('to_gustos', fund)} className="min-h-11 px-1 text-xs font-extrabold text-primary">
+                      A gustos
+                    </button>
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        )}
+      </Card>
 
       <Card>
-        <h2 className="flex items-center gap-2 font-display text-sm font-semibold text-muted">
-          <AppIcon name="bag-shopping" className="text-primary" /> Gustos
-        </h2>
-        <p className="mt-1 font-display text-xl font-semibold">
-          Tenés {formatMoney(Math.max(data.gustosFree, 0))} para darte gustos
-        </p>
-        <div className="my-2">
-          <Progress value={freeWidth} color="#F4C542" />
+        <div className="flex items-center gap-3.5">
+          <PotPlant variant="gustos" progress={freeWidth} className="h-[58px] w-[58px] shrink-0" />
+          <div className="min-w-0 flex-1">
+            <h2 className="font-display text-sm font-semibold text-muted">Gustos</h2>
+            <p className="font-display text-[19px] font-bold leading-tight">Te quedan {formatMoney(Math.max(data.gustosFree, 0))}</p>
+            <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-[#F2EADF]" role="img" aria-label={`${Math.round(freeWidth)} por ciento libre`}>
+              <div className="h-full rounded-full bg-[#E98C9E]" style={{ width: `${freeWidth}%` }} />
+            </div>
+            <p className="mt-1 text-xs font-semibold text-muted">
+              {data.gustosPool > 0
+                ? `de ${formatMoney(data.gustosPool)} de este mes`
+                : 'Cuando un extra no va a un fondo, queda acá.'}
+            </p>
+          </div>
         </div>
-        <p className="text-xs font-semibold text-muted">
-          {data.gustosPool > 0
-            ? `${formatMoney(Math.max(data.gustosFree, 0))} libres de ${formatMoney(data.gustosPool)}`
-            : 'Cuando un extra no va a un fondo, queda acá.'}
-        </p>
         <button
           type="button"
           onClick={() => setGustoOpen(true)}
@@ -185,32 +199,17 @@ export function ExtrasScreen() {
         </Card>
       ) : null}
 
-      <section className="mb-3">
-        <button
-          type="button"
-          aria-expanded={historyOpen}
-          onClick={() => setHistoryOpen((current) => !current)}
-          className="flex min-h-11 w-full items-center justify-between rounded-3xl bg-card px-4 text-left shadow-card"
-        >
-          <span className="font-display text-base font-semibold">Historial de extras</span>
-          <span className="inline-flex items-center gap-2 text-sm font-semibold text-muted">
-            {history.length === 0 ? 'Vacío' : history.length}
-            <span>{historyOpen ? 'Ocultar' : 'Ver'}</span>
-          </span>
-        </button>
-        {historyOpen ? (
-          <div className="mt-2 rounded-3xl bg-card px-4 py-1 shadow-card">
-            {history.length === 0 ? <p className="py-4 text-sm font-semibold text-muted">Todavía no hay movimientos este mes.</p> : null}
-            <ul>
-              {history.map((row) => (
-                <li key={row.id} className="border-b border-dashed border-line py-3 last:border-0">
-                  {row.kind === 'extra' ? <ExtraRow extra={row.extra} /> : <MovementRow movement={row.movement} />}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-      </section>
+      <Card className="px-4 py-2.5">
+        <h2 className="flex items-center gap-1.5 py-1 font-display text-sm font-semibold text-muted">
+          <AppIcon name="clock-rotate-left" className="text-muted" /> Movimientos
+        </h2>
+        {history.length === 0 ? <p className="py-3 text-sm font-semibold text-muted">Todavía no hay movimientos este mes.</p> : null}
+        <ul>
+          {history.map((row) => (
+            <li key={row.id}>{row.kind === 'extra' ? <ExtraRow extra={row.extra} /> : <MovementRow movement={row.movement} />}</li>
+          ))}
+        </ul>
+      </Card>
 
       {toast ? (
         <p role="status" className="fixed bottom-28 left-1/2 z-50 max-w-[20rem] -translate-x-1/2 rounded-2xl bg-primary px-4 py-3 text-center text-sm font-semibold text-white shadow-fab">
@@ -250,67 +249,43 @@ export function ExtrasScreen() {
   )
 }
 
-function FundRing({ value }: { value: number }) {
-  const pct = Math.max(0, Math.min(100, value))
-  const radius = 16
-  const circ = 2 * Math.PI * radius
-  return (
-    <svg width="44" height="44" viewBox="0 0 44 44" className="shrink-0" role="img" aria-label={`${Math.round(pct)} por ciento de la meta`}>
-      <circle cx="22" cy="22" r={radius} fill="none" stroke="#F1E5D6" strokeWidth="5" />
-      <circle
-        cx="22"
-        cy="22"
-        r={radius}
-        fill="none"
-        stroke="#4F6B57"
-        strokeWidth="5"
-        strokeLinecap="round"
-        strokeDasharray={circ}
-        strokeDashoffset={circ - (pct / 100) * circ}
-        transform="rotate(-90 22 22)"
-      />
-    </svg>
-  )
+function fundPercent(saved: number, target: number): number {
+  if (target <= 0) return 0
+  return Math.max(0, Math.min(100, Math.round((saved / target) * 100)))
 }
 
-function EmptyFunds() {
+function EmptyFunds({ onCreate }: { onCreate: () => void }) {
   return (
-    <div className="mb-3 rounded-3xl bg-card px-4 py-6 text-center shadow-card">
-      <svg viewBox="0 0 160 110" className="mx-auto mb-2 h-24 w-36" aria-hidden="true">
-        <ellipse cx="80" cy="96" rx="46" ry="8" fill="#EADCCB" />
-        <rect x="48" y="38" width="64" height="46" rx="16" fill="#C7DDAE" />
-        <path d="M48 54h64" stroke="#4F6B57" strokeWidth="4" />
-        <circle cx="80" cy="28" r="10" fill="#F4C542" />
-        <path d="M80 38v8" stroke="#4F6B57" strokeWidth="3" strokeLinecap="round" />
-      </svg>
-      <p className="font-display text-lg font-semibold">Todavía no tenés fondos</p>
-      <p className="text-sm font-semibold text-muted">Un fondo junta plata para algo puntual. El resto queda para gustos.</p>
+    <div className="px-2 py-4 text-center">
+      <PotPlant variant="fondo" progress={0} className="mx-auto aspect-[92/104] w-[92px]" />
+      <p className="mt-1 text-sm font-semibold text-muted">Un fondo junta plata para algo puntual.</p>
+      <button
+        type="button"
+        onClick={onCreate}
+        className="mt-3 inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-primary px-4 text-sm font-semibold text-white"
+      >
+        <AppIcon name="plus" /> Crear el primer fondo
+      </button>
     </div>
   )
 }
 
 function ExtraRow({ extra }: { extra: ExtraItem }) {
+  const split =
+    extra.parts.length === 0 ? 'A gustos' : extra.parts.map((part) => `${part.label} ${formatMoney(part.amount)}`).join(' · ')
   return (
-    <>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="font-extrabold">{extra.label}</p>
-          <p className="text-sm font-semibold text-muted">{shortDate(extra.receivedOn)}</p>
-        </div>
-        <p className="shrink-0 font-extrabold">{formatMoney(extra.amount)}</p>
+    <div className="flex items-center gap-3 border-b border-dashed border-line py-2.5 last:border-0">
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#FFF1C2] text-alert-ink">
+        <AppIcon name="sun" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-extrabold">{extra.label}</p>
+        <p className="text-xs font-semibold text-muted">
+          {shortDate(extra.receivedOn)} · {split}
+        </p>
       </div>
-      <p className="mt-1 text-sm font-semibold text-text">
-        Repartido:{' '}
-        {extra.parts.length === 0
-          ? 'a gustos'
-          : extra.parts.map((part) => `${part.label} ${formatMoney(part.amount)}`).join(' · ')}
-      </p>
-      <div className="mt-2 flex h-2.5 overflow-hidden rounded-full bg-sand">
-        {extra.parts.map((part) => (
-          <i key={`${part.label}-${part.amount}`} className="h-full" style={{ width: `${(part.amount / extra.amount) * 100}%`, background: part.color }} />
-        ))}
-      </div>
-    </>
+      <p className="shrink-0 font-display text-[15px] font-bold text-good">+ {formatMoney(extra.amount)}</p>
+    </div>
   )
 }
 
@@ -323,18 +298,21 @@ function MovementRow({ movement }: { movement: BagMovementItem }) {
         : movement.kind === 'to_gustos'
           ? { title: `Desde ${movement.fundName}`, detail: 'Volvió a gustos' }
           : { title: movement.label || movement.fundName, detail: 'Usaste el fondo' }
+  const outgoing = movement.kind === 'gusto' || movement.kind === 'use'
   return (
-    <div className="flex items-start justify-between gap-3">
-      <div className="min-w-0">
-        <p className="inline-flex items-center gap-1.5 font-extrabold">
-          {movement.kind === 'gusto' ? <AppIcon name="bag-shopping" className="text-primary" /> : null}
-          {copy.title}
-        </p>
-        <p className="text-sm font-semibold text-muted">
+    <div className="flex items-center gap-3 border-b border-dashed border-line py-2.5 last:border-0">
+      <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${movement.kind === 'gusto' ? 'bg-[#FCE6EA] text-alert-ink' : 'bg-sage-light text-primary'}`}>
+        <AppIcon name={movement.kind === 'gusto' ? 'bag-shopping' : 'seedling'} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-extrabold">{copy.title}</p>
+        <p className="text-xs font-semibold text-muted">
           {shortDate(movement.happenedOn)} · {copy.detail}
         </p>
       </div>
-      <p className="shrink-0 font-extrabold">{formatMoney(movement.amount)}</p>
+      <p className={`shrink-0 font-display text-[15px] font-bold ${outgoing ? 'text-text' : 'text-good'}`}>
+        {outgoing ? '−' : '+'} {formatMoney(movement.amount)}
+      </p>
     </div>
   )
 }
