@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { HubPlant, Sprout } from '../components/Sprout.tsx'
+import { Progress } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
 import { useModules } from '../context/ModulesProvider.tsx'
@@ -9,6 +10,7 @@ import { useMonth } from '../context/MonthProvider.tsx'
 import { monthPocket, monthSplit, myPrivateSpent, partnerId } from '../lib/derive.ts'
 import { formatMoney } from '../lib/format.ts'
 import { habitPlantCopy, todayCounterLabel, todayProgress, visibleLeaves, type Habit, type HabitCheck } from '../lib/habits.ts'
+import { argentinaISO, asNumber, dayTotals, foodPlantCopy, fruitScale, proteinLabel, proteinPercent, type MacroInput } from '../lib/meals.ts'
 import { checkedThisWeek, memoCounts, pendingLabel, plantLine, type MemoItem } from '../lib/memos.ts'
 import { hubDayLabel, MODULE_META, type ModuleId } from '../lib/modules.ts'
 import { monthName, todayISO } from '../lib/month.ts'
@@ -24,6 +26,10 @@ export function HubScreen() {
   const [habits, setHabits] = useState<Habit[]>([])
   const [habitChecks, setHabitChecks] = useState<HabitCheck[]>([])
   const [habitError, setHabitError] = useState('')
+  const [foodMeals, setFoodMeals] = useState<MacroInput[]>([])
+  const [foodGoal, setFoodGoal] = useState<number | null>(null)
+  const [foodReady, setFoodReady] = useState(false)
+  const [foodError, setFoodError] = useState('')
 
   useEffect(() => {
     if (!profile || !enabled.includes('memos')) {
@@ -95,16 +101,64 @@ export function HubScreen() {
     }
   }, [profile, enabled])
 
+  useEffect(() => {
+    if (!profile || !enabled.includes('comidas')) {
+      setFoodMeals([])
+      setFoodGoal(null)
+      setFoodError('')
+      setFoodReady(true)
+      return
+    }
+    const day = argentinaISO()
+    let active = true
+    setFoodReady(false)
+    Promise.all([
+      supabase.from('meals').select('protein_g, carbs_g, fat_g, kcal').eq('eaten_on', day),
+      supabase.from('nutrition_goals').select('protein_g').maybeSingle(),
+    ]).then(([mealsResult, goalsResult]) => {
+      if (!active) return
+      if (mealsResult.error || goalsResult.error) {
+        setFoodError(mealsResult.error?.message || goalsResult.error?.message || 'No se pudieron cargar las comidas.')
+        setFoodMeals([])
+        setFoodGoal(null)
+        setFoodReady(true)
+        return
+      }
+      setFoodError('')
+      setFoodMeals(
+        (mealsResult.data ?? []).map((row) => ({
+          proteinG: asNumber(row.protein_g) ?? 0,
+          carbsG: asNumber(row.carbs_g),
+          fatG: asNumber(row.fat_g),
+          kcal: asNumber(row.kcal),
+        })),
+      )
+      setFoodGoal(asNumber(goalsResult.data?.protein_g ?? null))
+      setFoodReady(true)
+    })
+    return () => {
+      active = false
+    }
+  }, [profile, enabled])
+
   if (!profile) return null
 
   const counts = memoCounts(memos)
   const habitsOn = enabled.includes('habitos')
+  const foodOn = enabled.includes('comidas')
   const progress = todayProgress(habits, habitChecks, new Date())
   const leaves = habitsOn ? visibleLeaves(progress.done, progress.total) : { solid: 3, dashed: 0 }
+  const foodTotals = dayTotals(foodMeals)
+  const foodPercent = proteinPercent(foodTotals.protein, foodGoal)
+  const fruit = foodOn ? fruitScale(foodPercent ?? 0) : undefined
   const line =
     habitsOn && (progress.total > 0 || !enabled.includes('memos'))
       ? habitPlantCopy(progress.done, progress.total)
-      : plantLine(counts.pending, checkedThisWeek(memos, profile.id))
+      : enabled.includes('memos')
+        ? plantLine(counts.pending, checkedThisWeek(memos, profile.id))
+        : foodOn
+          ? foodPlantCopy(foodTotals.protein, foodGoal)
+          : plantLine(0, 0)
   const otherId = data ? partnerId(data, profile.id) : null
   const partnerName = (otherId && data?.names[otherId]) || 'tu compañera'
   const showFinance = enabled.includes('finanzas')
@@ -137,14 +191,14 @@ export function HubScreen() {
       </header>
       <h1 className="font-display text-[1.8rem] font-bold leading-tight">{hubDayLabel()}</h1>
       <section className="mb-3 mt-3.5 flex items-center gap-1.5 rounded-3xl bg-gradient-to-br from-card to-[#EEF4E6] py-2.5 pl-0 pr-4 shadow-card">
-        <HubPlant bloom={counts.pending + checkedThisWeek(memos, profile.id) > 0} solid={leaves.solid} dashed={leaves.dashed} />
+        <HubPlant bloom={counts.pending + checkedThisWeek(memos, profile.id) > 0} solid={leaves.solid} dashed={leaves.dashed} fruit={fruit} />
         <div className="min-w-0">
           <h2 className="font-display text-xl font-semibold leading-tight text-good">{line.title}</h2>
           <p className="mt-1.5 text-xs font-bold text-muted">{line.detail}</p>
         </div>
       </section>
-      {error || memoError || habitError ? (
-        <p className="mb-3 text-center text-sm font-bold text-alert-ink">{error || memoError || habitError}</p>
+      {error || memoError || habitError || foodError ? (
+        <p className="mb-3 text-center text-sm font-bold text-alert-ink">{error || memoError || habitError || foodError}</p>
       ) : null}
       {enabled.map((module) => (
         <ModuleCard
@@ -158,6 +212,9 @@ export function HubScreen() {
           partnerName={partnerName}
           habitDone={progress.done}
           habitTotal={progress.total}
+          foodReady={foodReady}
+          foodProtein={foodTotals.protein}
+          foodGoal={foodGoal}
         />
       ))}
     </>
@@ -174,6 +231,9 @@ function ModuleCard({
   partnerName,
   habitDone,
   habitTotal,
+  foodReady,
+  foodProtein,
+  foodGoal,
 }: {
   module: ModuleId
   spent: number
@@ -184,6 +244,9 @@ function ModuleCard({
   partnerName: string
   habitDone: number
   habitTotal: number
+  foodReady: boolean
+  foodProtein: number
+  foodGoal: number | null
 }) {
   const meta = MODULE_META[module]
   return (
@@ -225,7 +288,20 @@ function ModuleCard({
             ) : null}
           </>
         ) : null}
-        {module === 'comidas' ? <span className="block font-display text-xl font-bold leading-tight">Próximamente</span> : null}
+        {module === 'comidas' ? (
+          foodReady ? (
+            <>
+              <span className="block font-display text-xl font-bold leading-tight">{proteinLabel(foodProtein, foodGoal)}</span>
+              {foodGoal != null && foodGoal > 0 ? (
+                <span className="mt-1.5 block">
+                  <Progress value={proteinPercent(foodProtein, foodGoal) ?? 0} color="#F7B7C4" />
+                </span>
+              ) : null}
+            </>
+          ) : (
+            <span className="block font-display text-xl font-bold leading-tight">…</span>
+          )
+        ) : null}
       </span>
       <AppIcon name="chevron-right" className="text-[#c9b9a3]" />
     </Link>

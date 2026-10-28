@@ -518,6 +518,96 @@ export type Database = {
         { habit_id: string; day: string; done_at?: string },
         { done_at?: string }
       >
+      nutrition_goals: Table<
+        {
+          owner_id: string
+          protein_g: number | null
+          carbs_g: number | null
+          fat_g: number | null
+          kcal: number | null
+          updated_at: string
+        },
+        {
+          owner_id: string
+          protein_g?: number | null
+          carbs_g?: number | null
+          fat_g?: number | null
+          kcal?: number | null
+          updated_at?: string
+        },
+        {
+          protein_g?: number | null
+          carbs_g?: number | null
+          fat_g?: number | null
+          kcal?: number | null
+          updated_at?: string
+        }
+      >
+      meals: Table<
+        {
+          id: string
+          owner_id: string
+          eaten_on: string
+          meal_type: string
+          name: string
+          protein_g: number
+          carbs_g: number | null
+          fat_g: number | null
+          kcal: number | null
+          created_at: string
+          updated_at: string
+        },
+        {
+          id?: string
+          owner_id: string
+          eaten_on: string
+          meal_type: string
+          name: string
+          protein_g: number
+          carbs_g?: number | null
+          fat_g?: number | null
+          kcal?: number | null
+          created_at?: string
+          updated_at?: string
+        },
+        {
+          eaten_on?: string
+          meal_type?: string
+          name?: string
+          protein_g?: number
+          carbs_g?: number | null
+          fat_g?: number | null
+          kcal?: number | null
+          updated_at?: string
+        }
+      >
+      saved_foods: Table<
+        {
+          id: string
+          owner_id: string
+          name: string
+          protein_g: number
+          carbs_g: number | null
+          fat_g: number | null
+          kcal: number | null
+        },
+        {
+          id?: string
+          owner_id: string
+          name: string
+          protein_g: number
+          carbs_g?: number | null
+          fat_g?: number | null
+          kcal?: number | null
+        },
+        {
+          name?: string
+          protein_g?: number
+          carbs_g?: number | null
+          fat_g?: number | null
+          kcal?: number | null
+        }
+      >
     }
     Views: Record<string, never>
     Functions: {

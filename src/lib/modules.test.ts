@@ -53,8 +53,9 @@ describe('al menos un módulo activo', () => {
     expect(navForModules(['finanzas', 'habitos']).map((item) => item.label)).toEqual(['Inicio', 'Finanzas', 'Hábitos'])
   })
 
-  it('Comidas sigue en Próximamente', () => {
-    expect(toggleAllowed(['finanzas'], 'comidas', true)).toBe('Próximamente')
+  it('prende Comidas y lo suma al menú', () => {
+    expect(toggleAllowed(['finanzas'], 'comidas', true)).toBeNull()
+    expect(navForModules(['finanzas', 'comidas']).map((item) => item.label)).toEqual(['Inicio', 'Finanzas', 'Comidas'])
   })
 
   it('sin filas, Finanzas sigue siendo el módulo de hoy', () => {

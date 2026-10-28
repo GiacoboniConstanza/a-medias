@@ -48,7 +48,17 @@ const LEAVES = [
   { d: 'M76 50 C66 48 60 41 61 33 C71 35 76 42 76 50Z', fill: '#C7DDAE' },
 ]
 
-export function HubPlant({ bloom, solid = 3, dashed = 0 }: { bloom: boolean; solid?: number; dashed?: number }) {
+export function HubPlant({
+  bloom,
+  solid = 3,
+  dashed = 0,
+  fruit,
+}: {
+  bloom: boolean
+  solid?: number
+  dashed?: number
+  fruit?: number
+}) {
   const shownSolid = Math.max(0, Math.min(solid, LEAVES.length))
   const shownDashed = Math.max(0, Math.min(dashed, LEAVES.length - shownSolid))
   return (
@@ -65,6 +75,19 @@ export function HubPlant({ bloom, solid = 3, dashed = 0 }: { bloom: boolean; sol
         }
         return null
       })}
+      {fruit != null && fruit > 0 ? (
+        <g>
+          <path d="M78 102 Q98 108 114 98" stroke="#6A784D" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+          <circle cx="116" cy="96" r={7.5 * Math.min(fruit, 1)} fill="#E98C9E" />
+          <circle
+            cx={116 - 1.5 * Math.min(fruit, 1)}
+            cy={96 - 1.4 * Math.min(fruit, 1)}
+            r={1.3 * Math.min(fruit, 1)}
+            fill="#fff"
+            opacity="0.7"
+          />
+        </g>
+      ) : null}
       {bloom ? (
         <g>
           <g fill="#A79BCB">
