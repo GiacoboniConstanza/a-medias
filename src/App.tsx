@@ -10,6 +10,7 @@ import { ExpenseScreen } from './screens/ExpenseScreen.tsx'
 import { ExtrasScreen } from './screens/ExtrasScreen.tsx'
 import { GoalScreen } from './screens/GoalScreen.tsx'
 import { HomeScreen } from './screens/HomeScreen.tsx'
+import { HabitsScreen } from './screens/HabitsScreen.tsx'
 import { HubScreen } from './screens/HubScreen.tsx'
 import { MemosScreen } from './screens/MemosScreen.tsx'
 import { ComingSoonScreen, ModulesScreen } from './screens/ModulesScreen.tsx'
@@ -46,7 +47,7 @@ export function App() {
               <Route path="finanzas" element={<FinanceGate />} />
               <Route path="memos" element={<MemosScreen />} />
               <Route path="modulos" element={<ModulesScreen />} />
-              <Route path="habitos" element={<ComingSoonScreen module="habitos" />} />
+              <Route path="habitos" element={<HabitsScreen />} />
               <Route path="comidas" element={<ComingSoonScreen module="comidas" />} />
               <Route path="cargar" element={<ExpenseScreen />} />
               <Route path="se-me-fue" element={<BreakdownScreen />} />

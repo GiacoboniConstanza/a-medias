@@ -4,7 +4,7 @@ export type ModuleId = AppModule
 
 export const MODULES: readonly ModuleId[] = ['finanzas', 'habitos', 'comidas', 'memos']
 
-export const COMING_SOON: readonly ModuleId[] = ['habitos', 'comidas']
+export const COMING_SOON: readonly ModuleId[] = ['comidas']
 
 export type NavItem = {
   to: string
@@ -15,7 +15,7 @@ export type NavItem = {
 
 export const MODULE_META: Record<ModuleId, { label: string; detail: string; icon: string; to: string }> = {
   finanzas: { label: 'Finanzas', detail: 'Gastos, bolsa y la meta', icon: 'wallet', to: '/finanzas' },
-  habitos: { label: 'Hábitos', detail: 'Próximamente', icon: 'seedling', to: '/habitos' },
+  habitos: { label: 'Hábitos', detail: 'Lo que querés hacer cada día', icon: 'seedling', to: '/habitos' },
   comidas: { label: 'Comidas', detail: 'Próximamente', icon: 'bowl-food', to: '/comidas' },
   memos: { label: 'Memos', detail: 'Notas y cosas para acordarte', icon: 'note-sticky', to: '/memos' },
 }

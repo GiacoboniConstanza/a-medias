@@ -48,8 +48,12 @@ describe('al menos un módulo activo', () => {
     expect(toggleAllowed(['finanzas', 'memos'], 'memos', false)).toBeNull()
   })
 
-  it('no prende Hábitos ni Comidas', () => {
-    expect(toggleAllowed(['finanzas'], 'habitos', true)).toBe('Próximamente')
+  it('prende Hábitos y lo suma al menú', () => {
+    expect(toggleAllowed(['finanzas'], 'habitos', true)).toBeNull()
+    expect(navForModules(['finanzas', 'habitos']).map((item) => item.label)).toEqual(['Inicio', 'Finanzas', 'Hábitos'])
+  })
+
+  it('Comidas sigue en Próximamente', () => {
     expect(toggleAllowed(['finanzas'], 'comidas', true)).toBe('Próximamente')
   })
 

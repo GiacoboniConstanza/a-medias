@@ -490,6 +490,34 @@ export type Database = {
         },
         { text?: string; done?: boolean; shared?: boolean; updated_at?: string }
       >
+      habits: Table<
+        {
+          id: string
+          owner_id: string
+          name: string
+          icon_name: string
+          days_of_week: number[]
+          archived: boolean
+          created_at: string
+          updated_at: string
+        },
+        {
+          id?: string
+          owner_id: string
+          name: string
+          icon_name?: string
+          days_of_week: number[]
+          archived?: boolean
+          created_at?: string
+          updated_at?: string
+        },
+        { name?: string; icon_name?: string; days_of_week?: number[]; archived?: boolean; updated_at?: string }
+      >
+      habit_checks: Table<
+        { habit_id: string; day: string; done_at: string },
+        { habit_id: string; day: string; done_at?: string },
+        { done_at?: string }
+      >
     }
     Views: Record<string, never>
     Functions: {
