@@ -1,13 +1,16 @@
 import { useState } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { Button, ErrorText, Field } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { authMessage } from '../lib/auth-message.ts'
 import { finishHouseholdSetup } from '../lib/create-home.ts'
+import { shareReturnPath } from '../lib/shareInbox.ts'
 import { supabase, supabaseConfigError } from '../lib/supabase.ts'
 
 export function LoginScreen() {
   const { session, profile, loading } = useAuth()
+  const [params] = useSearchParams()
+  const next = shareReturnPath(params.get('next'))
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -15,8 +18,11 @@ export function LoginScreen() {
   const local = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
 
   if (supabaseConfigError) return <SetupScreen />
-  if (!loading && session && profile?.householdId) return <Navigate to="/" replace />
-  if (!loading && session) return <Navigate to="/hogar" replace />
+  if (!loading && session && profile?.householdId) return <Navigate to={next ?? '/'} replace />
+  if (!loading && session) {
+    const home = next ? `/hogar?next=${encodeURIComponent(next)}` : '/hogar'
+    return <Navigate to={home} replace />
+  }
 
   async function submit(nextEmail = email, nextPassword = password) {
     setSaving(true)
@@ -108,20 +114,25 @@ export function RegisterScreen() {
 export function HouseholdScreen() {
   const { session, profile, profileError, loading, refreshProfile, signOut } = useAuth()
   const navigate = useNavigate()
+  const [params] = useSearchParams()
+  const next = shareReturnPath(params.get('next'))
   const [code, setCode] = useState('')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
   if (loading) return <p className="py-16 text-center font-bold text-muted">Cargando…</p>
-  if (!session) return <Navigate to="/ingresar" replace />
-  if (profile?.householdId) return <Navigate to="/" replace />
+  if (!session) {
+    const login = next ? `/ingresar?next=${encodeURIComponent(next)}` : '/ingresar'
+    return <Navigate to={login} replace />
+  }
+  if (profile?.householdId) return <Navigate to={next ?? '/'} replace />
 
   async function setup(call: () => PromiseLike<{ error: { message: string } | null }>, failure: string) {
     setSaving(true)
     setError('')
     try {
       await finishHouseholdSetup({ call, refreshProfile, failure })
-      navigate('/', { replace: true })
+      navigate(next ?? '/', { replace: true })
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : failure)
     } finally {
