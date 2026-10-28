@@ -1,5 +1,6 @@
 export type ViewMode = 'friendly' | 'accounting'
 export type ContributionMode = 'free' | 'percentage'
+export type AppModule = 'finanzas' | 'habitos' | 'comidas' | 'memos'
 
 type Table<Row, Insert, Update> = {
   Row: Row
@@ -460,6 +461,34 @@ export type Database = {
           created_at?: string
         },
         { daily_enabled?: boolean; dues_enabled?: boolean }
+      >
+      user_modules: Table<
+        { user_id: string; module: AppModule; enabled: boolean; updated_at: string },
+        { user_id: string; module: AppModule; enabled?: boolean; updated_at?: string },
+        { enabled?: boolean; updated_at?: string }
+      >
+      memos: Table<
+        {
+          id: string
+          owner_id: string
+          household_id: string
+          text: string
+          done: boolean
+          shared: boolean
+          created_at: string
+          updated_at: string
+        },
+        {
+          id?: string
+          owner_id: string
+          household_id: string
+          text: string
+          done?: boolean
+          shared?: boolean
+          created_at?: string
+          updated_at?: string
+        },
+        { text?: string; done?: boolean; shared?: boolean; updated_at?: string }
       >
     }
     Views: Record<string, never>

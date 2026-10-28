@@ -1,23 +1,29 @@
-import { Link } from 'react-router-dom'
+import { Link, useMatch } from 'react-router-dom'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { MonthSwitcher } from '../components/MonthSwitcher.tsx'
+import { PartnerMemos } from '../components/PartnerMemos.tsx'
 import { Plant, plantStage } from '../components/Plant.tsx'
 import { ViewToggle } from '../components/ViewToggle.tsx'
 import { SplitNotice } from '../components/SplitNotice.tsx'
 import { Card } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
+import { useModules } from '../context/ModulesProvider.tsx'
 import { useMonth } from '../context/MonthProvider.tsx'
 import { saveViewMode } from '../lib/api.ts'
 import { debtCopy, monthPocket, monthSplit, myPrivateSpent, paceInput, partnerId } from '../lib/derive.ts'
 import { formatMoney } from '../lib/format.ts'
 import { jarStatus } from '../lib/jar.ts'
+import { FINANCE_SECTION_LINKS, isHubHome } from '../lib/modules.ts'
 import type { ViewMode } from '../types/database.ts'
 
 export function HomeScreen() {
   const { profile, refreshProfile } = useAuth()
   const { month } = useMonth()
   const { data, loading, error } = useFinance()
+  const modules = useModules()
+  const financeRoute = useMatch('/finanzas')
+  const hub = modules.ready && isHubHome(modules.enabled)
   if (!profile) return null
   if (loading && !data) return <p className="py-16 text-center font-extrabold text-muted">Cargando tu mes…</p>
   if (!data) return <p className="py-16 text-center font-extrabold text-alert-ink">{error}</p>
@@ -52,7 +58,32 @@ export function HomeScreen() {
 
   return (
     <>
-      <p className="mb-4 text-sm font-bold text-muted">Hola, {profile.displayName}</p>
+      <header className="mb-4 flex min-h-11 items-center justify-between gap-3">
+        <p className="text-sm font-bold text-muted">
+          <AppIcon name="house" className="mr-1.5" /> Hola, {profile.displayName}
+        </p>
+        <Link
+          to="/modulos"
+          aria-label="Mis módulos"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-card text-primary shadow-soft"
+        >
+          <AppIcon name="sliders" />
+        </Link>
+      </header>
+      {hub && financeRoute ? (
+        <div className="mb-3 grid grid-cols-4 gap-2">
+          {FINANCE_SECTION_LINKS.map((item) => (
+            <Link
+              key={item.to}
+              to={item.to}
+              className="flex min-h-11 flex-col items-center justify-center gap-1 rounded-2xl bg-card text-[11px] font-extrabold text-primary shadow-card"
+            >
+              <AppIcon name={item.icon} />
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      ) : null}
       <MonthSwitcher heading />
       <ViewToggle mode={profile.viewMode} onChange={(mode) => void changeMode(mode)} className="mb-3" />
       <SplitNotice notice={data.splitNotice} />
@@ -101,6 +132,9 @@ export function HomeScreen() {
           </>
         )}
       </Card>
+
+      {hub ? null : <PartnerMemos />}
+      {modules.error ? <p className="mb-3 text-center text-sm font-bold text-alert-ink">{modules.error}</p> : null}
 
       <Card>
         <h2 className="flex items-center gap-1.5 font-display text-sm font-semibold text-muted">

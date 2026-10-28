@@ -2,6 +2,7 @@ import { Navigate, Outlet } from 'react-router-dom'
 import { BottomNav } from '../components/BottomNav.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { FinanceProvider } from '../context/FinanceProvider.tsx'
+import { ModulesProvider } from '../context/ModulesProvider.tsx'
 import { supabaseConfigError } from '../lib/supabase.ts'
 
 export function AppShell() {
@@ -25,7 +26,9 @@ export function RequireHousehold() {
   if (!profile?.householdId) return <Navigate to="/hogar" replace />
   return (
     <FinanceProvider>
-      <AppShell />
+      <ModulesProvider>
+        <AppShell />
+      </ModulesProvider>
     </FinanceProvider>
   )
 }
