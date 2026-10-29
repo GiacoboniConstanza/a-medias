@@ -1,0 +1,120 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>A Medias – Avisos simplificado</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#FBF3EA;--card:#FFFAF4;--sage:#4F6B57;--ls:#C7DDAE;--y:#F4C542;--br:#DEC59E;--cu:#85503C;--pk:#F7B7C4;--lav:#A79BCB;--tx:#202808;--sec:#6B6656}
+body{font-family:Nunito,sans-serif;background:#efe3d4;color:var(--tx);padding:36px}
+.h,h1{font-family:Fredoka,Quicksand,sans-serif}
+h1{text-align:center;font-size:34px;color:var(--sage)}h1 small{display:block;font:600 15px Nunito;color:var(--sec);margin-top:4px}
+.wrap{display:flex;gap:44px;justify-content:center;align-items:flex-start;margin-top:26px}
+.lbl{font:600 18px Fredoka;color:var(--sage);margin-bottom:10px}
+.phone{width:430px;height:1180px;background:var(--bg);border-radius:48px;border:10px solid #2c2a22;position:relative;overflow:hidden;padding:48px 18px 0;box-shadow:0 22px 44px #4f6b5733}
+.phone:before{content:"";position:absolute;top:9px;left:50%;transform:translateX(-50%);width:110px;height:24px;background:#2c2a22;border-radius:14px;z-index:9}
+.hdr{display:flex;justify-content:space-between;align-items:center}.tt{font-size:17px;color:var(--sage);font-weight:600}
+.rb{width:44px;height:44px;border-radius:50%;background:var(--card);display:flex;align-items:center;justify-content:center;color:var(--sage);box-shadow:0 3px 8px #85503c1f;flex:none}
+.month{display:flex;align-items:center;justify-content:space-between;margin:8px 0 14px}.month .h{font-size:30px;font-weight:700}
+.card{background:var(--card);border-radius:24px;padding:14px;box-shadow:0 6px 18px #85503c14}
+.sm{font-size:12px;color:var(--sec)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:18px;padding:10px 14px;font-weight:800;font-size:14px}
+.solid{background:var(--sage);color:#fff}.outl{border:2px solid var(--sage);color:var(--sage)}.link{color:var(--sage);text-decoration:underline;text-underline-offset:3px}
+.grp{font:600 15px Fredoka;color:var(--sec);margin:14px 0 8px 30px;display:flex;justify-content:space-between;align-items:center}
+.tl{position:relative;padding-left:30px}.tl:before{content:"";position:absolute;left:10px;top:0;bottom:0;width:3px;border-radius:2px;background:#eadccb}
+.it{position:relative;margin-bottom:10px}.it>.d{position:absolute;left:-26px;top:22px;width:13px;height:13px;border-radius:50%;border:3px solid var(--bg)}
+.row{display:flex;align-items:center;gap:10px}
+.ic{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;font-size:16px}
+.nm{font-weight:800;font-size:14.5px}.am{font:700 15px Fredoka}
+.chip{white-space:nowrap;display:inline-flex;align-items:center;gap:4px;border-radius:12px;padding:3px 9px;font-size:11px;font-weight:800}
+.sh{background:#ECE8F6;color:#5f548c}.pv{background:#F2EADF;color:var(--sec)}.due{background:#FFF1C2;color:var(--cu)}.soon{background:#F2EADF;color:var(--cu)}.late{background:#FBE3A0;color:var(--cu)}
+.pg{border:1px solid #d6e4c6;color:var(--sage);border-radius:12px;padding:3px 9px;font-size:11.5px;font-weight:700;background:transparent}.pg i{font-size:10px}
+.swipe{position:relative;border-radius:24px;background:#E3EDD6;overflow:hidden;box-shadow:0 6px 18px #85503c14}
+.swipe .act{position:absolute;right:0;top:0;bottom:0;width:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#4F6B57;font-weight:800;font-size:12px}
+.swipe .act .c{width:36px;height:36px;border-radius:50%;background:#C7DDAE;display:flex;align-items:center;justify-content:center;font-size:15px;color:#4F6B57}
+.swipe .card{margin-right:72px;border-radius:24px;box-shadow:4px 0 12px #85503c14}
+.fab{position:absolute;right:20px;bottom:92px;width:60px;height:60px;justify-content:center;font-size:24px;border-radius:50%;background:var(--sage);color:#fff;display:flex;align-items:center;gap:8px;font-weight:800;box-shadow:0 8px 18px #4f6b5766;z-index:3}
+.nav{position:absolute;left:0;right:0;bottom:0;height:78px;background:var(--card);display:flex;justify-content:space-around;align-items:center;border-top:1px solid #f0e3d3;padding-bottom:6px;z-index:2}
+.nav div{display:flex;flex-direction:column;align-items:center;font-size:10px;font-weight:700;color:#a49c88;gap:3px}.nav i{font-size:18px}
+.nav .on{color:var(--sage)}.nav .on i{background:var(--ls);padding:6px 14px;border-radius:14px}
+.ex{font-size:10px;color:#b4a993;font-weight:700}
+.dim{position:absolute;inset:0;background:#2c2a2266;z-index:4}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--bg);border-radius:32px 32px 0 0;padding:12px 20px 24px;z-index:5;box-shadow:0 -10px 30px #0002}
+.grab{width:44px;height:5px;border-radius:3px;background:#dccfbf;margin:0 auto 12px}
+.f{background:var(--card);border-radius:20px;padding:11px 14px;margin-bottom:9px;display:flex;align-items:center;gap:10px;box-shadow:0 3px 10px #85503c10}
+.f .k{font-size:12px;color:var(--sec);font-weight:700}.f .v{font-weight:800;font-size:15px}
+.seg{display:flex;background:#f1e5d6;border-radius:18px;padding:3px}.seg span{flex:1;text-align:center;padding:7px 10px;border-radius:15px;font-weight:800;font-size:13px;color:var(--sec)}.seg .on{background:var(--sage);color:#fff}
+.sw{width:46px;height:28px;border-radius:14px;background:#e3d8c9;position:relative;flex:none}.sw:after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #0003}
+.sw.on{background:var(--sage)}.sw.on:after{left:21px}
+.tp{display:inline-flex;align-items:center;gap:6px;background:#fff;border:2px solid var(--ls);border-radius:18px;padding:8px 14px;font:700 20px Fredoka;color:var(--sage)}
+.tp.add{font-size:14px;border-style:dashed;color:var(--sec)}
+
+.sc{font:700 13px Nunito;color:#8a8370;margin:22px 4px 10px;letter-spacing:.2px}
+.sc2{background:var(--card);border-radius:24px;padding:16px 16px;margin-bottom:10px;box-shadow:0 4px 14px #85503c10;display:flex;align-items:center;gap:14px}
+.sc2 .nm{font-weight:700;font-size:15.5px}.wm{font-size:12px;color:#a49c88;font-weight:600;margin-left:6px}
+.when{font-size:13px;font-weight:700;margin-top:3px}
+.tpg{color:var(--sage);font-weight:800;font-size:12.5px;margin-top:4px;display:inline-block}.tpg i{font-size:10px}
+</style></head><body>
+<h1>A Medias · Avisos<small>Antes y simplificado · datos de ejemplo</small></h1>
+<div class="wrap">
+<div id="antes"><div class="lbl">Antes</div><div class="phone">
+<div class="hdr"><span class="h tt"><i class="fa-solid fa-bell"></i> Avisos</span><div class="rb"><i class="fa-solid fa-sliders"></i></div></div>
+<div class="month"><div class="rb"><i class="fa-solid fa-chevron-left"></i></div><span class="h">Octubre 2026</span><div class="rb"><i class="fa-solid fa-chevron-right"></i></div></div>
+
+<div class="card" style="background:linear-gradient(150deg,#FFFAF4,#F3EDF9)">
+<div class="row" style="align-items:flex-start;gap:12px">
+<svg width="58" height="58" viewBox="0 0 58 58"><circle cx="29" cy="29" r="27" fill="#ECE8F6"/><path d="M36 14a15 15 0 1 0 9 24a12 12 0 1 1-9-24z" fill="#F4C542"/><circle cx="16" cy="16" r="1.8" fill="#A79BCB"/><circle cx="44" cy="12" r="1.4" fill="#A79BCB"/><circle cx="12" cy="40" r="1.2" fill="#A79BCB"/></svg>
+<div style="flex:1"><div class="h" style="font-size:19px;font-weight:600">¿Gastaste algo hoy?</div><div class="sm">Sin apuro: anotalo cuando puedas.</div></div></div>
+<div class="row" style="margin-top:12px;gap:8px"><span class="btn solid"><i class="fa-solid fa-pen"></i> Anotar</span><span class="btn outl">No gasté nada</span><span class="btn link" style="padding:10px 4px">Más tarde</span></div>
+<div class="sm" style="margin-top:8px"><i class="fa-regular fa-clock"></i> Te vuelvo a preguntar a las 21:30</div></div>
+
+<div class="row sm" style="margin:12px 4px 0;color:var(--sage);font-weight:800"><i class="fa-solid fa-seedling"></i> Llevás 5 días anotando. ¡Qué bien!</div>
+
+<div class="grp"><span>Hoy · 20 oct</span></div>
+<div class="tl">
+<div class="it"><span class="d" style="background:var(--y)"></span><div class="card"><div class="row"><div class="ic" style="background:#E6EFF7;color:#5a7a99"><i class="fa-solid fa-wifi"></i></div>
+<div style="flex:1"><div class="nm">Internet</div><div style="margin-top:5px;display:flex;gap:5px;flex-wrap:wrap"><span class="chip due"><i class="fa-regular fa-calendar"></i> Vence hoy</span><span class="chip sh"><i class="fa-solid fa-user-group"></i> Compartido</span></div></div>
+<div style="text-align:right"><div class="am">$ 15.800</div><span class="pg" style="display:inline-block;margin-top:5px"><i class="fa-solid fa-check"></i> Pagué</span></div></div></div></div>
+<div class="it"><span class="d" style="background:var(--y)"></span><div class="swipe"><div class="act"><span class="c"><i class="fa-solid fa-check"></i></span>Pagué</div><div class="card" style="overflow:hidden"><div class="row"><div class="ic" style="background:#FFF1C2;color:var(--cu)"><i class="fa-solid fa-lightbulb"></i></div>
+<div style="flex:1;min-width:0"><div class="row" style="justify-content:space-between;gap:6px"><span class="nm" style="white-space:nowrap">Luz · Edersa</span><span class="am">$ 22.700</span></div><div style="margin-top:5px;display:flex;gap:5px;flex-wrap:wrap"><span class="chip late"><i class="fa-solid fa-hourglass-half"></i> Venció hace 2 días</span><span class="chip sh"><i class="fa-solid fa-user-group"></i> Compartido</span></div></div></div></div></div>
+<div class="sm" style="margin:5px 0 0 4px"><i class="fa-solid fa-hand-pointer"></i> Deslizá a la izquierda para marcar como pagado</div></div>
+</div>
+
+<div class="grp"><span>Esta semana</span></div>
+<div class="tl"><div class="it"><span class="d" style="background:var(--br)"></span><div class="card"><div class="row"><div class="ic" style="background:#FCE6EA;color:var(--cu)"><i class="fa-solid fa-fire-flame-simple"></i></div>
+<div style="flex:1"><div class="nm">Gas · Camuzzi</div><div style="margin-top:5px;display:flex;gap:5px;flex-wrap:wrap"><span class="chip soon">en 3 días · 23/10</span><span class="chip sh"><i class="fa-solid fa-user-group"></i> Compartido</span></div></div>
+<div style="text-align:right"><div class="am">$ 18.300</div><span class="pg" style="display:inline-block;margin-top:5px"><i class="fa-solid fa-check"></i> Pagué</span></div></div></div></div></div>
+
+<div class="grp"><span>Más adelante</span></div>
+<div class="tl">
+<div class="it"><span class="d" style="background:var(--ls)"></span><div class="card"><div class="row"><div class="ic" style="background:#E3EED4;color:var(--sage)"><i class="fa-solid fa-spa"></i></div>
+<div style="flex:1"><div class="nm">Analia</div><div style="margin-top:5px;display:flex;gap:5px;flex-wrap:wrap"><span class="chip soon">en 8 días · 28/10</span><span class="chip pv"><i class="fa-solid fa-lock"></i> Privado</span></div></div>
+<div style="text-align:right"><div class="am">$ 60.000</div><span class="pg" style="display:inline-block;margin-top:5px"><i class="fa-solid fa-check"></i> Pagué</span></div></div></div></div>
+<div class="it"><span class="d" style="background:var(--ls)"></span><div class="card"><div class="row"><div class="ic" style="background:#E3EED4;color:var(--sage)"><i class="fa-solid fa-house"></i></div>
+<div style="flex:1"><div class="nm">Alquiler</div><div style="margin-top:5px;display:flex;gap:5px;flex-wrap:wrap"><span class="chip soon">en 21 días · 10/11</span><span class="chip sh"><i class="fa-solid fa-user-group"></i> Compartido</span></div></div>
+<div style="text-align:right"><div class="am">$ 450.000</div><span class="pg" style="display:inline-block;margin-top:5px"><i class="fa-solid fa-check"></i> Pagué</span></div></div></div></div></div>
+
+<div class="grp" style="margin-left:0;margin-right:74px"><div class="card row" style="flex:1;padding:12px 14px;background:#EEF4E6"><i class="fa-solid fa-circle-check" style="color:var(--sage);font-size:18px"></i><b style="flex:1;font-family:Nunito;font-size:14px;color:var(--tx)">Ya pagados</b><span class="chip" style="background:var(--ls);color:var(--sage)">3</span><i class="fa-solid fa-chevron-down" style="color:var(--sage)"></i></div></div>
+<div class="ex" style="margin:4px 0 0 4px">Datos de ejemplo</div>
+<div class="fab" title="Nuevo gasto fijo"><i class="fa-solid fa-plus"></i></div><div style="position:absolute;right:86px;bottom:110px;background:#fff;border-radius:12px;padding:5px 10px;font-size:12px;font-weight:800;color:var(--sage);box-shadow:0 3px 8px #0001;z-index:3">Nuevo gasto fijo</div>
+<div class="nav"><div><i class="fa-solid fa-house"></i>Inicio</div><div><i class="fa-solid fa-receipt"></i>Gastos</div><div><i class="fa-solid fa-bag-shopping"></i>Bolsa</div><div><i class="fa-solid fa-umbrella-beach"></i>Meta</div><div class="on"><i class="fa-solid fa-bell"></i>Avisos</div></div>
+</div></div>
+<div><div class="lbl">Simplificado</div><div class="phone">
+<div class="hdr"><span class="h tt"><i class="fa-solid fa-bell"></i> Avisos</span><div class="rb"><i class="fa-solid fa-sliders"></i></div></div>
+<div class="month"><div class="rb"><i class="fa-solid fa-chevron-left"></i></div><span class="h">Octubre 2026</span><div class="rb"><i class="fa-solid fa-chevron-right"></i></div></div>
+<div class="card" style="padding:18px;position:relative"><i class="fa-solid fa-xmark" style="position:absolute;right:18px;top:18px;color:#c4baa8"></i>
+<div class="row" style="gap:12px;padding-right:20px"><svg width="58" height="58" viewBox="0 0 58 58"><circle cx="29" cy="29" r="27" fill="#ECE8F6"/><path d="M36 14a15 15 0 1 0 9 24a12 12 0 1 1-9-24z" fill="#F4C542"/><circle cx="16" cy="16" r="1.8" fill="#A79BCB"/><circle cx="44" cy="12" r="1.4" fill="#A79BCB"/><circle cx="12" cy="40" r="1.2" fill="#A79BCB"/></svg><div class="h" style="font-size:19px;font-weight:600">¿Gastaste algo hoy?</div></div>
+<div class="row" style="margin-top:14px;gap:14px"><span class="btn solid" style="padding:10px 22px">Anotar</span><span class="btn link" style="padding:10px 4px;text-decoration:none">No gasté nada</span></div>
+<div class="sm" style="margin-top:12px;color:#8a8370">5 días seguidos anotando</div></div>
+<div class="sc">Hoy</div>
+<div class="sc2"><div class="ic" style="background:#E6EFF7;color:#5a7a99;width:44px;height:44px"><i class="fa-solid fa-wifi"></i></div><div style="flex:1"><div class="nm">Internet<span class="wm">con Maru</span></div><div class="when" style="color:#4F6B57">Hoy</div></div><div style="text-align:right"><div class="am" style="font-size:16px">$ 15.800</div><div class="tpg"><i class="fa-solid fa-check"></i> Pagué</div></div></div>
+<div class="sc2"><div class="ic" style="background:#FFF1C2;color:#85503C;width:44px;height:44px"><i class="fa-solid fa-lightbulb"></i></div><div style="flex:1"><div class="nm">Luz · Edersa<span class="wm">con Maru</span></div><div class="when" style="color:#85503C">Venció hace 2 días</div></div><div style="text-align:right"><div class="am" style="font-size:16px">$ 22.700</div><div class="tpg"><i class="fa-solid fa-check"></i> Pagué</div></div></div>
+<div class="sc">Esta semana</div>
+<div class="sc2"><div class="ic" style="background:#FCE6EA;color:#85503C;width:44px;height:44px"><i class="fa-solid fa-fire-flame-simple"></i></div><div style="flex:1"><div class="nm">Gas · Camuzzi<span class="wm">con Maru</span></div><div class="when" style="color:#8a8370">en 3 días</div></div><div style="text-align:right"><div class="am" style="font-size:16px">$ 18.300</div></div></div>
+<div class="sc">Más adelante</div>
+<div class="sc2"><div class="ic" style="background:#E3EED4;color:#4F6B57;width:44px;height:44px"><i class="fa-solid fa-spa"></i></div><div style="flex:1"><div class="nm">Analia</div><div class="when" style="color:#8a8370">en 8 días</div></div><div style="text-align:right"><div class="am" style="font-size:16px">$ 60.000</div></div></div>
+<div class="sc2"><div class="ic" style="background:#E3EED4;color:#4F6B57;width:44px;height:44px"><i class="fa-solid fa-house"></i></div><div style="flex:1"><div class="nm">Alquiler<span class="wm">con Maru</span></div><div class="when" style="color:#8a8370">en 21 días</div></div><div style="text-align:right"><div class="am" style="font-size:16px">$ 450.000</div></div></div>
+<div class="card row" style="margin:18px 0 0;padding:12px 14px;background:#EAF1DF"><i class="fa-solid fa-circle-check" style="color:var(--sage);font-size:18px"></i><b style="flex:1;font-size:14px;color:var(--tx)">Ya pagados</b><span class="chip" style="background:var(--ls);color:var(--sage)">3</span><i class="fa-solid fa-chevron-down" style="color:var(--sage)"></i></div>
+<div class="ex" style="margin:14px 4px 0;padding-bottom:96px">Datos de ejemplo</div>
+<div class="fab" title="Nuevo gasto fijo"><i class="fa-solid fa-plus"></i></div>
+<div class="nav"><div><i class="fa-solid fa-house"></i>Inicio</div><div><i class="fa-solid fa-receipt"></i>Gastos</div><div><i class="fa-solid fa-bag-shopping"></i>Bolsa</div><div><i class="fa-solid fa-umbrella-beach"></i>Meta</div><div class="on"><i class="fa-solid fa-bell"></i>Avisos</div></div>
+</div></div>
+</div><script>if(location.hash=="#solo"){document.getElementById("antes").style.display="none";document.querySelector("h1").style.display="none";document.body.style.padding="20px"}</script></body></html>

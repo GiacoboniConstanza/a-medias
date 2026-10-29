@@ -1,0 +1,108 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>A Medias – boceto</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Nunito,sans-serif;background:#f6f1ff;color:#3b3355;padding:40px}
+h1{text-align:center;font-size:40px;font-weight:900;color:#7a5cff}h1 small{display:block;font-size:16px;font-weight:600;color:#8a82a6;margin-top:6px}
+.grid{display:grid;grid-template-columns:repeat(4,390px);gap:50px 40px;justify-content:center;margin-top:30px}
+.lbl{font-weight:800;font-size:18px;margin-bottom:10px;color:#5b4fa0}
+.phone{width:390px;height:780px;background:#fffdf8;border-radius:44px;border:10px solid #2e2840;overflow:hidden;position:relative;padding:44px 20px 20px;box-shadow:0 20px 40px #7a5cff33}
+.phone:before{content:"";position:absolute;top:8px;left:50%;transform:translateX(-50%);width:110px;height:24px;background:#2e2840;border-radius:14px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}.logo{font-weight:900;font-size:20px;color:#7a5cff}
+.tog{display:flex;background:#eee8ff;border-radius:20px;padding:3px;font-size:12px;font-weight:800}.tog span{padding:5px 10px;border-radius:16px;color:#8a82a6}.tog .on{background:#fff;color:#7a5cff;box-shadow:0 2px 4px #0001}
+.card{background:#fff;border-radius:22px;padding:14px;box-shadow:0 4px 14px #7a5cff18;margin-bottom:12px}
+.big{font-size:30px;font-weight:900}.muted{color:#8a82a6;font-size:13px}.t{font-weight:800;font-size:22px;margin-bottom:10px}
+.chip{display:inline-block;padding:7px 12px;border-radius:16px;background:#f1edfb;font-weight:700;font-size:13px;margin:3px}.chip.on{background:#7a5cff;color:#fff}
+.fab{position:absolute;bottom:24px;right:24px;width:66px;height:66px;border-radius:50%;background:#ff8fab;color:#fff;font-size:40px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 18px #ff8fab88}
+.btn{display:block;text-align:center;background:#7a5cff;color:#fff;border-radius:18px;padding:13px;font-weight:800;margin-top:8px}.btn.alt{background:#eee8ff;color:#7a5cff}
+.ex{position:absolute;bottom:6px;left:0;right:0;text-align:center;font-size:10px;color:#b3abc9}
+table{width:100%;border-collapse:collapse;font-size:12px}td,th{padding:6px 3px;border-bottom:1px solid #f0ebfa;text-align:left}th{color:#8a82a6}td:last-child,th:last-child{text-align:right}
+.keys{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.keys div{background:#f4f0ff;border-radius:16px;text-align:center;padding:11px;font-size:22px;font-weight:800}
+.bar{height:14px;background:#f0ebfa;border-radius:8px;overflow:hidden}.bar i{display:block;height:100%;border-radius:8px}
+.amt{font-size:11px;font-weight:600;color:#3b335599;margin-top:1px}
+.bub{position:absolute;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;text-align:center}
+.row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f3effa}.ck{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff}
+body.solo{padding:0;background:#f6f1ff}body.solo h1{display:none}body.solo .grid{display:block;margin:0}body.solo .s{display:none;padding:20px}body.solo .s.show{display:block}
+</style></head><body>
+<h1>🧉 A Medias <small>Boceto de pantallas · los montos son datos de ejemplo</small></h1>
+<div class="grid">
+
+<div class="s" id="s1"><div class="lbl">1 · Inicio (vista amigable)</div><div class="phone">
+<div class="top"><span class="logo">A Medias</span><div class="tog"><span class="on">Amigable</span><span>Contable</span></div></div>
+<div class="muted">Hola, Coty 👋</div><div class="t" style="margin-top:2px">Tu plata de octubre</div>
+<svg width="350" height="270" viewBox="0 0 350 270"><rect x="135" y="8" width="80" height="22" rx="8" fill="#c9b8ff"/>
+<path d="M115 34 h120 q30 0 30 34 v160 q0 34 -34 34 h-112 q-34 0 -34 -34 v-160 q0 -34 30 -34z" fill="#f4f0ff" stroke="#c9b8ff" stroke-width="4"/>
+<clipPath id="j"><path d="M115 34 h120 q30 0 30 34 v160 q0 34 -34 34 h-112 q-34 0 -34 -34 v-160 q0 -34 30 -34z"/></clipPath>
+<g clip-path="url(#j)"><path d="M70 120 q35 -14 70 0 t70 0 t70 0 v160 h-210z" fill="#8fe3b0"/></g>
+<text x="175" y="185" text-anchor="middle" font-size="30" font-weight="900" fill="#2f7a4f">62%</text><text x="175" y="208" text-anchor="middle" font-size="13" font-weight="700" fill="#2f7a4f">te queda</text></svg>
+<div class="card" style="background:#e6f9ee;text-align:center"><b style="color:#2f7a4f">🌿 Vas bien, te quedan unos días tranquilos</b><div class="muted">Quedan $ 186.400 para 15 días</div></div>
+<div class="card" style="display:flex;justify-content:space-between;align-items:center"><div><div class="muted">Gastos compartidos</div><b style="font-size:19px">Maru te debe $ 84.000</b></div><span style="font-size:30px">🤝</span></div>
+<div class="fab">+</div><div class="ex">Datos de ejemplo</div></div></div>
+
+<div class="s" id="s2"><div class="lbl">2 · Cargar gasto</div><div class="phone">
+<div class="top"><span class="muted">✕ Cancelar</span><b>Nuevo gasto</b><span></span></div>
+<div style="text-align:center;margin:8px 0 12px"><div class="big" style="font-size:44px">$ 12.500</div><div class="muted">¿Cuánto gastaste?</div></div>
+<div style="text-align:center"><span class="chip on">👭 Compartido</span><span class="chip">🔒 Privado</span></div>
+<div style="text-align:center"><span class="muted">Pagó:</span> <span class="chip on">Yo (Coty)</span><span class="chip">Maru</span></div>
+<div style="text-align:center;margin:6px 0 10px"><span class="chip on">🛒 Súper</span><span class="chip">🍕 Comida</span><span class="chip">🚌 Viajes</span><span class="chip">💡 Servicios</span><span class="chip">🎉 Salidas</span><span class="chip">＋ Nueva</span></div>
+<div class="keys"><div>1</div><div>2</div><div>3</div><div>4</div><div>5</div><div>6</div><div>7</div><div>8</div><div>9</div><div>000</div><div>0</div><div>⌫</div></div>
+<div class="btn" style="background:#ff8fab">Listo ✓</div><div class="ex">Datos de ejemplo</div></div></div>
+
+<div class="s" id="s3"><div class="lbl">3 · ¿En qué se me fue?</div><div class="phone">
+<div class="top"><span class="logo">A Medias</span><div class="tog"><span class="on">Amigable</span><span>Contable</span></div></div>
+<div class="t">¿En qué se me fue?</div><div class="muted">Octubre · solo vos ves tus privados 🔒</div>
+<div style="position:relative;height:430px">
+<div class="bub" style="width:190px;height:190px;background:#ffd6e0;left:10px;top:20px;font-size:17px"><span style="font-size:46px">🍕</span>Comida<small class="amt">$ 98.400</small></div>
+<div class="bub" style="width:140px;height:140px;background:#d9ecff;left:195px;top:40px"><span style="font-size:36px">🛒</span>Súper<small class="amt">$ 64.200</small></div>
+<div class="bub" style="width:115px;height:115px;background:#e6f9ee;left:40px;top:225px"><span style="font-size:30px">🎉</span>Salidas<small class="amt">$ 41.500</small></div>
+<div class="bub" style="width:95px;height:95px;background:#fff1c9;left:170px;top:200px"><span style="font-size:26px">👗</span>Ropa<small class="amt">$ 28.900</small></div>
+<div class="bub" style="width:75px;height:75px;background:#eee8ff;left:265px;top:205px;font-size:12px"><span style="font-size:22px">🚌</span>Viajes<small class="amt">$ 15.300</small></div>
+<div class="bub" style="width:60px;height:60px;background:#ffe3cc;left:200px;top:310px;font-size:11px"><span style="font-size:18px">☕</span>Café<small class="amt" style="font-size:9px">$ 8.600</small></div></div>
+<div class="card" style="background:#fff4e6"><b>💡 Esta semana:</b> la comida afuera fue tu gasto más grande.</div><div class="ex">Datos de ejemplo</div></div></div>
+
+<div class="s" id="s4"><div class="lbl">4 · Bolsa de extras 🔒</div><div class="phone">
+<div class="top"><span class="logo">A Medias</span><span class="chip">🔒 Solo vos</span></div>
+<div class="t">Bolsa de extras 👜</div>
+<div class="card" style="background:#fff1c9"><div class="muted">Incentivo recibido · 10 oct</div><div class="big">$ 300.000</div><div class="muted">Repartido: ✈️ $ 120.000 · 🛋️ $ 90.000 · 🛍️ $ 90.000</div>
+<div style="display:flex;height:10px;border-radius:6px;overflow:hidden;margin-top:8px"><i style="width:40%;background:#9ec9ff"></i><i style="width:30%;background:#8fe3b0"></i><i style="width:30%;background:#ffc2d1"></i></div></div>
+<div class="card"><b>Mis fondos de ahorro 🐷</b><div style="margin:9px 0"><div style="display:flex;justify-content:space-between;font-size:14px"><b>✈️ Viaje</b><span class="muted">$ 420.000 / $ 600.000</span></div><div class="bar" style="height:10px;margin-top:4px"><i style="width:70%;background:#9ec9ff"></i></div></div><div style="margin:9px 0"><div style="display:flex;justify-content:space-between;font-size:14px"><b>🛋️ Sillón</b><span class="muted">$ 90.000 / $ 250.000</span></div><div class="bar" style="height:10px;margin-top:4px"><i style="width:36%;background:#8fe3b0"></i></div></div><div style="margin:9px 0"><div style="display:flex;justify-content:space-between;font-size:14px"><b>💻 Notebook</b><span class="muted">$ 35.000 / $ 800.000</span></div><div class="bar" style="height:10px;margin-top:4px"><i style="width:5%;background:#c9b8ff"></i></div></div>
+<div class="btn alt" style="padding:9px;font-size:14px">+ Nuevo fondo</div></div>
+<div class="card"><div style="display:flex;justify-content:space-between"><b>🛍️ Gustos</b><span class="muted">$ 18.000 de $ 90.000 libres</span></div><div class="bar" style="height:10px;margin-top:6px"><i style="width:80%;background:#ff8fab"></i></div></div>
+<div class="card" style="background:#ffe3e3;font-size:13px;padding:10px"><b style="color:#c0392b">⚠️ Ojo:</b> te quedan $ 18.000 de gustos. Si seguís, tocás tus fondos.</div><div class="ex">Datos de ejemplo</div></div></div>
+
+<div class="s" id="s5"><div class="lbl">5 · Compartidos (vista contable)</div><div class="phone">
+<div class="top"><span class="logo">A Medias</span><div class="tog"><span>Amigable</span><span class="on">Contable</span></div></div>
+<div class="t" style="font-size:19px">Compartidos · Octubre</div>
+<div class="card" style="padding:10px"><table><tr><th>Fecha</th><th>Gasto</th><th>Pagó</th><th>Monto</th></tr>
+<tr><td>01/10</td><td>🏠 Alquiler</td><td>Coty</td><td>$ 250.000</td></tr><tr><td>05/10</td><td>🔥 Camuzzi</td><td>Maru</td><td>$ 18.300</td></tr>
+<tr><td>07/10</td><td>💡 Edersa</td><td>Maru</td><td>$ 22.700</td></tr><tr><td>09/10</td><td>🛒 Súper</td><td>Coty</td><td>$ 45.200</td></tr>
+<tr><td>12/10</td><td>📶 Internet</td><td>Maru</td><td>$ 15.800</td></tr><tr><th colspan="3">Total</th><th>$ 352.000</th></tr></table></div>
+<div class="card" style="padding:10px"><b style="font-size:14px">Reparto por sueldo base</b><table><tr><th></th><th>%</th><th>Le toca</th><th>Pagó</th></tr>
+<tr><td>Coty</td><td>60%</td><td>$ 211.200</td><td>$ 295.200</td></tr><tr><td>Maru</td><td>40%</td><td>$ 140.800</td><td>$ 56.800</td></tr></table>
+<div style="margin-top:8px;font-weight:800;color:#7a5cff">Saldo: Maru → Coty $ 84.000</div></div>
+<div class="btn">✓ Saldar mes</div><div class="btn alt">⬇ Exportar a planilla</div><div class="ex">Datos de ejemplo · los extras no entran en el %</div></div></div>
+
+<div class="s" id="s6"><div class="lbl">6 · Recordatorios</div><div class="phone" style="background:linear-gradient(#2e2850,#4b3f7a 45%,#fffdf8 45%)">
+<div style="color:#fff;text-align:center;margin:6px 0 14px"><div style="font-size:48px;font-weight:300">21:30</div><div style="font-size:13px;opacity:.8">viernes 16 de octubre</div></div>
+<div class="card" style="background:#ffffffee"><div class="muted">🧉 A MEDIAS · ahora</div><b>¿Gastaste algo hoy?</b><div class="muted">Anotalo en dos toques así no se te escapa 😉</div>
+<div style="display:flex;gap:6px;margin-top:8px"><span class="chip on">Sí, cargar</span><span class="chip">Hoy no</span></div></div>
+<div class="card" style="margin-top:34px"><b style="font-size:17px">📅 Vencimientos de octubre</b>
+<div class="row"><div class="ck" style="background:#8fe3b0">✓</div><div style="flex:1"><b>🏠 Alquiler</b><div class="muted">Pagado el 01/10 · Coty</div></div></div>
+<div class="row"><div class="ck" style="background:#8fe3b0">✓</div><div style="flex:1"><b>🔥 Camuzzi</b><div class="muted">Pagado el 05/10 · Maru</div></div></div>
+<div class="row"><div class="ck" style="background:#ffd36e">!</div><div style="flex:1"><b>💡 Edersa</b><div class="muted">Vence en 2 días · $ 22.700</div></div></div>
+<div class="row" style="border:0"><div class="ck" style="border:2px solid #d8d0ee"></div><div style="flex:1"><b>🩺 Osde</b><div class="muted">Vence el 25/10 · privado 🔒</div></div></div></div>
+<div class="card" style="background:#eee8ff;font-size:13px">🔔 Hace 3 días que no anotás nada. ¿Todo bien?</div><div class="ex">Datos de ejemplo</div></div></div>
+
+<div class="s" id="s7"><div class="lbl">7 · Meta compartida</div><div class="phone">
+<div class="top"><span class="logo">A Medias</span><span class="chip">👭 Las dos</span></div>
+<div class="t">Meta compartida</div>
+<div class="card" style="background:#d9f2ff;text-align:center"><div style="font-size:54px">🏖️</div><b style="font-size:20px">Vacaciones juntas</b><div class="muted">Enero 2027</div>
+<div class="big" style="margin-top:8px">$ 540.000</div><div class="muted">de $ 1.200.000 · ¡ya van 45%!</div><div class="bar" style="height:20px;margin-top:10px;background:#fff"><i style="width:45%;background:linear-gradient(90deg,#7ac8ff,#7a5cff)"></i></div></div>
+<div class="card"><b>Aportes</b><div class="row"><span>🙋‍♀️</span><b style="flex:1">Coty</b><span>$ 330.000</span></div><div class="row" style="border:0"><span>🙋‍♀️</span><b style="flex:1">Maru</b><span>$ 210.000</span></div>
+<div style="display:flex;height:10px;border-radius:6px;overflow:hidden"><i style="width:61%;background:#7a5cff"></i><i style="width:39%;background:#ff8fab"></i></div><div class="muted" style="display:flex;justify-content:space-between;margin-top:3px"><span>Coty 61%</span><span>Maru 39%</span></div></div>
+<div style="text-align:center"><span class="chip">Aportar libre</span><span class="chip on">Usar 60/40</span></div>
+<div class="btn" style="background:#ff8fab">Aportar</div>
+<div class="muted" style="text-align:center;margin-top:10px">🔒 Maru ve tu aporte acá, no tus fondos privados</div><div class="ex">Datos de ejemplo</div></div></div>
+
+</div>
+<script>var m=location.hash.match(/s(\d)/);if(m){document.body.classList.add('solo');document.getElementById('s'+m[1]).classList.add('show')}</script>
+</body></html>
