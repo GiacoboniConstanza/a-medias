@@ -4,10 +4,12 @@ import { AppIcon } from '../components/AppIcon.tsx'
 import { DonutBreakdown } from '../components/DonutBreakdown.tsx'
 import { IncomeChart } from '../components/IncomeChart.tsx'
 import { Sheet } from '../components/Sheet.tsx'
-import { Button, Card } from '../components/ui.tsx'
+import { ExpenseEditor } from '../components/ExpenseEditor.tsx'
+import { ExpenseLine } from '../components/ExpenseLine.tsx'
+import { Button, Card, Toast } from '../components/ui.tsx'
 import { ViewToggle } from '../components/ViewToggle.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
-import { loadYearBalance, saveViewMode } from '../lib/api.ts'
+import { loadCategoryYearExpenses, loadYearBalance, saveViewMode, type ExpenseItem } from '../lib/api.ts'
 import { formatMoney } from '../lib/format.ts'
 import { abbreviateMoney, monthRows, monthSpan } from '../lib/year-rows.ts'
 import {
@@ -39,7 +41,15 @@ export function YearScreen() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [categoryId, setCategoryId] = useState<string | null>(null)
+  const [editing, setEditing] = useState<ExpenseItem | null>(null)
+  const [toast, setToast] = useState('')
+  const [reload, setReload] = useState(0)
   const today = new Date()
+  useEffect(() => {
+    if (!toast) return
+    const timeout = window.setTimeout(() => setToast(''), 3200)
+    return () => window.clearTimeout(timeout)
+  }, [toast])
 
   useEffect(() => {
     let cancelled = false
@@ -61,7 +71,7 @@ export function YearScreen() {
     return () => {
       cancelled = true
     }
-  }, [year])
+  }, [year, reload])
 
   if (!profile) return null
   const me = profile
@@ -119,8 +129,23 @@ export function YearScreen() {
           </Button>
         }
       >
-        {category && report ? <CategoryDetail category={category} year={report.year} today={today} /> : null}
+        {category && report ? (
+          <CategoryDetail category={category} year={report.year} today={today} reload={reload} onOpen={setEditing} />
+        ) : null}
       </Sheet>
+      <Toast>{toast}</Toast>
+      {editing ? (
+        <ExpenseEditor
+          presentation="sheet"
+          expense={editing}
+          onClose={() => setEditing(null)}
+          onDone={(notice) => {
+            setEditing(null)
+            setToast(notice)
+            setReload((current) => current + 1)
+          }}
+        />
+      ) : null}
     </>
   )
 }
@@ -535,7 +560,33 @@ function savingTone(value: number | null): string {
   return value < 0 ? 'text-alert-ink' : 'text-primary'
 }
 
-function CategoryDetail({ category, year, today }: { category: YearCategory; year: number; today: Date }) {
+function CategoryDetail({
+  category,
+  year,
+  today,
+  reload,
+  onOpen,
+}: {
+  category: YearCategory
+  year: number
+  today: Date
+  reload: number
+  onOpen: (expense: ExpenseItem) => void
+}) {
+  const [rows, setRows] = useState<ExpenseItem[]>([])
+  useEffect(() => {
+    let cancelled = false
+    loadCategoryYearExpenses(category.id, year)
+      .then((next) => {
+        if (!cancelled) setRows(next)
+      })
+      .catch(() => {
+        if (!cancelled) setRows([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [category.id, year, reload])
   const max = Math.max(...category.months.map((amount) => amount ?? 0), 0)
   return (
     <>
@@ -558,6 +609,15 @@ function CategoryDetail({ category, year, today }: { category: YearCategory; yea
           )
         })}
       </ul>
+      {rows.length > 0 ? (
+        <ul className="mt-3 border-t border-dashed border-line">
+          {rows.map((expense) => (
+            <li key={expense.id} className="border-b border-dashed border-line last:border-0">
+              <ExpenseLine expense={expense} categoryName={category.name} categoryIcon={category.icon} onOpen={() => onOpen(expense)} />
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </>
   )
 }

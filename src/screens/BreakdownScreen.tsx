@@ -5,7 +5,9 @@ import { FilterSheet, PERIODS, type ExpenseFilters } from '../components/FilterS
 import { MonthSwitcher } from '../components/MonthSwitcher.tsx'
 import { SectionHeader } from '../components/SectionHeader.tsx'
 import { ViewToggle } from '../components/ViewToggle.tsx'
-import { Card } from '../components/ui.tsx'
+import { ExpenseEditor } from '../components/ExpenseEditor.tsx'
+import { ExpenseLine } from '../components/ExpenseLine.tsx'
+import { Card, Toast } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
 import { useMonth } from '../context/MonthProvider.tsx'
@@ -30,6 +32,9 @@ export function BreakdownScreen() {
   const [expenses, setExpenses] = useState<ExpenseItem[]>([])
   const [listLoading, setListLoading] = useState(true)
   const [listError, setListError] = useState('')
+  const [editing, setEditing] = useState<ExpenseItem | null>(null)
+  const [toast, setToast] = useState('')
+  const [reload, setReload] = useState(0)
 
   const end = monthEnd(month)
   const span = useMemo(() => expenseSpan(month, preset, customFrom, customTo), [month, preset, customFrom, customTo])
@@ -45,7 +50,7 @@ export function BreakdownScreen() {
     if (!payerId) return
     let cancelled = false
     setListLoading(true)
-    loadPayerExpenses(payerId, span)
+    loadPayerExpenses(payerId, span, month)
       .then((rows) => {
         if (cancelled) return
         setExpenses(rows)
@@ -62,7 +67,13 @@ export function BreakdownScreen() {
     return () => {
       cancelled = true
     }
-  }, [profile?.id, span])
+  }, [profile?.id, span, month, reload])
+
+  useEffect(() => {
+    if (!toast) return
+    const timeout = window.setTimeout(() => setToast(''), 3200)
+    return () => window.clearTimeout(timeout)
+  }, [toast])
 
   if (!profile) return null
   const me = profile
@@ -225,7 +236,8 @@ export function BreakdownScreen() {
               <i className="h-full bg-blush" style={{ width: `${periodPrivateWidth}%` }} />
             </div>
           </div>
-          <BagPaidList expenses={source.filter((expense) => expense.paidFromBag)} />
+          <BagPaidList expenses={source.filter((expense) => expense.paidFromBag)} onOpen={setEditing} />
+          <ExpenseRows expenses={highlightId ? source.filter((expense) => expense.categoryId === highlightId) : source} categories={data.categories} onOpen={setEditing} />
         </>
       ) : null}
 
@@ -235,23 +247,13 @@ export function BreakdownScreen() {
             {visible.map((expense) => {
               const category = data.categories.find((item) => item.id === expense.categoryId)
               return (
-                <li key={expense.id} className="flex items-start justify-between gap-3 border-b border-dashed border-line py-3 text-sm last:border-0">
-                  <div className="min-w-0">
-                    <p className="font-extrabold">{expense.title}</p>
-                    <p className="mt-0.5 font-semibold text-muted">
-                      {shortDate(expense.spentOn)} · <AppIcon name={category?.icon || DEFAULT_ICON} /> {category?.name ?? 'Otros'} ·{' '}
-                      {expense.isShared ? (
-                        'Compartido'
-                      ) : expense.paidFromBag ? (
-                        <span className="text-text">
-                          Privado · <AppIcon name="bag-shopping" className="text-primary" /> pagado con la bolsa
-                        </span>
-                      ) : (
-                        'Privado'
-                      )}
-                    </p>
-                  </div>
-                  <p className="shrink-0 font-extrabold">{formatMoney(expense.amount)}</p>
+                <li key={expense.id} className="border-b border-dashed border-line last:border-0">
+                  <ExpenseLine
+                    expense={expense}
+                    categoryName={category?.name ?? 'Otros'}
+                    categoryIcon={category?.icon || DEFAULT_ICON}
+                    onOpen={() => setEditing(expense)}
+                  />
                 </li>
               )
             })}
@@ -284,24 +286,68 @@ export function BreakdownScreen() {
         onClose={() => setSheetOpen(false)}
         onApply={applyFilters}
       />
+      <Toast>{toast}</Toast>
+      {editing ? (
+        <ExpenseEditor
+          presentation="sheet"
+          expense={editing}
+          onClose={() => setEditing(null)}
+          onDone={(notice) => {
+            setEditing(null)
+            setToast(notice)
+            setReload((current) => current + 1)
+          }}
+        />
+      ) : null}
     </>
   )
 }
 
-function BagPaidList({ expenses }: { expenses: ExpenseItem[] }) {
+function BagPaidList({ expenses, onOpen }: { expenses: ExpenseItem[]; onOpen: (expense: ExpenseItem) => void }) {
   if (expenses.length === 0) return null
   return (
     <ul className="mb-4">
       {expenses.map((expense) => (
-        <li key={expense.id} className="flex min-h-11 items-center justify-between gap-3 text-sm">
-          <span className="min-w-0 font-semibold">
-            <AppIcon name="bag-shopping" className="mr-1.5 text-primary" />
-            {expense.title}
-            <span className="text-muted"> · privado, pagado con la bolsa</span>
-          </span>
-          <span className="shrink-0 font-extrabold">{formatMoney(expense.amount)}</span>
+        <li key={expense.id}>
+          <button type="button" onClick={() => onOpen(expense)} className="flex min-h-11 w-full items-center justify-between gap-3 text-left text-sm">
+            <span className="min-w-0 font-semibold">
+              <AppIcon name="bag-shopping" className="mr-1.5 text-primary" />
+              {expense.title}
+              <span className="text-muted"> · privado, pagado con la bolsa</span>
+            </span>
+            <span className="shrink-0 font-extrabold">{formatMoney(expense.amount)}</span>
+          </button>
         </li>
       ))}
+    </ul>
+  )
+}
+
+function ExpenseRows({
+  expenses,
+  categories,
+  onOpen,
+}: {
+  expenses: ExpenseItem[]
+  categories: { id: string; name: string; icon: string }[]
+  onOpen: (expense: ExpenseItem) => void
+}) {
+  if (expenses.length === 0) return null
+  return (
+    <ul className="mb-4">
+      {expenses.map((expense) => {
+        const category = categories.find((item) => item.id === expense.categoryId)
+        return (
+          <li key={expense.id} className="border-b border-dashed border-line last:border-0">
+            <ExpenseLine
+              expense={expense}
+              categoryName={category?.name ?? 'Otros'}
+              categoryIcon={category?.icon || DEFAULT_ICON}
+              onOpen={() => onOpen(expense)}
+            />
+          </li>
+        )
+      })}
     </ul>
   )
 }

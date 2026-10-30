@@ -19,6 +19,7 @@ export function Sheet({
   const [mounted, setMounted] = useState(open)
   const [visible, setVisible] = useState(false)
   const [drag, setDrag] = useState(0)
+  const [keyboard, setKeyboard] = useState(0)
   const dragStart = useRef(0)
   const dragRef = useRef(0)
   const dragging = useRef(false)
@@ -34,6 +35,23 @@ export function Sheet({
     setVisible(false)
     const timeout = window.setTimeout(() => setMounted(false), 280)
     return () => window.clearTimeout(timeout)
+  }, [open])
+
+  useEffect(() => {
+    if (!open) return
+    const viewport = window.visualViewport
+    if (!viewport) return
+    const sync = () => {
+      setKeyboard(Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop))
+    }
+    sync()
+    viewport.addEventListener('resize', sync)
+    viewport.addEventListener('scroll', sync)
+    return () => {
+      viewport.removeEventListener('resize', sync)
+      viewport.removeEventListener('scroll', sync)
+      setKeyboard(0)
+    }
   }, [open])
 
   useEffect(() => {
@@ -120,10 +138,13 @@ export function Sheet({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className={`sheet-motion absolute inset-x-0 bottom-0 mx-auto flex max-h-[min(86dvh,760px)] w-full max-w-[430px] flex-col rounded-t-[32px] bg-card shadow-card outline-none transition-transform duration-300 ease-out motion-reduce:transition-none ${
+        className={`sheet-motion absolute inset-x-0 mx-auto flex max-h-[min(86dvh,760px)] w-full max-w-[430px] flex-col rounded-t-[32px] bg-card shadow-card outline-none transition-transform duration-300 ease-out motion-reduce:transition-none ${
           visible ? 'translate-y-0' : 'translate-y-full'
         }`}
-        style={drag > 0 ? { transform: `translateY(${drag}px)` } : undefined}
+        style={{
+          bottom: keyboard,
+          ...(drag > 0 ? { transform: `translateY(${drag}px)` } : {}),
+        }}
       >
         <div
           className="flex touch-none justify-center pb-1 pt-3"

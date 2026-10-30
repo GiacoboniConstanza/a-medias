@@ -110,6 +110,15 @@ export function Toggle({
   )
 }
 
+export function Toast({ children }: { children: string }) {
+  if (!children) return null
+  return (
+    <p role="status" className="fixed bottom-28 left-1/2 z-50 max-w-[20rem] -translate-x-1/2 rounded-2xl bg-primary px-4 py-3 text-center text-sm font-semibold text-white shadow-fab">
+      {children}
+    </p>
+  )
+}
+
 export function ErrorText({ children }: { children: ReactNode }) {
   if (!children) return null
   return <p className="mt-2 text-center text-sm font-bold text-alert-ink">{children}</p>

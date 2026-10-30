@@ -204,6 +204,7 @@ export type Database = {
           title: string
           amount: number
           spent_on: string
+          period: string
           is_shared: boolean
           paid_from_bag: boolean
           created_at: string
@@ -217,11 +218,21 @@ export type Database = {
           title: string
           amount: number
           spent_on: string
+          period?: string
           is_shared: boolean
           paid_from_bag?: boolean
           created_at?: string
         },
-        { title?: string; amount?: number; is_shared?: boolean; paid_from_bag?: boolean }
+        {
+          title?: string
+          amount?: number
+          spent_on?: string
+          period?: string
+          payer_id?: string
+          category_id?: string
+          is_shared?: boolean
+          paid_from_bag?: boolean
+        }
       >
       shared_goals: Table<
         {

@@ -5,6 +5,7 @@ import { DEFAULT_ICON } from './icons.ts'
 import type { ExpenseSpan } from './expense-range.ts'
 import { amountForMonth, type AmountRevision } from './fixed.ts'
 import { monthEnd, monthKey } from './month.ts'
+import { movementInMonth, periodFromDate } from './period.ts'
 import { effectiveSalary, visibleSplitNotice, type SalaryPoint } from './salary.ts'
 import { sortedTimes, type DailyKind, type ReminderPrefs, DEFAULT_REMINDER_PREFS } from './reminders.ts'
 import { supabase } from './supabase.ts'
@@ -25,6 +26,7 @@ export type ExpenseItem = {
   title: string
   amount: number
   spentOn: string
+  period: string
   isShared: boolean
   paidFromBag: boolean
   payerId: string
@@ -194,13 +196,12 @@ export async function loadFinance(householdId: string, userId: string, month: st
     supabase.from('income_extras').select('id, amount, label, received_on').eq('user_id', userId),
     supabase.from('savings_funds').select('id, name, icon, target_amount, target_date').eq('user_id', userId),
     supabase.from('extra_allocations').select('extra_id, fund_id, amount').eq('user_id', userId),
-    supabase.from('bag_movements').select('id, kind, fund_id, amount, label, happened_on').eq('user_id', userId),
+    supabase.from('bag_movements').select('id, kind, fund_id, expense_id, amount, label, happened_on').eq('user_id', userId),
     supabase.from('categories').select('id, name, icon, owner_id').eq('household_id', householdId),
     supabase
       .from('expenses')
-      .select('id, title, amount, spent_on, is_shared, paid_from_bag, payer_id, owner_id, category_id')
-      .gte('spent_on', month)
-      .lte('spent_on', end)
+      .select('id, title, amount, spent_on, period, is_shared, paid_from_bag, payer_id, owner_id, category_id')
+      .eq('period', month)
       .order('spent_on', { ascending: true }),
     supabase
       .from('expenses')
@@ -326,9 +327,18 @@ export async function loadFinance(householdId: string, userId: string, month: st
       }
     })
 
+  const periodExpenseIds = new Set((monthExpenses.data ?? []).map((expense) => expense.id))
   const movementsThisMonth: BagMovementItem[] = (movements.data ?? [])
     .flatMap((movement) => {
-      if (!isBagKind(movement.kind) || movement.happened_on < month || movement.happened_on > end) return []
+      const inMonth = movementInMonth(
+        {
+          kind: movement.kind,
+          happenedOn: movement.happened_on,
+          linkedToPeriod: movement.expense_id != null && periodExpenseIds.has(movement.expense_id),
+        },
+        month,
+      )
+      if (!isBagKind(movement.kind) || !inMonth) return []
       return [
         {
           id: movement.id,
@@ -391,17 +401,7 @@ export async function loadFinance(householdId: string, userId: string, month: st
       icon: category.icon || DEFAULT_ICON,
       ownerId: category.owner_id,
     })),
-    monthExpenses: (monthExpenses.data ?? []).map((expense) => ({
-      id: expense.id,
-      title: expense.title,
-      amount: money(expense.amount),
-      spentOn: expense.spent_on,
-      isShared: expense.is_shared,
-      paidFromBag: expense.paid_from_bag,
-      payerId: expense.payer_id,
-      ownerId: expense.owner_id,
-      categoryId: expense.category_id,
-    })),
+    monthExpenses: (monthExpenses.data ?? []).map(mapExpense),
     lastLoggedOn: lastExpense.data?.spent_on ?? null,
     extrasThisMonth,
     movementsThisMonth,
@@ -459,7 +459,7 @@ export async function loadFinance(householdId: string, userId: string, month: st
   }
 }
 
-const EXPENSE_COLUMNS = 'id, title, amount, spent_on, is_shared, paid_from_bag, payer_id, owner_id, category_id, created_at'
+const EXPENSE_COLUMNS = 'id, title, amount, spent_on, period, is_shared, paid_from_bag, payer_id, owner_id, category_id, created_at'
 
 function isBagKind(kind: string): kind is BagKind {
   return kind === 'gusto' || kind === 'to_fund' || kind === 'to_gustos' || kind === 'use'
@@ -470,6 +470,7 @@ function mapExpense(expense: {
   title: string
   amount: number
   spent_on: string
+  period: string
   is_shared: boolean
   paid_from_bag: boolean
   payer_id: string
@@ -481,6 +482,7 @@ function mapExpense(expense: {
     title: expense.title,
     amount: money(expense.amount),
     spentOn: expense.spent_on,
+    period: expense.period.slice(0, 10),
     isShared: expense.is_shared,
     paidFromBag: expense.paid_from_bag,
     payerId: expense.payer_id,
@@ -489,23 +491,39 @@ function mapExpense(expense: {
   }
 }
 
-/** Gastos que pagó esta persona, ya recortados por fecha en la consulta. */
-export async function loadPayerExpenses(payerId: string, span: ExpenseSpan): Promise<ExpenseItem[]> {
+/** Gastos que pagó esta persona en el mes de `period`. Un recorte de días usa la fecha real. */
+export async function loadPayerExpenses(payerId: string, span: ExpenseSpan, period: string): Promise<ExpenseItem[]> {
   if (span.kind === 'dates' && span.dates.length === 0) return []
 
   const ranked = supabase
     .from('expenses')
     .select(EXPENSE_COLUMNS)
     .eq('payer_id', payerId)
+    .eq('period', period)
     .order('spent_on', { ascending: true })
     .order('created_at', { ascending: true })
 
-  const filtered =
-    span.kind === 'dates'
+  const fullMonth = span.kind === 'range' && span.from === period && span.to === monthEnd(period)
+  const filtered = fullMonth
+    ? ranked
+    : span.kind === 'dates'
       ? ranked.in('spent_on', span.dates)
       : ranked.gte('spent_on', span.from).lte('spent_on', span.to)
 
   const { data, error } = await filtered
+  fail(error)
+  return (data ?? []).map(mapExpense)
+}
+
+export async function loadCategoryYearExpenses(categoryId: string, year: number): Promise<ExpenseItem[]> {
+  const { data, error } = await supabase
+    .from('expenses')
+    .select(EXPENSE_COLUMNS)
+    .eq('category_id', categoryId)
+    .gte('period', `${year}-01-01`)
+    .lt('period', `${year + 1}-01-01`)
+    .order('spent_on', { ascending: true })
+    .order('created_at', { ascending: true })
   fail(error)
   return (data ?? []).map(mapExpense)
 }
@@ -593,6 +611,7 @@ export async function createExpense(input: {
   title: string
   amount: number
   spentOn: string
+  period: string
   isShared: boolean
 }): Promise<string> {
   const { data, error } = await supabase
@@ -605,12 +624,43 @@ export async function createExpense(input: {
       title: input.title.trim(),
       amount: input.amount,
       spent_on: input.spentOn,
+      period: input.period,
       is_shared: input.isShared,
     })
     .select('id')
     .single()
   fail(error)
   return data.id
+}
+
+export async function updateExpense(input: {
+  id: string
+  payerId: string
+  categoryId: string
+  title: string
+  amount: number
+  spentOn: string
+  period: string
+  isShared: boolean
+}): Promise<void> {
+  const { error } = await supabase
+    .from('expenses')
+    .update({
+      payer_id: input.payerId,
+      category_id: input.categoryId,
+      title: input.title.trim(),
+      amount: input.amount,
+      spent_on: input.spentOn,
+      period: input.period,
+      is_shared: input.isShared,
+    })
+    .eq('id', input.id)
+  fail(error)
+}
+
+export async function deleteExpense(id: string): Promise<void> {
+  const { error } = await supabase.from('expenses').delete().eq('id', id)
+  fail(error)
 }
 
 export async function createFund(input: {
@@ -968,6 +1018,7 @@ export async function markFixedPaid(input: {
     title: input.fixed.title,
     amount: input.fixed.amount,
     spentOn: input.paidOn,
+    period: periodFromDate(input.paidOn),
     isShared: input.fixed.isShared,
   })
   const { error } = await supabase.from('fixed_payments').insert({

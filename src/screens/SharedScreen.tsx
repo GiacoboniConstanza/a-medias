@@ -1,13 +1,15 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AppIcon } from '../components/AppIcon.tsx'
+import { ExpenseEditor } from '../components/ExpenseEditor.tsx'
+import { PeriodTag } from '../components/ExpenseLine.tsx'
 import { MonthSwitcher } from '../components/MonthSwitcher.tsx'
 import { SectionHeader } from '../components/SectionHeader.tsx'
 import { ViewToggle } from '../components/ViewToggle.tsx'
-import { Button, Card, ErrorText } from '../components/ui.tsx'
+import { Button, Card, ErrorText, Toast } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
 import { useMonth } from '../context/MonthProvider.tsx'
-import { saveViewMode, settleMonth, undoSettlement } from '../lib/api.ts'
+import { saveViewMode, settleMonth, undoSettlement, type ExpenseItem } from '../lib/api.ts'
 import { buildSharedCsv, downloadText } from '../lib/csv.ts'
 import { debtCopy, monthSplit } from '../lib/derive.ts'
 import { formatMoney } from '../lib/format.ts'
@@ -21,10 +23,18 @@ export function SharedScreen() {
   const { data, loading, error, refresh } = useFinance()
   const [message, setMessage] = useState('')
   const [saving, setSaving] = useState(false)
+  const [editing, setEditing] = useState<ExpenseItem | null>(null)
+  const [toast, setToast] = useState('')
+
+  useEffect(() => {
+    if (!toast) return
+    const timeout = window.setTimeout(() => setToast(''), 3200)
+    return () => window.clearTimeout(timeout)
+  }, [toast])
 
   if (!profile) return null
   if (loading && !data) return <p className="py-16 text-center font-bold text-muted">Cargando…</p>
-  if (!data) return <p className="py-16 text-center font-bold text-alert-ink">{error}</p>
+  if (!data) return <p className="py-16 text-center font-extrabold text-alert-ink">{error}</p>
 
   const shared = data.monthExpenses.filter((expense) => expense.isShared)
   const split = monthSplit(data)
@@ -106,9 +116,10 @@ export function SharedScreen() {
                 <tr key={expense.id} className="border-t border-line">
                   <td className="py-1.5">{shortDate(expense.spentOn)}</td>
                   <td>
-                    <span className="inline-flex items-center gap-1">
+                    <button type="button" onClick={() => setEditing(expense)} className="inline-flex min-h-11 items-center gap-1 text-left font-semibold">
                       <AppIcon name={category?.icon || DEFAULT_ICON} /> {expense.title}
-                    </span>
+                      <PeriodTag expense={expense} />
+                    </button>
                   </td>
                   <td>{data.names[expense.payerId]}</td>
                   <td className="text-right">{formatMoney(expense.amount)}</td>
@@ -170,6 +181,18 @@ export function SharedScreen() {
         </span>
       </Button>
       <ErrorText>{message}</ErrorText>
+      <Toast>{toast}</Toast>
+      {editing ? (
+        <ExpenseEditor
+          presentation="sheet"
+          expense={editing}
+          onClose={() => setEditing(null)}
+          onDone={(notice) => {
+            setEditing(null)
+            setToast(notice)
+          }}
+        />
+      ) : null}
     </>
   )
 }

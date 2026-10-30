@@ -1,11 +1,15 @@
-import { Link, useMatch } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useLocation, useMatch, useNavigate } from 'react-router-dom'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { MonthSwitcher } from '../components/MonthSwitcher.tsx'
 import { PartnerMemos } from '../components/PartnerMemos.tsx'
 import { Plant, plantStage } from '../components/Plant.tsx'
 import { ViewToggle } from '../components/ViewToggle.tsx'
 import { SplitNotice } from '../components/SplitNotice.tsx'
-import { Card } from '../components/ui.tsx'
+import { ExpenseEditor } from '../components/ExpenseEditor.tsx'
+import { ExpenseLine } from '../components/ExpenseLine.tsx'
+import { Card, Toast } from '../components/ui.tsx'
+import type { ExpenseItem } from '../lib/api.ts'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
 import { useModules } from '../context/ModulesProvider.tsx'
@@ -21,6 +25,21 @@ export function HomeScreen() {
   const { profile, refreshProfile } = useAuth()
   const { month } = useMonth()
   const { data, loading, error } = useFinance()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const [editing, setEditing] = useState<ExpenseItem | null>(null)
+  const [toast, setToast] = useState('')
+  useEffect(() => {
+    const notice = (location.state as { notice?: string } | null)?.notice
+    if (!notice) return
+    setToast(notice)
+    navigate(location.pathname, { replace: true, state: null })
+  }, [location.pathname, location.state, navigate])
+  useEffect(() => {
+    if (!toast) return
+    const timeout = window.setTimeout(() => setToast(''), 3200)
+    return () => window.clearTimeout(timeout)
+  }, [toast])
   const modules = useModules()
   const financeRoute = useMatch('/finanzas')
   const hub = modules.ready && isHubHome(modules.enabled)
@@ -163,6 +182,23 @@ export function HomeScreen() {
             <Row label="Total" value={formatMoney(pocket.spent)} strong />
           </>
         )}
+        {data.monthExpenses.length > 0 ? (
+          <ul className="mt-2 border-t border-dashed border-line">
+            {data.monthExpenses.map((expense) => {
+              const category = data.categories.find((item) => item.id === expense.categoryId)
+              return (
+                <li key={expense.id} className="border-b border-dashed border-line last:border-0">
+                  <ExpenseLine
+                    expense={expense}
+                    categoryName={category?.name ?? 'Otros'}
+                    categoryIcon={category?.icon || 'tag'}
+                    onOpen={() => setEditing(expense)}
+                  />
+                </li>
+              )
+            })}
+          </ul>
+        ) : null}
       </Card>
 
       <Card>
@@ -236,6 +272,18 @@ export function HomeScreen() {
       >
         <AppIcon name="plus" />
       </Link>
+      <Toast>{toast}</Toast>
+      {editing ? (
+        <ExpenseEditor
+          presentation="sheet"
+          expense={editing}
+          onClose={() => setEditing(null)}
+          onDone={async (notice) => {
+            setEditing(null)
+            setToast(notice)
+          }}
+        />
+      ) : null}
     </>
   )
 }
