@@ -319,6 +319,47 @@ function ExpenseForm({
         </p>
       ) : null}
       {readOnly ? <p className="mb-3 text-sm font-semibold text-muted">Lo cargó otra persona. Podés verlo, no cambiarlo.</p> : null}
+      {expense?.paidFromBag ? (
+        <p className="mb-3 text-sm font-semibold text-muted">
+          <AppIcon name="bag-shopping" className="mr-1 text-primary" /> Pagado con la bolsa. Sigue siendo privado.
+        </p>
+      ) : (
+        <div className="mb-3 flex flex-wrap gap-2">
+          <Chip
+            active={shared}
+            onClick={() => {
+              if (readOnly) return
+              setShared(true)
+              setCategoryId((current) => (categories.some((category) => category.id === current && category.ownerId === null) ? current : ''))
+            }}
+          >
+            <AppIcon name="user-group" /> Compartido
+          </Chip>
+          <Chip
+            active={!shared}
+            onClick={() => {
+              if (readOnly) return
+              setShared(false)
+              setPayerId(meId)
+              setCategoryId((current) => (categories.some((category) => category.id === current && category.ownerId === meId) ? current : ''))
+            }}
+          >
+            <AppIcon name="lock" /> Privado
+          </Chip>
+        </div>
+      )}
+      {shared && !expense?.paidFromBag ? (
+        <div className="mb-3">
+          <p className="mb-1 text-sm font-bold text-muted">¿Quién pagó?</p>
+          <div className="flex flex-wrap gap-2">
+            {people.map(([id, name]) => (
+              <Chip key={id} active={payerId === id} onClick={() => { if (!readOnly) setPayerId(id) }}>
+                {id === meId ? `Yo (${name})` : name}
+              </Chip>
+            ))}
+          </div>
+        </div>
+      ) : null}
       <label className="mb-3 block text-sm font-bold text-muted">
         Nombre
         <input
@@ -440,45 +481,6 @@ function ExpenseForm({
           </label>
         ) : null}
       </div>
-      {expense?.paidFromBag ? (
-        <p className="mb-3 text-sm font-semibold text-muted">
-          <AppIcon name="bag-shopping" className="mr-1 text-primary" /> Pagado con la bolsa. Sigue siendo privado.
-        </p>
-      ) : (
-        <div className="mb-3 flex flex-wrap gap-2">
-          <Chip
-            active={shared}
-            onClick={() => {
-              if (readOnly) return
-              setShared(true)
-              setCategoryId((current) => (categories.some((category) => category.id === current && category.ownerId === null) ? current : ''))
-            }}
-          >
-            <AppIcon name="user-group" /> Compartido
-          </Chip>
-          <Chip
-            active={!shared}
-            onClick={() => {
-              if (readOnly) return
-              setShared(false)
-              setPayerId(meId)
-              setCategoryId((current) => (categories.some((category) => category.id === current && category.ownerId === meId) ? current : ''))
-            }}
-          >
-            <AppIcon name="lock" /> Privado
-          </Chip>
-        </div>
-      )}
-      {shared && !expense?.paidFromBag ? (
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <span className="text-sm font-semibold text-text">Pagó: </span>
-          {people.map(([id, name]) => (
-            <Chip key={id} active={payerId === id} onClick={() => { if (!readOnly) setPayerId(id) }}>
-              {id === meId ? `Yo (${name})` : name}
-            </Chip>
-          ))}
-        </div>
-      ) : null}
       <ErrorText>{error}</ErrorText>
     </div>
   )
