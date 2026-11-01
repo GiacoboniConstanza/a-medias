@@ -1,4 +1,3 @@
-import { monthPocket } from './derive.ts'
 import { formatMoney, money, normalizeMoney } from './format.ts'
 import { supabase } from './supabase.ts'
 
@@ -110,9 +109,80 @@ export function repaymentRoom(pending: number, currentAmount = 0): number {
   return normalizeMoney(pending + currentAmount)
 }
 
-/** Un préstamo no es gasto ni ingreso: el mes sigue igual si no se lo pasás. */
-export function pocketIgnoresLoans(input: { base: number; privateSpent: number; myShare: number; extras: number }) {
-  return monthPocket(input)
+export type PeriodLoan = {
+  lenderId: string
+  borrowerId: string
+  amount: number
+  period: string
+}
+
+export type PeriodRepayment = {
+  lenderId: string
+  borrowerId: string
+  amount: number
+  period: string
+}
+
+export type LoanMonthEffect = {
+  given: number
+  collected: number
+  received: number
+  paid: number
+  net: number
+}
+
+/** Efecto del mes: prestar resta, recibir suma; devolver hace lo inverso en el período de la devolución. */
+export function loanMonthEffect(
+  meId: string,
+  period: string,
+  loans: readonly PeriodLoan[],
+  repayments: readonly PeriodRepayment[],
+): LoanMonthEffect {
+  let given = 0
+  let collected = 0
+  let received = 0
+  let paid = 0
+  for (const loan of loans) {
+    if (loan.period !== period) continue
+    if (loan.lenderId === meId) given += loan.amount
+    else if (loan.borrowerId === meId) received += loan.amount
+  }
+  for (const repayment of repayments) {
+    if (repayment.period !== period) continue
+    if (repayment.lenderId === meId) collected += repayment.amount
+    else if (repayment.borrowerId === meId) paid += repayment.amount
+  }
+  return {
+    given: normalizeMoney(given),
+    collected: normalizeMoney(collected),
+    received: normalizeMoney(received),
+    paid: normalizeMoney(paid),
+    net: normalizeMoney(-given + collected + received - paid),
+  }
+}
+
+export function hasLoanMovement(effect: LoanMonthEffect): boolean {
+  return effect.given !== 0 || effect.collected !== 0 || effect.received !== 0 || effect.paid !== 0
+}
+
+/** Me queda = ingresos − gastos del mes + neto de préstamos. Ingresos y gastos no se tocan. */
+export function remainingAfterLoans(income: number, spent: number, loanNet: number): number {
+  return normalizeMoney(income - spent + loanNet)
+}
+
+export function formatSignedMoney(value: number): string {
+  const amount = normalizeMoney(value)
+  if (amount > 0) return `+${formatMoney(amount)}`
+  return formatMoney(amount)
+}
+
+export function loanEffectLines(effect: LoanMonthEffect): { label: string; amount: number }[] {
+  const lines: { label: string; amount: number }[] = []
+  if (effect.given !== 0) lines.push({ label: 'Préstamos dados', amount: -effect.given })
+  if (effect.collected !== 0) lines.push({ label: 'Devoluciones cobradas', amount: effect.collected })
+  if (effect.received !== 0) lines.push({ label: 'Préstamos recibidos', amount: effect.received })
+  if (effect.paid !== 0) lines.push({ label: 'Devoluciones pagadas', amount: -effect.paid })
+  return lines
 }
 
 function asStatus(value: string): LoanStatus {
@@ -143,6 +213,29 @@ function mapLoan(row: {
     lentOn: row.lent_on,
     period: row.period,
     notes: row.notes,
+  }
+}
+
+export async function loadLoanMovements(): Promise<{ loans: PeriodLoan[]; repayments: PeriodRepayment[] }> {
+  const [loansResult, repaymentsResult] = await Promise.all([
+    supabase.from('loans').select('id, lender_id, borrower_id, amount, period'),
+    supabase.from('loan_repayments').select('loan_id, amount, period'),
+  ])
+  if (loansResult.error) throw new Error(loansResult.error.message)
+  if (repaymentsResult.error) throw new Error(repaymentsResult.error.message)
+  const parties = new Map((loansResult.data ?? []).map((loan) => [loan.id, { lenderId: loan.lender_id, borrowerId: loan.borrower_id }]))
+  return {
+    loans: (loansResult.data ?? []).map((loan) => ({
+      lenderId: loan.lender_id,
+      borrowerId: loan.borrower_id,
+      amount: money(loan.amount),
+      period: loan.period,
+    })),
+    repayments: (repaymentsResult.data ?? []).flatMap((repayment) => {
+      const loan = parties.get(repayment.loan_id)
+      if (!loan) return []
+      return [{ ...loan, amount: money(repayment.amount), period: repayment.period }]
+    }),
   }
 }
 

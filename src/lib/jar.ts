@@ -1,3 +1,5 @@
+import { remainingAfterLoans } from './loans.ts'
+
 export type JarTone = 'green' | 'yellow' | 'red' | 'empty'
 
 export type JarStatus = {
@@ -13,6 +15,7 @@ export function jarStatus(input: {
   privateSpent: number
   myShare: number
   extras?: number
+  loanNet?: number
   dayOfMonth: number
   daysInMonth: number
   isCurrentMonth: boolean
@@ -30,7 +33,7 @@ export function jarStatus(input: {
 
   const spent = input.privateSpent + input.myShare
   const income = input.base + (input.extras ?? 0)
-  const remaining = income - spent
+  const remaining = remainingAfterLoans(income, spent, input.loanNet ?? 0)
   const percentLeft = Math.max(0, Math.round((remaining / income) * 100))
   const elapsed = Math.min(Math.max(input.dayOfMonth, 1), input.daysInMonth)
   const expectedSpent = income * (elapsed / input.daysInMonth)

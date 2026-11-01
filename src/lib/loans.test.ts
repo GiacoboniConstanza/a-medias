@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest'
+import { monthPocket } from './derive.ts'
 import {
   balanceSentence,
   friendlyLoanSummary,
+  formatSignedMoney,
+  hasLoanMovement,
   homeLoanLine,
+  loanEffectLines,
+  loanMonthEffect,
   loanState,
   matchesLoanFilter,
-  pocketIgnoresLoans,
+  remainingAfterLoans,
   repaymentRoom,
   sharedLoanNote,
   signedLoanBalance,
@@ -63,12 +68,37 @@ describe('neto de Compartido con préstamos', () => {
   })
 })
 
-describe('el mes no se mueve', () => {
-  it('prestar o devolver no cambia lo que queda ni los gastos', () => {
-    const pocket = pocketIgnoresLoans({ base: 900_000, privateSpent: 72_000, myShare: 30_000, extras: 300_000 })
-    expect(pocket.remaining).toBe(1_098_000)
-    expect(pocket.spent).toBe(102_000)
+describe('préstamos en Me queda', () => {
+  const loans = [{ lenderId: coty, borrowerId: maru, amount: 200_000, period: '2026-11-01' }]
+  const repayments = [{ lenderId: coty, borrowerId: maru, amount: 80_000, period: '2026-12-01' }]
+  const pocket = monthPocket({ base: 900_000, privateSpent: 72_000, myShare: 30_000, extras: 300_000 })
+
+  it('resta al que presta y suma al que recibe, cada uno en el período que le toca', () => {
+    const novemberLender = loanMonthEffect(coty, '2026-11-01', loans, repayments)
+    const novemberBorrower = loanMonthEffect(maru, '2026-11-01', loans, repayments)
+    expect(novemberLender).toEqual({ given: 200_000, collected: 0, received: 0, paid: 0, net: -200_000 })
+    expect(novemberBorrower).toEqual({ given: 0, collected: 0, received: 200_000, paid: 0, net: 200_000 })
+    expect(remainingAfterLoans(pocket.income, pocket.spent, novemberLender.net)).toBe(898_000)
+    expect(remainingAfterLoans(pocket.income, pocket.spent, novemberBorrower.net)).toBe(1_298_000)
+
+    const decemberLender = loanMonthEffect(coty, '2026-12-01', loans, repayments)
+    const decemberBorrower = loanMonthEffect(maru, '2026-12-01', loans, repayments)
+    expect(decemberLender).toEqual({ given: 0, collected: 80_000, received: 0, paid: 0, net: 80_000 })
+    expect(decemberBorrower).toEqual({ given: 0, collected: 0, received: 0, paid: 80_000, net: -80_000 })
+    expect(remainingAfterLoans(pocket.income, pocket.spent, decemberLender.net)).toBe(1_178_000)
+    expect(remainingAfterLoans(pocket.income, pocket.spent, decemberBorrower.net)).toBe(1_018_000)
+  })
+
+  it('no cambia ingresos ni gastos del mes', () => {
     expect(pocket.income).toBe(1_200_000)
-    expect(pocket.extras).toBe(300_000)
+    expect(pocket.spent).toBe(102_000)
+    expect(pocket.remaining).toBe(1_098_000)
+    const effect = loanMonthEffect(coty, '2026-11-01', loans, repayments)
+    expect(hasLoanMovement(effect)).toBe(true)
+    expect(loanEffectLines(effect)).toEqual([{ label: 'Préstamos dados', amount: -200_000 }])
+    expect(formatSignedMoney(effect.net)).toBe('-$ 200.000,00')
+    expect(formatSignedMoney(80_000)).toBe('+$ 80.000,00')
+    expect(loanMonthEffect(coty, '2026-10-01', loans, repayments).net).toBe(0)
+    expect(hasLoanMovement(loanMonthEffect(coty, '2026-10-01', loans, repayments))).toBe(false)
   })
 })

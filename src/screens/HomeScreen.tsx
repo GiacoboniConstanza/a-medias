@@ -13,7 +13,16 @@ import { useModules } from '../context/ModulesProvider.tsx'
 import { useMonth } from '../context/MonthProvider.tsx'
 import { saveViewMode } from '../lib/api.ts'
 import { debtCopy, monthPocket, monthSplit, myPrivateSpent, paceInput, partnerId } from '../lib/derive.ts'
-import { homeLoanLine, loadLoanBalances, signedLoanBalance } from '../lib/loans.ts'
+import {
+  formatSignedMoney,
+  hasLoanMovement,
+  loanEffectLines,
+  loanMonthEffect,
+  loadLoanMovements,
+  remainingAfterLoans,
+  type PeriodLoan,
+  type PeriodRepayment,
+} from '../lib/loans.ts'
 import { formatMoney } from '../lib/format.ts'
 import { jarStatus } from '../lib/jar.ts'
 import { FINANCE_SECTION_LINKS, isHubHome } from '../lib/modules.ts'
@@ -26,7 +35,10 @@ export function HomeScreen() {
   const location = useLocation()
   const navigate = useNavigate()
   const [toast, setToast] = useState('')
-  const [loanLine, setLoanLine] = useState<string | null>(null)
+  const [loanMoves, setLoanMoves] = useState<{ loans: PeriodLoan[]; repayments: PeriodRepayment[] }>({
+    loans: [],
+    repayments: [],
+  })
   const modules = useModules()
   useEffect(() => {
     const notice = (location.state as { notice?: string } | null)?.notice
@@ -42,12 +54,12 @@ export function HomeScreen() {
   useEffect(() => {
     if (!profile) return
     let active = true
-    loadLoanBalances()
+    loadLoanMovements()
       .then((rows) => {
-        if (active) setLoanLine(homeLoanLine(signedLoanBalance(profile.id, rows)))
+        if (active) setLoanMoves(rows)
       })
       .catch(() => {
-        if (active) setLoanLine(null)
+        if (active) setLoanMoves({ loans: [], repayments: [] })
       })
     return () => {
       active = false
@@ -69,17 +81,20 @@ export function HomeScreen() {
   const myShare = mine?.share ?? 0
   const extras = data.extrasThisMonth.reduce((sum, extra) => sum + extra.amount, 0)
   const pocket = monthPocket({ base, privateSpent, myShare, extras })
+  const loanEffect = loanMonthEffect(meId, month, loanMoves.loans, loanMoves.repayments)
+  const remaining = remainingAfterLoans(pocket.income, pocket.spent, loanEffect.net)
   const jar = jarStatus({
     base,
     privateSpent,
     myShare,
     extras,
+    loanNet: loanEffect.net,
     ...pace,
   })
   const friendly = profile.viewMode === 'friendly'
   const stage = plantStage(jar.percentLeft, jar.tone === 'empty')
   const phraseTone = jar.tone === 'green' ? 'text-good' : jar.tone === 'empty' ? 'text-muted' : 'text-alert-ink'
-  const amountTone = pocket.remaining < 0 ? 'text-alert-ink' : 'text-good'
+  const amountTone = remaining < 0 ? 'text-alert-ink' : 'text-good'
 
   async function changeMode(mode: ViewMode) {
     await saveViewMode(meId, mode)
@@ -144,7 +159,7 @@ export function HomeScreen() {
                   Cargar sueldo base
                 </Link>
               ) : (
-                <p className={`font-display text-3xl font-bold leading-none ${amountTone}`}>{formatMoney(pocket.remaining)}</p>
+                <p className={`font-display text-3xl font-bold leading-none ${amountTone}`}>{formatMoney(remaining)}</p>
               )}
               <p className={`mt-1 text-base font-bold ${phraseTone}`}>{jar.message}</p>
             </div>
@@ -153,7 +168,7 @@ export function HomeScreen() {
           <>
             <div className="flex items-start justify-between gap-3">
               <h2 className="font-display text-base font-semibold text-muted">Me queda</h2>
-              <p className={`font-display text-3xl font-bold leading-none ${amountTone}`}>{formatMoney(pocket.remaining)}</p>
+              <p className={`font-display text-3xl font-bold leading-none ${amountTone}`}>{formatMoney(remaining)}</p>
             </div>
             <div className="mt-4 space-y-2">
               <Row label="Sueldo base" value={formatMoney(pocket.base)} />
@@ -166,9 +181,19 @@ export function HomeScreen() {
               <Row label="Privados" value={formatMoney(pocket.privateSpent)} />
               <Row label="Gastos del mes" value={formatMoney(pocket.spent)} strong />
             </div>
+            {hasLoanMovement(loanEffect) ? (
+              <>
+                <div className="my-3 border-t border-line" />
+                <div className="space-y-2">
+                  {loanEffectLines(loanEffect).map((line) => (
+                    <Row key={line.label} label={line.label} value={formatSignedMoney(line.amount)} />
+                  ))}
+                  <Row label="Préstamos (neto)" value={formatSignedMoney(loanEffect.net)} strong />
+                </div>
+              </>
+            ) : null}
           </>
         )}
-        {loanLine ? <p className="mt-2 text-xs font-semibold text-muted">{loanLine}</p> : null}
       </Card>
       <Link to="/se-me-fue" className="mb-3 inline-flex min-h-11 items-center text-base font-semibold text-primary">
         Ver gastos
