@@ -95,6 +95,7 @@ export type Database = {
           amount: number
           label: string
           received_on: string
+          notes: string | null
           created_at: string
         },
         {
@@ -104,9 +105,10 @@ export type Database = {
           amount: number
           label: string
           received_on: string
+          notes?: string | null
           created_at?: string
         },
-        { label?: string; amount?: number }
+        { label?: string; amount?: number; notes?: string | null }
       >
       savings_funds: Table<
         {
@@ -207,6 +209,7 @@ export type Database = {
           period: string
           is_shared: boolean
           paid_from_bag: boolean
+          notes: string | null
           created_at: string
         },
         {
@@ -221,6 +224,7 @@ export type Database = {
           period?: string
           is_shared: boolean
           paid_from_bag?: boolean
+          notes?: string | null
           created_at?: string
         },
         {
@@ -232,6 +236,7 @@ export type Database = {
           category_id?: string
           is_shared?: boolean
           paid_from_bag?: boolean
+          notes?: string | null
         }
       >
       shared_goals: Table<
@@ -291,6 +296,7 @@ export type Database = {
           remind_days_before: number
           remind: boolean
           paused_at: string | null
+          notes: string | null
           updated_at: string | null
           updated_by: string | null
           created_at: string
@@ -309,6 +315,7 @@ export type Database = {
           remind_days_before?: number
           remind?: boolean
           paused_at?: string | null
+          notes?: string | null
           created_at?: string
         },
         {
@@ -323,6 +330,7 @@ export type Database = {
           remind_days_before?: number
           remind?: boolean
           paused_at?: string | null
+          notes?: string | null
           updated_by?: string | null
         }
       >

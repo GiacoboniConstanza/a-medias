@@ -1,18 +1,19 @@
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { DonutBreakdown, MonthBars, type DonutSlice } from '../components/DonutBreakdown.tsx'
 import { IconPicker } from '../components/IconPicker.tsx'
-import { amountFromDigits, applyKey, Keypad } from '../components/Keypad.tsx'
+import { amountFromDigits } from '../components/Keypad.tsx'
+import { MoneyField } from '../components/MoneyField.tsx'
 import { MonthSwitcher } from '../components/MonthSwitcher.tsx'
 import { AudiencePill, SectionHeader } from '../components/SectionHeader.tsx'
 import { Sheet } from '../components/Sheet.tsx'
-import { Button, Card, Chip, ErrorText, FieldError } from '../components/ui.tsx'
+import { Button, Card, Chip, ErrorText } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
 import { useMonth } from '../context/MonthProvider.tsx'
 import { contributeToGoal, createGoal, type GoalContribution } from '../lib/api.ts'
 import { monthSplit, partnerId } from '../lib/derive.ts'
-import { formatMoney } from '../lib/format.ts'
+import { formatMoney, moneyDraftFromAmount, normalizeMoney } from '../lib/format.ts'
 import {
   contributionInMonth,
   contributionMonths,
@@ -69,7 +70,7 @@ export function GoalScreen() {
   const people = orderedPeople(data.names)
 
   async function saveGoal() {
-    const target = amountFromDigits(targetDigits)
+    const target = normalizeMoney(amountFromDigits(targetDigits))
     if (!name.trim() || target <= 0) {
       setMessage('La meta necesita nombre y monto.')
       return
@@ -226,7 +227,7 @@ export function GoalScreen() {
           </label>
           {editingTarget ? (
             <div className="mt-2">
-              <Keypad onKey={(key) => setTargetDigits((current) => applyKey(current, key))} />
+              <MoneyField draft={targetDigits} onDraft={setTargetDigits} size="display" />
             </div>
           ) : null}
           <Button type="button" className="mt-3 min-h-[52px]" onClick={() => void saveGoal()} disabled={saving}>
@@ -336,7 +337,6 @@ function ContributeSheet({
   onClose: () => void
   onSaved: (amount: number, mode: ContributionMode) => Promise<void>
 }) {
-  const errorId = useId()
   const [mode, setMode] = useState<ContributionMode>('percentage')
   const [digits, setDigits] = useState('')
   const [touched, setTouched] = useState(false)
@@ -348,20 +348,20 @@ function ContributeSheet({
     setSeenOpen(open)
     if (open) {
       setMode('percentage')
-      setDigits(suggested ? String(suggested) : '')
+      setDigits(suggested ? moneyDraftFromAmount(suggested) : '')
       setTouched(false)
       setSaving(false)
       setServerError('')
     }
   }
 
-  const amount = amountFromDigits(digits)
+  const amount = normalizeMoney(amountFromDigits(digits))
   const amountError = amount > 0 ? '' : 'Poné cuánto querés aportar.'
   const visibleError = serverError || (touched ? amountError : '')
 
   function choose(next: ContributionMode) {
     setMode(next)
-    if (next === 'percentage') setDigits(suggested ? String(suggested) : '')
+    if (next === 'percentage') setDigits(suggested ? moneyDraftFromAmount(suggested) : '')
   }
 
   async function save() {
@@ -405,19 +405,15 @@ function ContributeSheet({
         <p className="mt-2 text-sm font-semibold text-muted">Según tu sueldo te toca {formatMoney(suggested)}.</p>
       ) : null}
       <div className="mt-4">
-        <p className="text-sm font-bold text-muted">Monto</p>
-        <p className="font-display text-4xl font-bold leading-none" aria-describedby={visibleError ? errorId : undefined}>
-          {formatMoney(amount)}
-        </p>
-        <FieldError id={errorId}>{visibleError}</FieldError>
-        <div className="mt-3">
-          <Keypad
-            onKey={(key) => {
-              setTouched(true)
-              setDigits((current) => applyKey(current, key))
-            }}
-          />
-        </div>
+        <MoneyField
+          draft={digits}
+          onDraft={(value) => {
+            setTouched(true)
+            setDigits(value)
+          }}
+          error={visibleError}
+          size="display"
+        />
       </div>
     </Sheet>
   )

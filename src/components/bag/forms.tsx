@@ -1,10 +1,11 @@
 import { useId, useState } from 'react'
 import { AppIcon } from '../AppIcon.tsx'
 import { amountFromDigits, applyKey, Keypad } from '../Keypad.tsx'
+import { MoneyField } from '../MoneyField.tsx'
 import { Sheet } from '../Sheet.tsx'
-import { FieldError, inputClass } from '../ui.tsx'
+import { FieldError, NotesField, inputClass } from '../ui.tsx'
 import { createCategory, createExtra, createFund, moveBagMoney, spendFromGustos, updateFund, type Category, type FundItem } from '../../lib/api.ts'
-import { formatMoney } from '../../lib/format.ts'
+import { clampNotes, formatMoney, moneyDraftFromAmount, normalizeMoney } from '../../lib/format.ts'
 import { ICON_CHOICES } from '../../lib/icons.ts'
 import { todayISO } from '../../lib/month.ts'
 
@@ -43,18 +44,6 @@ function IconGrid({ value, onChange }: { value: string; onChange: (name: string)
   )
 }
 
-function AmountReadout({ label, digits, errorId, error }: { label: string; digits: string; errorId: string; error: string }) {
-  return (
-    <div>
-      <p className="text-sm font-bold text-muted">{label}</p>
-      <p className="font-display text-4xl font-bold leading-none" aria-describedby={error ? errorId : undefined}>
-        {formatMoney(amountFromDigits(digits))}
-      </p>
-      <FieldError id={errorId}>{error}</FieldError>
-    </div>
-  )
-}
-
 export function FundSheet({
   open,
   fund,
@@ -69,7 +58,6 @@ export function FundSheet({
   onSaved: (message: string) => void
 }) {
   const nameErrorId = useId()
-  const amountErrorId = useId()
   const [name, setName] = useState('')
   const [icon, setIcon] = useState('piggy-bank')
   const [digits, setDigits] = useState('')
@@ -85,7 +73,7 @@ export function FundSheet({
     if (open) {
       setName(fund?.name ?? '')
       setIcon(fund?.icon || 'piggy-bank')
-      setDigits(fund && fund.target > 0 ? String(Math.round(fund.target)) : '')
+      setDigits(fund && fund.target > 0 ? moneyDraftFromAmount(fund.target) : '')
       setTargetDate(fund?.targetDate ?? '')
       setNameTouched(false)
       setAmountTouched(false)
@@ -94,7 +82,7 @@ export function FundSheet({
     }
   }
 
-  const target = amountFromDigits(digits)
+  const target = normalizeMoney(amountFromDigits(digits))
   const nameError = name.trim() ? '' : 'Poné un nombre para el fondo.'
   const amountError = target > 0 ? '' : 'Poné cuánto querés juntar.'
   const valid = !nameError && !amountError
@@ -147,20 +135,16 @@ export function FundSheet({
       <p className="mb-2 mt-4 text-sm font-bold text-muted">Ícono</p>
       <IconGrid value={icon} onChange={setIcon} />
       <div className="mt-4">
-        <AmountReadout
+        <MoneyField
+          draft={digits}
+          onDraft={(value) => {
+            setAmountTouched(true)
+            setDigits(value)
+          }}
           label="¿Cuánto querés juntar?"
-          digits={digits}
-          errorId={amountErrorId}
           error={amountTouched || (nameTouched && !nameError) ? amountError : ''}
+          size="display"
         />
-        <div className="mt-3">
-          <Keypad
-            onKey={(key) => {
-              setAmountTouched(true)
-              setDigits((current) => applyKey(current, key))
-            }}
-          />
-        </div>
       </div>
       <label className="mt-4 block text-sm font-bold text-muted">
         Fecha objetivo (opcional)
@@ -187,12 +171,12 @@ export function ExtraSheet({
   onSaved: (message: string) => void
 }) {
   const nameErrorId = useId()
-  const amountErrorId = useId()
   const splitErrorId = useId()
   const [step, setStep] = useState(1)
   const [label, setLabel] = useState('')
   const [receivedOn, setReceivedOn] = useState(todayISO())
   const [digits, setDigits] = useState('')
+  const [notes, setNotes] = useState('')
   const [fundDigits, setFundDigits] = useState<Record<string, string>>({})
   const [activeFund, setActiveFund] = useState<string | null>(null)
   const [nameTouched, setNameTouched] = useState(false)
@@ -209,6 +193,7 @@ export function ExtraSheet({
       setLabel('')
       setReceivedOn(todayISO())
       setDigits('')
+      setNotes('')
       setFundDigits({})
       setActiveFund(funds[0]?.id ?? null)
       setNameTouched(false)
@@ -219,8 +204,8 @@ export function ExtraSheet({
     }
   }
 
-  const amount = amountFromDigits(digits)
-  const assigned = funds.reduce((sum, fund) => sum + amountFromDigits(fundDigits[fund.id] ?? ''), 0)
+  const amount = normalizeMoney(amountFromDigits(digits))
+  const assigned = funds.reduce((sum, fund) => sum + normalizeMoney(amountFromDigits(fundDigits[fund.id] ?? '')), 0)
   const gustosPart = amount - assigned
   const nameError = label.trim() ? '' : 'Poné un nombre para el extra.'
   const dateError = receivedOn ? '' : 'Elegí la fecha.'
@@ -235,10 +220,10 @@ export function ExtraSheet({
     setServerError('')
     try {
       const allocations: { fundId: string | null; amount: number }[] = funds
-        .map((fund) => ({ fundId: fund.id, amount: amountFromDigits(fundDigits[fund.id] ?? '') }))
+        .map((fund) => ({ fundId: fund.id, amount: normalizeMoney(amountFromDigits(fundDigits[fund.id] ?? '')) }))
         .filter((allocation) => allocation.amount > 0)
       if (gustosPart > 0) allocations.push({ fundId: null, amount: gustosPart })
-      await createExtra({ userId, householdId, label, amount, receivedOn, allocations })
+      await createExtra({ userId, householdId, label, amount, receivedOn, notes: clampNotes(notes), allocations })
       onSaved('Listo, repartí el extra.')
     } catch (caught) {
       setServerError(caught instanceof Error ? caught.message : 'No pude guardar el extra.')
@@ -317,15 +302,16 @@ export function ExtraSheet({
       ) : null}
       {step === 2 ? (
         <>
-          <AmountReadout label="Monto del extra" digits={digits} errorId={amountErrorId} error={amountTouched ? amountError : ''} />
-          <div className="mt-3">
-            <Keypad
-              onKey={(key) => {
-                setAmountTouched(true)
-                setDigits((current) => applyKey(current, key))
-              }}
-            />
-          </div>
+          <MoneyField
+            draft={digits}
+            onDraft={(value) => {
+              setAmountTouched(true)
+              setDigits(value)
+            }}
+            label="Monto del extra"
+            error={amountTouched ? amountError : ''}
+            size="display"
+          />
         </>
       ) : null}
       {step === 3 ? (
@@ -367,6 +353,7 @@ export function ExtraSheet({
               />
             </div>
           ) : null}
+          <NotesField value={notes} onChange={setNotes} />
           <FieldError>{serverError}</FieldError>
         </>
       ) : null}
@@ -395,7 +382,6 @@ export function GustoSheet({
 }) {
   const titleErrorId = useId()
   const categoryErrorId = useId()
-  const amountErrorId = useId()
   const [title, setTitle] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [spentOn, setSpentOn] = useState(todayISO())
@@ -429,7 +415,7 @@ export function GustoSheet({
     }
   }
 
-  const amount = amountFromDigits(digits)
+  const amount = normalizeMoney(amountFromDigits(digits))
   const titleError = title.trim() ? '' : 'Poné qué gusto te diste.'
   const categoryError = categoryId ? '' : 'Elegí una categoría tuya.'
   const amountError =
@@ -563,16 +549,16 @@ export function GustoSheet({
         <input type="date" value={spentOn} onChange={(event) => setSpentOn(event.target.value)} className={`mt-1 ${inputClass}`} />
       </label>
       <div className="mt-4">
-        <AmountReadout label="Monto" digits={digits} errorId={amountErrorId} error={amountTouched ? amountError : ''} />
-        <p className="mt-1 text-sm font-semibold text-muted">Libre para gustos: {formatMoney(Math.max(gustosFree, 0))}</p>
-        <div className="mt-3">
-          <Keypad
-            onKey={(key) => {
-              setAmountTouched(true)
-              setDigits((current) => applyKey(current, key))
-            }}
-          />
-        </div>
+        <MoneyField
+          draft={digits}
+          onDraft={(value) => {
+            setAmountTouched(true)
+            setDigits(value)
+          }}
+          error={amountTouched ? amountError : ''}
+          size="display"
+        />
+        <p className="mt-1 text-base font-semibold text-muted">Libre para gustos: {formatMoney(Math.max(gustosFree, 0))}</p>
       </div>
       <FieldError>{serverError}</FieldError>
     </Sheet>
@@ -596,7 +582,6 @@ export function MoveSheet({
   onClose: () => void
   onSaved: (message: string) => void
 }) {
-  const amountErrorId = useId()
   const fundErrorId = useId()
   const [fundId, setFundId] = useState('')
   const [digits, setDigits] = useState('')
@@ -623,7 +608,7 @@ export function MoveSheet({
   }
 
   const chosen = funds.find((item) => item.id === (mode === 'to_fund' ? fundId : fund?.id)) ?? null
-  const amount = amountFromDigits(digits)
+  const amount = normalizeMoney(amountFromDigits(digits))
   const ceiling = mode === 'to_fund' ? gustosFree : (chosen?.saved ?? 0)
   const fundError = mode === 'to_fund' && !chosen ? 'Elegí un fondo.' : ''
   const amountError =
@@ -727,15 +712,15 @@ export function MoveSheet({
         <input type="date" value={happenedOn} onChange={(event) => setHappenedOn(event.target.value)} className={`mt-1 ${inputClass}`} />
       </label>
       <div className="mt-4">
-        <AmountReadout label="Monto" digits={digits} errorId={amountErrorId} error={amountTouched || ceiling <= 0 ? amountError : ''} />
-        <div className="mt-3">
-          <Keypad
-            onKey={(key) => {
-              setAmountTouched(true)
-              setDigits((current) => applyKey(current, key))
-            }}
-          />
-        </div>
+        <MoneyField
+          draft={digits}
+          onDraft={(value) => {
+            setAmountTouched(true)
+            setDigits(value)
+          }}
+          error={amountTouched || ceiling <= 0 ? amountError : ''}
+          size="display"
+        />
       </div>
       <FieldError>{serverError}</FieldError>
     </Sheet>

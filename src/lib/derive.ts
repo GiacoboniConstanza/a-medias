@@ -44,13 +44,14 @@ export function debtCopy(meId: string, result: SplitResult): string {
 
 export function monthPocket(input: { base: number; privateSpent: number; myShare: number; extras: number }) {
   const spent = input.privateSpent + input.myShare
+  const income = input.base + input.extras
   return {
-    remaining: input.base - spent,
+    remaining: income - spent,
     spent,
     privateSpent: input.privateSpent,
     sharedShare: input.myShare,
     base: input.base,
     extras: input.extras,
-    income: input.base + input.extras,
+    income,
   }
 }

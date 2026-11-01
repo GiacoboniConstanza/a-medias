@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { monthPocket } from './derive.ts'
-import { formatMoney } from './format.ts'
+import { formatMoney, parseMoneyInput, toCents } from './format.ts'
 import { gustosStatus } from './gustos.ts'
 import { iconByName, ICON_CHOICES, DEFAULT_ICON } from './icons.ts'
 import { jarStatus } from './jar.ts'
@@ -21,8 +21,8 @@ describe('reparto del boceto', () => {
   })
 
   it('dice quién le debe a quién', () => {
-    expect(debtSentence('coty', result)).toBe('Maru te debe $ 84.000')
-    expect(debtSentence('maru', result)).toBe('Le debés $ 84.000 a Coty')
+    expect(debtSentence('coty', result)).toBe('Maru te debe $ 84.000,00')
+    expect(debtSentence('maru', result)).toBe('Le debés $ 84.000,00 a Coty')
   })
 })
 
@@ -66,9 +66,9 @@ describe('frasco', () => {
 })
 
 describe('inicio del mes', () => {
-  it('resta privados y la parte compartida, y deja los extras en la bolsa', () => {
+  it('resta privados y la parte compartida de sueldo más extras', () => {
     const pocket = monthPocket({ base: 900_000, privateSpent: 72_000, myShare: 211_200, extras: 300_000 })
-    expect(pocket.remaining).toBe(616_800)
+    expect(pocket.remaining).toBe(916_800)
     expect(pocket.spent).toBe(283_200)
     expect(pocket.income).toBe(1_200_000)
   })
@@ -86,8 +86,17 @@ describe('inicio del mes', () => {
 })
 
 describe('plata', () => {
-  it('usa punto de miles', () => {
-    expect(formatMoney(186_400)).toBe('$ 186.400')
-    expect(formatMoney(-1500)).toBe('-$ 1.500')
+  it('usa formato es-AR con centavos', () => {
+    expect(formatMoney(186_400)).toBe('$ 186.400,00')
+    expect(formatMoney(-1500)).toBe('-$ 1.500,00')
+    expect(formatMoney(12_345.5)).toBe('$ 12.345,50')
+  })
+
+  it('lee montos con coma y el punto decimal del teclado', () => {
+    expect(parseMoneyInput('12.345,50')).toBe(12_345.5)
+    expect(parseMoneyInput('12345,5')).toBe(12_345.5)
+    expect(parseMoneyInput('1.234')).toBe(1234)
+    expect(parseMoneyInput('12.34')).toBe(12.34)
+    expect(toCents(10.01)).toBe(1001)
   })
 })

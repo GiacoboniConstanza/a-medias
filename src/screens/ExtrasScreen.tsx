@@ -271,20 +271,27 @@ function EmptyFunds({ onCreate }: { onCreate: () => void }) {
 }
 
 function ExtraRow({ extra }: { extra: ExtraItem }) {
+  const [open, setOpen] = useState(false)
   const split =
     extra.parts.length === 0 ? 'A gustos' : extra.parts.map((part) => `${part.label} ${formatMoney(part.amount)}`).join(' · ')
   return (
-    <div className="flex items-center gap-3 border-b border-dashed border-line py-2.5 last:border-0">
-      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#FFF1C2] text-alert-ink">
-        <AppIcon name="sun" />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-extrabold">{extra.label}</p>
-        <p className="text-xs font-semibold text-muted">
-          {shortDate(extra.receivedOn)} · {split}
-        </p>
-      </div>
-      <p className="shrink-0 font-display text-[15px] font-bold text-good">+ {formatMoney(extra.amount)}</p>
+    <div className="border-b border-dashed border-line py-2.5 last:border-0">
+      <button type="button" className="flex min-h-11 w-full items-center gap-3 text-left" onClick={() => extra.notes && setOpen((current) => !current)}>
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#FFF1C2] text-alert-ink">
+          <AppIcon name="sun" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-base font-extrabold">
+            {extra.label}
+            {extra.notes ? <AppIcon name="note-sticky" className="ml-1.5 text-xs text-muted" /> : null}
+          </p>
+          <p className="text-base font-semibold text-muted">
+            {shortDate(extra.receivedOn)} · {split}
+          </p>
+        </div>
+        <p className="shrink-0 font-display text-base font-bold text-good">+ {formatMoney(extra.amount)}</p>
+      </button>
+      {open && extra.notes ? <p className="mt-2 text-base font-semibold text-muted">{extra.notes}</p> : null}
     </div>
   )
 }

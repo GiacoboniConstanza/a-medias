@@ -1,6 +1,7 @@
 import { AppIcon } from './AppIcon.tsx'
+import { applyMoneyKey, parseMoneyInput } from '../lib/format.ts'
 
-const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '000', '0', '⌫']
+const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', ',', '0', '⌫']
 
 export function Keypad({ onKey }: { onKey: (key: string) => void }) {
   return (
@@ -20,12 +21,9 @@ export function Keypad({ onKey }: { onKey: (key: string) => void }) {
 }
 
 export function applyKey(current: string, key: string): string {
-  if (key === '⌫') return current.slice(0, -1)
-  const next = `${current}${key}`.replace(/^0+(?=\d)/, '')
-  if (next.length > 9) return current
-  return next
+  return applyMoneyKey(current, key)
 }
 
 export function amountFromDigits(digits: string): number {
-  return digits ? Number(digits) : 0
+  return parseMoneyInput(digits) ?? 0
 }

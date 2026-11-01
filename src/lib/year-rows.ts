@@ -56,7 +56,7 @@ export function monthSpan(from: number, to: number): string {
 
 export function abbreviateMoney(value: number): string {
   const full = formatMoney(value)
-  const abs = Math.abs(Math.round(value))
+  const abs = Math.abs(value)
   if (abs < 10_000) return full
   const sign = value < 0 ? '-' : ''
   const short = abs >= 1_000_000 ? `${sign}$ ${trimScaled(abs / 1_000_000)} M` : `${sign}$ ${trimScaled(abs / 1_000)} mil`

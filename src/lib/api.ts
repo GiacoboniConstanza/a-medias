@@ -32,6 +32,7 @@ export type ExpenseItem = {
   payerId: string
   ownerId: string
   categoryId: string
+  notes: string | null
 }
 
 export type FundItem = {
@@ -66,6 +67,7 @@ export type ExtraItem = {
   label: string
   amount: number
   receivedOn: string
+  notes: string | null
   parts: ExtraPart[]
 }
 
@@ -108,6 +110,7 @@ export type FixedItem = {
   remindDaysBefore: number
   remind: boolean
   pausedAt: string | null
+  notes: string | null
   updatedAt: string | null
   updatedBy: string | null
   payment: FixedPayment | null
@@ -193,14 +196,14 @@ export async function loadFinance(householdId: string, userId: string, month: st
     supabase.rpc('household_split_percents', { target_month: month }),
     supabase.rpc('household_split_is_even', { target_month: month }),
     supabase.from('split_notices').select('effective_from, recipient_percent, partner_percent, created_at'),
-    supabase.from('income_extras').select('id, amount, label, received_on').eq('user_id', userId),
+    supabase.from('income_extras').select('id, amount, label, received_on, notes').eq('user_id', userId),
     supabase.from('savings_funds').select('id, name, icon, target_amount, target_date').eq('user_id', userId),
     supabase.from('extra_allocations').select('extra_id, fund_id, amount').eq('user_id', userId),
     supabase.from('bag_movements').select('id, kind, fund_id, expense_id, amount, label, happened_on').eq('user_id', userId),
     supabase.from('categories').select('id, name, icon, owner_id').eq('household_id', householdId),
     supabase
       .from('expenses')
-      .select('id, title, amount, spent_on, period, is_shared, paid_from_bag, payer_id, owner_id, category_id')
+      .select('id, title, amount, spent_on, period, is_shared, paid_from_bag, payer_id, owner_id, category_id, notes')
       .eq('period', month)
       .order('spent_on', { ascending: true }),
     supabase
@@ -219,7 +222,7 @@ export async function loadFinance(householdId: string, userId: string, month: st
     supabase.from('goal_contributions').select('id, goal_id, user_id, amount, created_at'),
     supabase
       .from('fixed_expenses')
-      .select('id, title, icon, expected_amount, due_day, is_shared, category_id, owner_id, remind_days_before, remind, paused_at, updated_at, updated_by')
+      .select('id, title, icon, expected_amount, due_day, is_shared, category_id, owner_id, remind_days_before, remind, paused_at, notes, updated_at, updated_by')
       .eq('household_id', householdId)
       .order('due_day', { ascending: true }),
     supabase.from('fixed_expense_amounts').select('fixed_expense_id, amount, effective_from'),
@@ -323,6 +326,7 @@ export async function loadFinance(householdId: string, userId: string, month: st
         label: extra.label,
         amount: money(extra.amount),
         receivedOn: extra.received_on,
+        notes: extra.notes,
         parts,
       }
     })
@@ -434,6 +438,7 @@ export async function loadFinance(householdId: string, userId: string, month: st
         remindDaysBefore: expense.remind_days_before,
         remind: expense.remind,
         pausedAt: expense.paused_at,
+        notes: expense.notes,
         updatedAt: expense.updated_at,
         updatedBy: expense.updated_by,
         payment: payment
@@ -459,7 +464,7 @@ export async function loadFinance(householdId: string, userId: string, month: st
   }
 }
 
-const EXPENSE_COLUMNS = 'id, title, amount, spent_on, period, is_shared, paid_from_bag, payer_id, owner_id, category_id, created_at'
+const EXPENSE_COLUMNS = 'id, title, amount, spent_on, period, is_shared, paid_from_bag, payer_id, owner_id, category_id, notes, created_at'
 
 function isBagKind(kind: string): kind is BagKind {
   return kind === 'gusto' || kind === 'to_fund' || kind === 'to_gustos' || kind === 'use'
@@ -476,6 +481,7 @@ function mapExpense(expense: {
   payer_id: string
   owner_id: string
   category_id: string
+  notes: string | null
 }): ExpenseItem {
   return {
     id: expense.id,
@@ -488,6 +494,7 @@ function mapExpense(expense: {
     payerId: expense.payer_id,
     ownerId: expense.owner_id,
     categoryId: expense.category_id,
+    notes: expense.notes,
   }
 }
 
@@ -613,6 +620,7 @@ export async function createExpense(input: {
   spentOn: string
   period: string
   isShared: boolean
+  notes: string | null
 }): Promise<string> {
   const { data, error } = await supabase
     .from('expenses')
@@ -626,6 +634,7 @@ export async function createExpense(input: {
       spent_on: input.spentOn,
       period: input.period,
       is_shared: input.isShared,
+      notes: input.notes,
     })
     .select('id')
     .single()
@@ -642,6 +651,7 @@ export async function updateExpense(input: {
   spentOn: string
   period: string
   isShared: boolean
+  notes: string | null
 }): Promise<void> {
   const { error } = await supabase
     .from('expenses')
@@ -653,6 +663,7 @@ export async function updateExpense(input: {
       spent_on: input.spentOn,
       period: input.period,
       is_shared: input.isShared,
+      notes: input.notes,
     })
     .eq('id', input.id)
   fail(error)
@@ -739,6 +750,7 @@ export async function createExtra(input: {
   label: string
   amount: number
   receivedOn: string
+  notes: string | null
   allocations: { fundId: string | null; amount: number }[]
 }): Promise<void> {
   const { data, error } = await supabase
@@ -749,6 +761,7 @@ export async function createExtra(input: {
       label: input.label.trim(),
       amount: input.amount,
       received_on: input.receivedOn,
+      notes: input.notes,
     })
     .select('id')
     .single()
@@ -833,6 +846,7 @@ export async function createFixedExpense(input: {
   isShared: boolean
   remindDaysBefore: number
   remind: boolean
+  notes: string | null
   effectiveFrom: string
   createdBy: string
 }): Promise<void> {
@@ -850,6 +864,7 @@ export async function createFixedExpense(input: {
       is_shared: input.isShared,
       remind_days_before: input.remindDaysBefore,
       remind: input.remind,
+      notes: input.notes,
     })
     .select('id')
     .single()
@@ -876,6 +891,7 @@ export async function updateFixedExpense(input: {
   isShared: boolean
   remindDaysBefore: number
   remind: boolean
+  notes: string | null
   expectedAmount: number
   updatedBy: string
   revision: { amount: number; effectiveFrom: string; createdBy: string } | null
@@ -892,6 +908,7 @@ export async function updateFixedExpense(input: {
       is_shared: input.isShared,
       remind_days_before: input.remindDaysBefore,
       remind: input.remind,
+      notes: input.notes,
       expected_amount: input.expectedAmount,
       updated_by: input.updatedBy,
     })
@@ -1020,6 +1037,7 @@ export async function markFixedPaid(input: {
     spentOn: input.paidOn,
     period: periodFromDate(input.paidOn),
     isShared: input.fixed.isShared,
+    notes: input.fixed.notes,
   })
   const { error } = await supabase.from('fixed_payments').insert({
     fixed_expense_id: input.fixed.id,

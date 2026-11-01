@@ -26,6 +26,28 @@ export function Button({
   )
 }
 
+export function FilterBar({
+  options,
+  value,
+  onChange,
+  label = 'Filtro',
+}: {
+  options: readonly { id: string; label: string }[]
+  value: string
+  onChange: (id: string) => void
+  label?: string
+}) {
+  return (
+    <div className="mb-3 flex gap-2 overflow-x-auto" role="group" aria-label={label}>
+      {options.map((option) => (
+        <Chip key={option.id} active={value === option.id} onClick={() => onChange(option.id)}>
+          {option.label}
+        </Chip>
+      ))}
+    </div>
+  )
+}
+
 export function Chip({
   active = false,
   children,
@@ -58,6 +80,31 @@ export function Progress({ value, color }: { value: number; color: string }) {
     <div className="h-2.5 overflow-hidden rounded-full bg-sand">
       <div className="h-full rounded-full" style={{ width: `${width}%`, background: color }} />
     </div>
+  )
+}
+
+export function NotesField({
+  value,
+  onChange,
+  readOnly = false,
+}: {
+  value: string
+  onChange?: (value: string) => void
+  readOnly?: boolean
+}) {
+  return (
+    <label className="mb-3 block text-base font-bold text-muted">
+      Observaciones
+      <textarea
+        value={value}
+        readOnly={readOnly}
+        rows={3}
+        maxLength={500}
+        onChange={(event) => onChange?.(event.target.value.slice(0, 500))}
+        placeholder="Opcional"
+        className={`mt-1 ${inputClass} resize-none`}
+      />
+    </label>
   )
 }
 

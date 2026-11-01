@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AppIcon } from '../components/AppIcon.tsx'
-import { amountFromDigits, applyKey, Keypad } from '../components/Keypad.tsx'
+import { amountFromDigits } from '../components/Keypad.tsx'
+import { MoneyField } from '../components/MoneyField.tsx'
 import { Sheet } from '../components/Sheet.tsx'
 import { Button, Card, Chip, FieldError } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
@@ -12,7 +13,7 @@ import {
   saveSalaryRevision,
   type SalaryPreview,
 } from '../lib/api.ts'
-import { formatMoney } from '../lib/format.ts'
+import { formatMoney, moneyDraftFromAmount, normalizeMoney } from '../lib/format.ts'
 import { monthKey, shiftMonth } from '../lib/month.ts'
 import { effectiveSalary, latestSalary, pocketDelta, salaryMonthError, sinceLabel, type SalaryPoint } from '../lib/salary.ts'
 
@@ -42,7 +43,7 @@ export function SalaryScreen() {
   const effectiveFrom = when === 'this' ? todayMonth : when === 'next' ? shiftMonth(todayMonth, 1) : picked ? `${picked}-01` : ''
   const targetId = editing?.id ?? (latest && latest.effectiveFrom === effectiveFrom ? latest.id : null)
   const replacing = targetId !== null
-  const amount = amountFromDigits(digits)
+  const amount = normalizeMoney(amountFromDigits(digits))
 
   useEffect(() => {
     if (!toast) return
@@ -97,7 +98,7 @@ export function SalaryScreen() {
   function openEdit(row: SalaryPoint) {
     const nextMonth = shiftMonth(todayMonth, 1)
     setEditing(row)
-    setDigits(String(row.amount))
+    setDigits(moneyDraftFromAmount(row.amount))
     if (row.effectiveFrom === todayMonth) setWhen('this')
     else if (row.effectiveFrom === nextMonth) setWhen('next')
     else {
@@ -281,18 +282,15 @@ export function SalaryScreen() {
           </>
         }
       >
-        <p className="text-center font-display text-4xl font-bold" aria-live="polite">
-          {formatMoney(amount)}
-        </p>
-        <FieldError>{amountError}</FieldError>
-        <div className="mt-3">
-          <Keypad
-            onKey={(key) => {
-              setAmountError('')
-              setDigits((value) => applyKey(value, key))
-            }}
-          />
-        </div>
+        <MoneyField
+          draft={digits}
+          onDraft={(value) => {
+            setAmountError('')
+            setDigits(value)
+          }}
+          error={amountError}
+          size="display"
+        />
         <p className="mb-2 mt-4 font-display text-base font-semibold">¿Desde cuándo?</p>
         <div className="flex flex-wrap gap-2">
           <Chip

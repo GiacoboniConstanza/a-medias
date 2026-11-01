@@ -1,11 +1,12 @@
 import { useEffect, useId, useState } from 'react'
 import { IconPicker } from './IconPicker.tsx'
-import { amountFromDigits, applyKey, Keypad } from './Keypad.tsx'
+import { amountFromDigits } from './Keypad.tsx'
+import { MoneyField } from './MoneyField.tsx'
 import { Sheet } from './Sheet.tsx'
-import { Chip, ErrorText, inputClass, Toggle } from './ui.tsx'
+import { Chip, ErrorText, NotesField, inputClass, Toggle } from './ui.tsx'
 import type { FixedItem } from '../lib/api.ts'
 import { editedCaption, remindSwitchLabel, shareSentence } from '../lib/fixed.ts'
-import { formatMoney } from '../lib/format.ts'
+import { clampNotes, formatMoney, moneyDraftFromAmount, normalizeMoney } from '../lib/format.ts'
 
 const primaryButton = 'block min-h-11 w-full rounded-2xl bg-primary text-base font-bold text-white disabled:opacity-50'
 const quietButton = 'block min-h-11 w-full rounded-2xl text-base font-bold text-primary disabled:opacity-50'
@@ -20,6 +21,7 @@ export type FixedDraft = {
   remind: boolean
   amountChanged: boolean
   applies: 'this' | 'next' | null
+  notes: string | null
 }
 
 export function FixedExpenseSheet({
@@ -137,16 +139,17 @@ function FixedExpenseForm({
   onUndo: () => void
 }) {
   const remindId = useId()
-  const original = expense ? Math.round(expense.amount) : 0
+  const original = expense ? normalizeMoney(expense.amount) : 0
   const [title, setTitle] = useState(expense?.title ?? '')
   const [icon, setIcon] = useState(expense?.icon ?? 'house')
-  const [digits, setDigits] = useState(expense ? String(original) : '')
+  const [digits, setDigits] = useState(expense ? moneyDraftFromAmount(original) : '')
+  const [notes, setNotes] = useState(expense?.notes ?? '')
   const [dueDay, setDueDay] = useState(String(expense?.dueDay ?? 10))
   const [shared, setShared] = useState(expense?.isShared ?? true)
   const [remind, setRemind] = useState(expense?.remind ?? true)
   const [applies, setApplies] = useState<'this' | 'next' | null>(null)
   const [localError, setLocalError] = useState('')
-  const amount = amountFromDigits(digits)
+  const amount = normalizeMoney(amountFromDigits(digits))
   const day = Number(dueDay)
   const amountChanged = Boolean(expense) && amount !== original
   const shownError = localError || error
@@ -171,6 +174,7 @@ function FixedExpenseForm({
       remind,
       amountChanged,
       applies,
+      notes: clampNotes(notes),
     })
   }
 
@@ -197,13 +201,11 @@ function FixedExpenseForm({
       </label>
       <p className="mb-2 text-sm font-bold text-muted">Ícono</p>
       <IconPicker layout="grid" value={icon} onChange={setIcon} />
-      <p className="mb-1 mt-4 text-center font-display text-[2.5rem] font-semibold leading-none">{formatMoney(amount)}</p>
-      {amountChanged ? (
-        <p className="mb-2 text-center text-sm font-semibold text-muted">Antes: {formatMoney(original)}</p>
-      ) : (
-        <p className="mb-2 text-center text-sm font-semibold text-muted">Monto</p>
-      )}
-      <Keypad onKey={(key) => setDigits((current) => applyKey(current, key))} />
+      <MoneyField
+        draft={digits}
+        onDraft={setDigits}
+        label={amountChanged ? `Antes: ${formatMoney(original)}` : 'Monto'}
+      />
       <label className="mb-3 mt-4 block text-sm font-bold text-muted">
         Día de vencimiento
         <input
@@ -259,6 +261,7 @@ function FixedExpenseForm({
           </div>
         </div>
       ) : null}
+      <NotesField value={notes} onChange={setNotes} />
       {expense && !paid ? (
         <button type="button" className={quietButton} onClick={onPay} disabled={saving}>
           Marcar como pagado

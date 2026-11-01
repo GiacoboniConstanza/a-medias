@@ -38,7 +38,7 @@ describe('progreso de la meta', () => {
 
   it('arma la línea de ritmo y agrupa los aportes por mes', () => {
     expect(goalPaceLine('2027-03-01', 5, 100_000)).toBe(
-      'Marzo 2027 · faltan 5 meses · Si cada una suma $ 100.000 por mes, llegan',
+      'Marzo 2027 · faltan 5 meses · Si cada una suma $ 100.000,00 por mes, llegan',
     )
     expect(
       contributionMonths([

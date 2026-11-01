@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { Bubbles } from '../components/Bubbles.tsx'
 import { FilterSheet, PERIODS, type ExpenseFilters } from '../components/FilterSheet.tsx'
+import { ScopeChips } from '../components/ScopeChips.tsx'
 import { MonthSwitcher } from '../components/MonthSwitcher.tsx'
 import { SectionHeader } from '../components/SectionHeader.tsx'
 import { ViewToggle } from '../components/ViewToggle.tsx'
@@ -14,6 +15,7 @@ import { useMonth } from '../context/MonthProvider.tsx'
 import { loadPayerExpenses, saveViewMode, type ExpenseItem } from '../lib/api.ts'
 import { monthSplit } from '../lib/derive.ts'
 import { expenseSpan } from '../lib/expense-range.ts'
+import { filterByScopeAndCategory, type ScopeFilter } from '../lib/finance-filters.ts'
 import { formatMoney } from '../lib/format.ts'
 import { DEFAULT_ICON } from '../lib/icons.ts'
 import { monthEnd, shortDate } from '../lib/month.ts'
@@ -27,6 +29,7 @@ export function BreakdownScreen() {
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
   const [categoryIds, setCategoryIds] = useState<string[]>([])
+  const [scope, setScope] = useState<ScopeFilter>('all')
   const [highlightId, setHighlightId] = useState<string | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
   const [expenses, setExpenses] = useState<ExpenseItem[]>([])
@@ -85,8 +88,8 @@ export function BreakdownScreen() {
   const shareLine = `Tu parte de los compartidos es ${mine?.percent ?? 0}% · ${formatMoney(mine?.share ?? 0)}`
   const friendly = me.viewMode === 'friendly'
   const source = listLoading ? [] : expenses
-  const visible = friendly || categoryIds.length === 0 ? source : source.filter((expense) => categoryIds.includes(expense.categoryId))
-  const bubbles = [...source.reduce((map, expense) => {
+  const visible = filterByScopeAndCategory(source, { scope, categoryIds: friendly ? [] : categoryIds })
+  const bubbles = [...visible.reduce((map, expense) => {
     const category = data.categories.find((item) => item.id === expense.categoryId)
     const current = map.get(expense.categoryId) ?? {
       icon: category?.icon || DEFAULT_ICON,
@@ -102,8 +105,8 @@ export function BreakdownScreen() {
   const total = shared + privateSpent
   const sharedWidth = total > 0 ? (shared / total) * 100 : 0
   const privateWidth = total > 0 ? (privateSpent / total) * 100 : 0
-  const periodTotal = source.reduce((sum, expense) => sum + expense.amount, 0)
-  const periodShared = source.filter((expense) => expense.isShared).reduce((sum, expense) => sum + expense.amount, 0)
+  const periodTotal = visible.reduce((sum, expense) => sum + expense.amount, 0)
+  const periodShared = visible.filter((expense) => expense.isShared).reduce((sum, expense) => sum + expense.amount, 0)
   const periodPrivate = periodTotal - periodShared
   const periodSharedWidth = periodTotal > 0 ? (periodShared / periodTotal) * 100 : 0
   const periodPrivateWidth = periodTotal > 0 ? (periodPrivate / periodTotal) * 100 : 0
@@ -120,8 +123,9 @@ export function BreakdownScreen() {
     const label = PERIODS.find((period) => period.id === preset)?.label ?? 'Período'
     summaryParts.push(preset === 'custom' ? `${shortDate(customFrom || month)} – ${shortDate(customTo || end)}` : label)
   }
+  if (scope !== 'all') summaryParts.push(scope === 'shared' ? 'Compartidos' : 'Privados')
   if (!friendly) summaryParts.push(...selectedNames)
-  const activeCount = (preset === 'month' ? 0 : 1) + (friendly ? 0 : categoryIds.length)
+  const activeCount = (preset === 'month' ? 0 : 1) + (friendly ? 0 : categoryIds.length) + (scope === 'all' ? 0 : 1)
   const filteredEmpty = !listLoading && visible.length === 0
   const filters: ExpenseFilters = { preset, customFrom, customTo, categoryIds }
 
@@ -136,6 +140,7 @@ export function BreakdownScreen() {
   function clearFilters() {
     setPreset('month')
     setCategoryIds([])
+    setScope('all')
     setHighlightId(null)
   }
 
@@ -168,6 +173,7 @@ export function BreakdownScreen() {
           ) : null}
         </button>
       </div>
+      <ScopeChips value={scope} onChange={setScope} />
 
       {activeCount > 0 ? (
         <p className="mb-3 text-sm font-semibold leading-6 text-muted">
@@ -236,8 +242,8 @@ export function BreakdownScreen() {
               <i className="h-full bg-blush" style={{ width: `${periodPrivateWidth}%` }} />
             </div>
           </div>
-          <BagPaidList expenses={source.filter((expense) => expense.paidFromBag)} onOpen={setEditing} />
-          <ExpenseRows expenses={highlightId ? source.filter((expense) => expense.categoryId === highlightId) : source} categories={data.categories} onOpen={setEditing} />
+          <BagPaidList expenses={visible.filter((expense) => expense.paidFromBag)} onOpen={setEditing} />
+          <ExpenseRows expenses={highlightId ? visible.filter((expense) => expense.categoryId === highlightId) : visible} categories={data.categories} onOpen={setEditing} />
         </>
       ) : null}
 

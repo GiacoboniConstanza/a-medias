@@ -37,7 +37,7 @@ describe('monthRows', () => {
 
 describe('abbreviateMoney', () => {
   it('deja el monto completo cuando entra y lo acorta cuando no', () => {
-    expect(abbreviateMoney(1234)).toBe('$ 1.234')
+    expect(abbreviateMoney(1234)).toBe('$ 1.234,00')
     expect(abbreviateMoney(1_234_567)).toBe('$ 1,2 M')
     expect(abbreviateMoney(-2_400_000)).toBe('-$ 2,4 M')
   })

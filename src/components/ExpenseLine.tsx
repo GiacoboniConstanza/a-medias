@@ -31,6 +31,7 @@ export function ExpenseLine({
         <span className="block font-extrabold">
           {expense.title}
           <PeriodTag expense={expense} />
+          {expense.notes ? <AppIcon name="note-sticky" className="ml-1.5 text-xs text-muted" /> : null}
         </span>
         <span className="mt-0.5 block font-semibold text-muted">
           {shortDate(expense.spentOn)} · <AppIcon name={categoryIcon || DEFAULT_ICON} /> {categoryName}

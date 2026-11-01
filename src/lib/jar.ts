@@ -12,6 +12,7 @@ export function jarStatus(input: {
   base: number
   privateSpent: number
   myShare: number
+  extras?: number
   dayOfMonth: number
   daysInMonth: number
   isCurrentMonth: boolean
@@ -28,10 +29,11 @@ export function jarStatus(input: {
   }
 
   const spent = input.privateSpent + input.myShare
-  const remaining = input.base - spent
-  const percentLeft = Math.max(0, Math.round((remaining / input.base) * 100))
+  const income = input.base + (input.extras ?? 0)
+  const remaining = income - spent
+  const percentLeft = Math.max(0, Math.round((remaining / income) * 100))
   const elapsed = Math.min(Math.max(input.dayOfMonth, 1), input.daysInMonth)
-  const expectedSpent = input.base * (elapsed / input.daysInMonth)
+  const expectedSpent = income * (elapsed / input.daysInMonth)
 
   if (remaining < 0) {
     return {

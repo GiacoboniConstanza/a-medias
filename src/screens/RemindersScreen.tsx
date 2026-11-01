@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState, type PointerEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { AppIcon } from '../components/AppIcon.tsx'
+import { FilterSheet, PERIODS, type ExpenseFilters } from '../components/FilterSheet.tsx'
 import { FixedExpenseSheet, type FixedDraft } from '../components/FixedExpenseSheet.tsx'
 import { MonthSwitcher } from '../components/MonthSwitcher.tsx'
 import { ReminderSettingsSheet } from '../components/ReminderSettingsSheet.tsx'
+import { ScopeChips, PaidChips } from '../components/ScopeChips.tsx'
 import { SectionHeader } from '../components/SectionHeader.tsx'
 import { ErrorText } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
@@ -23,10 +25,12 @@ import {
   type FixedItem,
 } from '../lib/api.ts'
 import { partnerId } from '../lib/derive.ts'
+import { expenseSpan } from '../lib/expense-range.ts'
+import { filterReminders, matchesCategories, matchesScope, type PaidFilter, type ScopeFilter } from '../lib/finance-filters.ts'
 import { dayDiff, dueBucket, dueLabel, dueTone, scheduleAmount, showPayLink, type DueBucket } from '../lib/fixed.ts'
 import { formatMoney } from '../lib/format.ts'
 import { iconSurface } from '../lib/icons.ts'
-import { isCurrentMonth, monthKey, shiftMonth, todayISO } from '../lib/month.ts'
+import { isCurrentMonth, monthEnd, monthKey, shiftMonth, shortDate, todayISO } from '../lib/month.ts'
 import { pushIsConfigured, subscribeToPush } from '../lib/push/permissions.ts'
 import {
   DEFAULT_REMINDER_PREFS,
@@ -68,7 +72,16 @@ export function RemindersScreen() {
   const [sheetError, setSheetError] = useState('')
   const [toast, setToast] = useState('')
   const [saving, setSaving] = useState(false)
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const [scope, setScope] = useState<ScopeFilter>('all')
+  const [paidFilter, setPaidFilter] = useState<PaidFilter>('all')
+  const [preset, setPreset] = useState<ExpenseFilters['preset']>('month')
+  const [customFrom, setCustomFrom] = useState('')
+  const [customTo, setCustomTo] = useState('')
+  const [categoryIds, setCategoryIds] = useState<string[]>([])
   const saveChain = useRef(Promise.resolve())
+  const end = monthEnd(month)
+  const span = useMemo(() => expenseSpan(month, preset, customFrom, customTo), [month, preset, customFrom, customTo])
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 30_000)
@@ -252,6 +265,7 @@ export function RemindersScreen() {
           isShared: draft.shared,
           remindDaysBefore,
           remind: draft.remind,
+          notes: draft.notes,
           effectiveFrom: month,
           createdBy: profile.id,
         })
@@ -275,6 +289,7 @@ export function RemindersScreen() {
           isShared: draft.shared,
           remindDaysBefore,
           remind: draft.remind,
+          notes: draft.notes,
           expectedAmount: scheduleAmount(liveEditing.revisions, monthKey(now), revision),
           updatedBy: profile.id,
           revision,
@@ -341,10 +356,32 @@ export function RemindersScreen() {
   const ask = Boolean(prefs && shouldAskToday(now, shownPrefs, { logged: loggedToday, clear: clearToday }))
   const streak = loggingStreak(loggedDays, today)
 
-  const dues = data.fixed.filter((item) => item.applies && !item.pausedAt)
-  const paused = data.fixed.filter((item) => item.applies && item.pausedAt)
+  const categories = data.categories.filter((category) => category.ownerId === null || category.ownerId === profile.id)
+  const dues = filterReminders(
+    data.fixed.filter((item) => item.applies && !item.pausedAt),
+    { scope, categoryIds, paid: paidFilter },
+    month,
+    span,
+    preset,
+  )
+  const paused = data.fixed.filter(
+    (item) =>
+      item.applies &&
+      item.pausedAt &&
+      paidFilter === 'all' &&
+      matchesScope(item.isShared, scope) &&
+      matchesCategories(item.categoryId, categoryIds),
+  )
   const openItems = dues.filter((item) => !item.payment)
   const paidItems = dues.filter((item) => item.payment)
+  const reminderFilters: ExpenseFilters = { preset, customFrom, customTo, categoryIds }
+  const activeCount = (preset === 'month' ? 0 : 1) + categoryIds.length
+  const summaryParts: string[] = []
+  if (preset !== 'month') {
+    const label = PERIODS.find((period) => period.id === preset)?.label ?? 'Período'
+    summaryParts.push(preset === 'custom' ? `${shortDate(customFrom || month)} – ${shortDate(customTo || end)}` : label)
+  }
+  summaryParts.push(...categories.filter((category) => categoryIds.includes(category.id)).map((category) => category.name))
   const grouped = GROUPS.map((group) => ({
     ...group,
     items: openItems
@@ -372,7 +409,45 @@ export function RemindersScreen() {
           </button>
         }
       />
-      <MonthSwitcher className="mb-4" />
+      <div className="mb-3 flex items-center gap-2">
+        <div className="min-w-0 flex-1">
+          <MonthSwitcher />
+        </div>
+        <button
+          type="button"
+          onClick={() => setSheetOpen(true)}
+          aria-haspopup="dialog"
+          aria-expanded={sheetOpen}
+          aria-label={activeCount > 0 ? `Filtros, ${activeCount} activos` : 'Filtros'}
+          className={`relative grid h-11 w-11 shrink-0 place-items-center rounded-full border text-lg ${
+            activeCount > 0 ? 'border-primary bg-primary text-white' : 'border-[#E8DCCB] bg-card text-primary'
+          }`}
+        >
+          <AppIcon name="sliders" />
+          {activeCount > 0 ? (
+            <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-card px-1 text-xs font-extrabold text-primary ring-2 ring-primary">
+              {activeCount}
+            </span>
+          ) : null}
+        </button>
+      </div>
+      <ScopeChips value={scope} onChange={setScope} />
+      <PaidChips value={paidFilter} onChange={setPaidFilter} />
+      {activeCount > 0 ? (
+        <p className="mb-3 text-base font-semibold leading-6 text-muted">
+          Mostrando: {summaryParts.join(' · ')}{' '}
+          <button
+            type="button"
+            onClick={() => {
+              setPreset('month')
+              setCategoryIds([])
+            }}
+            className="ml-1 inline-flex min-h-11 items-center font-extrabold text-primary"
+          >
+            Limpiar
+          </button>
+        </p>
+      ) : null}
       {ask ? (
         <section className="relative mb-3 rounded-3xl bg-card p-4 shadow-card">
           <button
@@ -450,7 +525,10 @@ export function RemindersScreen() {
                 <li key={item.id} className="flex items-center gap-3.5 rounded-3xl bg-card px-4 py-3 shadow-card">
                   <button type="button" className="flex min-h-11 min-w-0 flex-1 items-center gap-3.5 text-left" onClick={() => openEditor(item)}>
                     <IconBubble icon={item.icon} />
-                    <span className="min-w-0 flex-1 truncate text-[15px] font-bold">{item.title}</span>
+                    <span className="min-w-0 flex-1 truncate text-[15px] font-bold">
+                      {item.title}
+                      {item.notes ? <AppIcon name="note-sticky" className="ml-1.5 text-xs text-muted" /> : null}
+                    </span>
                   </button>
                   <div className="text-right">
                     <p className="font-display text-base font-bold">{formatMoney(item.amount)}</p>
@@ -495,7 +573,10 @@ export function RemindersScreen() {
                     onClick={() => openEditor(item)}
                   >
                     <IconBubble icon={item.icon} />
-                    <span className="min-w-0 flex-1 truncate text-[15px] font-bold">{item.title}</span>
+                    <span className="min-w-0 flex-1 truncate text-[15px] font-bold">
+                      {item.title}
+                      {item.notes ? <AppIcon name="note-sticky" className="ml-1.5 text-xs text-muted" /> : null}
+                    </span>
                     <span className="font-display text-base font-bold">{formatMoney(item.amount)}</span>
                   </button>
                 </li>
@@ -555,6 +636,24 @@ export function RemindersScreen() {
         }}
         onUndo={() => {
           if (liveEditing) void undo(liveEditing.id)
+        }}
+      />
+      <FilterSheet
+        open={sheetOpen}
+        friendly={false}
+        month={month}
+        end={end}
+        categories={categories}
+        initial={reminderFilters}
+        title="Filtrar avisos"
+        applyLabel="Ver avisos"
+        onClose={() => setSheetOpen(false)}
+        onApply={(next) => {
+          setPreset(next.preset)
+          setCustomFrom(next.customFrom)
+          setCustomTo(next.customTo)
+          setCategoryIds(next.categoryIds)
+          setSheetOpen(false)
         }}
       />
       <ReminderSettingsSheet
@@ -706,7 +805,10 @@ function SwipeDue({
             <IconBubble icon={item.icon} />
             <span className="min-w-0 flex-1">
               <span className="flex min-w-0 items-baseline gap-1.5">
-                <span className="truncate text-[15.5px] font-bold">{item.title}</span>
+                <span className="truncate text-[15.5px] font-bold">
+                  {item.title}
+                  {item.notes ? <AppIcon name="note-sticky" className="ml-1.5 text-xs text-muted" /> : null}
+                </span>
                 {item.isShared ? <span className="shrink-0 text-xs font-semibold text-muted">con {partnerName}</span> : null}
               </span>
               <span className={`mt-0.5 block text-[13px] font-bold ${toneClass[tone]}`}>{when}</span>

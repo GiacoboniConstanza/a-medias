@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { AppIcon } from './AppIcon.tsx'
 import { IconPicker } from './IconPicker.tsx'
-import { amountFromDigits, applyKey, Keypad } from './Keypad.tsx'
+import { amountFromDigits } from './Keypad.tsx'
+import { MoneyField } from './MoneyField.tsx'
 import { Sheet } from './Sheet.tsx'
-import { Chip, ErrorText, inputClass } from './ui.tsx'
+import { Chip, ErrorText, NotesField, inputClass } from './ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
 import {
@@ -14,7 +15,7 @@ import {
   type Category,
   type ExpenseItem,
 } from '../lib/api.ts'
-import { formatMoney } from '../lib/format.ts'
+import { clampNotes, moneyDraftFromAmount, normalizeMoney } from '../lib/format.ts'
 import { DEFAULT_ICON } from '../lib/icons.ts'
 import { monthKey, monthTitle, shiftMonth, todayISO } from '../lib/month.ts'
 import { suggestCategoryId } from '../lib/mpReceipt.ts'
@@ -115,7 +116,8 @@ function ExpenseForm({
   const [title, setTitle] = useState(expense?.title ?? prefill?.title ?? '')
   const [categoryId, setCategoryId] = useState(expense?.categoryId ?? '')
   const [categoryTouched, setCategoryTouched] = useState(Boolean(expense))
-  const [digits, setDigits] = useState(() => digitsFromAmount(expense?.amount ?? prefill?.amount ?? null))
+  const [digits, setDigits] = useState(() => moneyDraftFromAmount(expense?.amount ?? prefill?.amount ?? null))
+  const [notes, setNotes] = useState(expense?.notes ?? '')
   const [spentOn, setSpentOn] = useState(expense?.spentOn ?? prefill?.spentOn ?? todayISO())
   const [dateTouched, setDateTouched] = useState(false)
   const [period, setPeriod] = useState(expense?.period ?? periodFromDate(prefill?.spentOn || todayISO()))
@@ -134,7 +136,7 @@ function ExpenseForm({
 
   const visibleCategories = categories.filter((category) => (shared ? category.ownerId === null : category.ownerId === meId))
   const suggestedId = suggestCategoryId(prefill?.title ?? null, visibleCategories)
-  const amount = amountFromDigits(digits)
+  const amount = normalizeMoney(amountFromDigits(digits))
   const missingName = title.trim() === ''
   const missingCategory = categoryId === ''
   const missingAmount = amount <= 0
@@ -180,16 +182,17 @@ function ExpenseForm({
 
   function isDirty(): boolean {
     if (!editing) {
-      return title.trim() !== '' || digits !== '' || categoryId !== '' || dateTouched || periodTouched || !shared || payerId !== meId
+      return title.trim() !== '' || digits !== '' || categoryId !== '' || dateTouched || periodTouched || !shared || payerId !== meId || notes.trim() !== ''
     }
     return (
       title.trim() !== expense?.title ||
       categoryId !== expense?.categoryId ||
-      amount !== Math.round(expense?.amount ?? 0) ||
+      amount !== normalizeMoney(expense?.amount ?? 0) ||
       spentOn !== expense?.spentOn ||
       period !== expense?.period ||
       shared !== expense?.isShared ||
-      payerId !== expense?.payerId
+      payerId !== expense?.payerId ||
+      clampNotes(notes) !== (expense?.notes ?? null)
     )
   }
 
@@ -207,6 +210,7 @@ function ExpenseForm({
       spentOn,
       period: periodFollowsDate(spentOn, period, periodTouched),
       isShared: expense?.paidFromBag ? false : shared,
+      notes: clampNotes(notes),
     }
     try {
       if (expense) {
@@ -419,15 +423,18 @@ function ExpenseForm({
           </div>
         ) : null}
       </div>
-      <div className="mb-3 text-center">
-        <p className="text-sm font-bold text-muted">Monto</p>
-        <p className="font-display text-[44px] font-bold leading-none">{formatMoney(amount)}</p>
-        {showErrors && missingAmount ? <p className="mt-1 text-sm font-bold text-[#85503C]">El monto tiene que ser mayor a 0.</p> : null}
-        {prefill?.missingAmount && digits === '' ? (
-          <p className="mt-1 text-sm font-bold text-[#85503C]">No pude leer el monto. Completalo antes de guardar.</p>
-        ) : null}
-        {readOnly ? null : <div className="mt-2"><Keypad onKey={(key) => setDigits((current) => applyKey(current, key))} /></div>}
-      </div>
+      <MoneyField
+        draft={digits}
+        onDraft={setDigits}
+        readOnly={readOnly}
+        error={
+          showErrors && missingAmount
+            ? 'El monto tiene que ser mayor a 0.'
+            : prefill?.missingAmount && digits === ''
+              ? 'No pude leer el monto. Completalo antes de guardar.'
+              : undefined
+        }
+      />
       <label className="mb-3 block text-sm font-bold text-muted">
         Fecha
         <input
@@ -481,6 +488,7 @@ function ExpenseForm({
           </label>
         ) : null}
       </div>
+      <NotesField value={notes} onChange={setNotes} readOnly={readOnly} />
       <ErrorText>{error}</ErrorText>
     </div>
   )
@@ -511,9 +519,3 @@ function ExpenseForm({
   )
 }
 
-function digitsFromAmount(amount: number | null): string {
-  if (amount == null || !Number.isFinite(amount) || amount <= 0) return ''
-  const rounded = Math.round(amount)
-  if (rounded <= 0) return ''
-  return String(rounded).slice(0, 9)
-}

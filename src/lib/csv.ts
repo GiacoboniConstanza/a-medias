@@ -1,4 +1,4 @@
-import { formatMoney } from './format.ts'
+import { formatMoney, normalizeMoney } from './format.ts'
 import type { SplitResult } from './split.ts'
 
 export type CsvExpense = {
@@ -13,18 +13,22 @@ function cell(value: string): string {
   return value
 }
 
+function csvMoney(value: number): string {
+  return normalizeMoney(value).toFixed(2).replace('.', ',')
+}
+
 export function buildSharedCsv(expenses: CsvExpense[], split: SplitResult): string {
   const lines = ['Fecha;Gasto;Pagó;Monto']
   for (const expense of expenses) {
     lines.push(
-      [cell(expense.date), cell(expense.title), cell(expense.payer), String(Math.round(expense.amount))].join(';'),
+      [cell(expense.date), cell(expense.title), cell(expense.payer), csvMoney(expense.amount)].join(';'),
     )
   }
-  lines.push(`;;Total;${Math.round(split.total)}`)
+  lines.push(`;;Total;${csvMoney(split.total)}`)
   lines.push('')
   lines.push('Persona;Porcentaje;Le toca;Pagó')
   for (const row of split.rows) {
-    lines.push(`${cell(row.name)};${row.percent};${Math.round(row.share)};${Math.round(row.paid)}`)
+    lines.push(`${cell(row.name)};${row.percent};${csvMoney(row.share)};${csvMoney(row.paid)}`)
   }
   lines.push('')
   lines.push(`Saldo;${split.amount === 0 ? 'A mano' : formatMoney(split.amount)}`)

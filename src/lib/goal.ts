@@ -1,4 +1,4 @@
-import { formatMoney } from './format.ts'
+import { formatMoney, fromCents, toCents } from './format.ts'
 import { monthEnd, monthKey, monthTitle, shiftMonth, todayISO } from './month.ts'
 
 export function goalProgress(saved: number, target: number): { label: string; arc: number } {
@@ -33,13 +33,13 @@ export function monthsLeftCopy(months: number): string {
 
 export function evenMonthlyShare(remaining: number, months: number): number | null {
   if (remaining <= 0 || months <= 0) return null
-  return Math.max(1, Math.ceil(remaining / 2 / months))
+  return fromCents(Math.max(1, Math.ceil(toCents(remaining / 2 / months))))
 }
 
 export function salaryShare(remaining: number, months: number, percent: number): number | null {
   if (remaining <= 0 || percent <= 0) return null
   const base = months > 0 ? remaining / months : remaining
-  const share = Math.round(base * (percent / 100))
+  const share = fromCents(Math.round(toCents(base * (percent / 100))))
   return share > 0 ? share : null
 }
 

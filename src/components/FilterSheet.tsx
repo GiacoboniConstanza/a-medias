@@ -32,6 +32,8 @@ export function FilterSheet({
   initial,
   onClose,
   onApply,
+  title = 'Filtrar gastos',
+  applyLabel = 'Ver gastos',
 }: {
   open: boolean
   friendly: boolean
@@ -41,6 +43,8 @@ export function FilterSheet({
   initial: ExpenseFilters
   onClose: () => void
   onApply: (filters: ExpenseFilters) => void
+  title?: string
+  applyLabel?: string
 }) {
   const titleId = useId()
   const dialogRef = useRef<HTMLDivElement>(null)
@@ -199,7 +203,7 @@ export function FilterSheet({
         </div>
         <div className="flex items-center justify-between gap-3 px-5 pb-2">
           <h2 id={titleId} className="font-display text-xl font-semibold">
-            Filtrar gastos
+            {title}
           </h2>
           <button type="button" onClick={clearDraft} className="inline-flex min-h-11 items-center text-sm font-extrabold text-primary">
             Limpiar filtros
@@ -274,7 +278,7 @@ export function FilterSheet({
             onClick={() => onApply({ preset, customFrom, customTo, categoryIds: friendly ? [] : categoryIds })}
             className="block min-h-[52px] w-full rounded-2xl bg-primary text-base font-semibold text-white"
           >
-            Ver gastos
+            {applyLabel}
           </button>
           <button
             type="button"
