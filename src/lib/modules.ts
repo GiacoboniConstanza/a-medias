@@ -23,6 +23,7 @@ export const MODULE_META: Record<ModuleId, { label: string; detail: string; icon
 const FINANCE_NAV: readonly NavItem[] = [
   { to: '/', label: 'Inicio', icon: 'house', end: true },
   { to: '/se-me-fue', label: 'Gastos', icon: 'receipt' },
+  { to: '/prestamos', label: 'Préstamos', icon: 'hand-holding-dollar' },
   { to: '/bolsa', label: 'Bolsa', icon: 'bag-shopping' },
   { to: '/meta', label: 'Meta', icon: 'umbrella-beach' },
   { to: '/recordatorios', label: 'Avisos', icon: 'bell' },

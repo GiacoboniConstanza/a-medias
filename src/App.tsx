@@ -13,6 +13,7 @@ import { HomeScreen } from './screens/HomeScreen.tsx'
 import { HabitsScreen } from './screens/HabitsScreen.tsx'
 import { HubScreen } from './screens/HubScreen.tsx'
 import { MemosScreen } from './screens/MemosScreen.tsx'
+import { LoansScreen } from './screens/LoansScreen.tsx'
 import { MealsScreen } from './screens/MealsScreen.tsx'
 import { ModulesScreen } from './screens/ModulesScreen.tsx'
 import { RemindersScreen } from './screens/RemindersScreen.tsx'
@@ -57,6 +58,7 @@ export function App() {
               <Route path="bolsa" element={<ExtrasScreen />} />
               <Route path="meta" element={<GoalScreen />} />
               <Route path="compartidos" element={<SharedScreen />} />
+              <Route path="prestamos" element={<LoansScreen />} />
               <Route path="recordatorios" element={<RemindersScreen />} />
               <Route path="sueldo" element={<SalaryScreen />} />
               <Route path="mi-anio" element={<YearScreen />} />

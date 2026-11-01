@@ -13,6 +13,7 @@ import { useModules } from '../context/ModulesProvider.tsx'
 import { useMonth } from '../context/MonthProvider.tsx'
 import { saveViewMode } from '../lib/api.ts'
 import { debtCopy, monthPocket, monthSplit, myPrivateSpent, paceInput, partnerId } from '../lib/derive.ts'
+import { homeLoanLine, loadLoanBalances, signedLoanBalance } from '../lib/loans.ts'
 import { formatMoney } from '../lib/format.ts'
 import { jarStatus } from '../lib/jar.ts'
 import { FINANCE_SECTION_LINKS, isHubHome } from '../lib/modules.ts'
@@ -25,6 +26,7 @@ export function HomeScreen() {
   const location = useLocation()
   const navigate = useNavigate()
   const [toast, setToast] = useState('')
+  const [loanLine, setLoanLine] = useState<string | null>(null)
   const modules = useModules()
   useEffect(() => {
     const notice = (location.state as { notice?: string } | null)?.notice
@@ -37,6 +39,20 @@ export function HomeScreen() {
     const timeout = window.setTimeout(() => setToast(''), 3200)
     return () => window.clearTimeout(timeout)
   }, [toast])
+  useEffect(() => {
+    if (!profile) return
+    let active = true
+    loadLoanBalances()
+      .then((rows) => {
+        if (active) setLoanLine(homeLoanLine(signedLoanBalance(profile.id, rows)))
+      })
+      .catch(() => {
+        if (active) setLoanLine(null)
+      })
+    return () => {
+      active = false
+    }
+  }, [profile])
   const financeRoute = useMatch('/finanzas')
   const hub = modules.ready && isHubHome(modules.enabled)
   if (!profile) return null
@@ -152,6 +168,7 @@ export function HomeScreen() {
             </div>
           </>
         )}
+        {loanLine ? <p className="mt-2 text-xs font-semibold text-muted">{loanLine}</p> : null}
       </Card>
       <Link to="/se-me-fue" className="mb-3 inline-flex min-h-11 items-center text-base font-semibold text-primary">
         Ver gastos

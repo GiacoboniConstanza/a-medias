@@ -627,8 +627,84 @@ export type Database = {
           kcal?: number | null
         }
       >
+      loans: Table<
+        {
+          id: string
+          lender_id: string
+          borrower_id: string
+          amount: number
+          lent_on: string
+          period: string
+          notes: string | null
+          created_at: string
+          updated_at: string
+        },
+        {
+          id?: string
+          lender_id: string
+          borrower_id: string
+          amount: number
+          lent_on: string
+          period?: string
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        },
+        {
+          borrower_id?: string
+          amount?: number
+          lent_on?: string
+          period?: string
+          notes?: string | null
+        }
+      >
+      loan_repayments: Table<
+        {
+          id: string
+          loan_id: string
+          amount: number
+          paid_on: string
+          period: string
+          notes: string | null
+          created_by: string
+          created_at: string
+        },
+        {
+          id?: string
+          loan_id: string
+          amount: number
+          paid_on: string
+          period?: string
+          notes?: string | null
+          created_by?: string
+          created_at?: string
+        },
+        {
+          amount?: number
+          paid_on?: string
+          period?: string
+          notes?: string | null
+        }
+      >
     }
-    Views: Record<string, never>
+    Views: {
+      loan_balances: {
+        Row: {
+          id: string
+          lender_id: string
+          borrower_id: string
+          amount: number
+          lent_on: string
+          period: string
+          notes: string | null
+          created_at: string
+          repaid: number
+          pending: number
+          status: string
+        }
+        Relationships: []
+      }
+    }
     Functions: {
       create_household: { Args: Record<string, never>; Returns: string }
       join_household: { Args: { invite: string }; Returns: string }

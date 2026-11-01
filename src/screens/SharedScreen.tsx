@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { ExpenseEditor } from '../components/ExpenseEditor.tsx'
 import { PeriodTag } from '../components/ExpenseLine.tsx'
@@ -12,7 +12,8 @@ import { useFinance } from '../context/FinanceProvider.tsx'
 import { useMonth } from '../context/MonthProvider.tsx'
 import { saveViewMode, settleMonth, undoSettlement, type ExpenseItem } from '../lib/api.ts'
 import { buildSharedCsv, downloadText } from '../lib/csv.ts'
-import { debtCopy, monthSplit } from '../lib/derive.ts'
+import { debtCopy, monthSplit, partnerId } from '../lib/derive.ts'
+import { loadLoanBalances, sharedLoanNote, sharedSignedBalance, signedLoanBalance } from '../lib/loans.ts'
 import { formatMoney } from '../lib/format.ts'
 import { DEFAULT_ICON } from '../lib/icons.ts'
 import { shortDate } from '../lib/month.ts'
@@ -27,6 +28,26 @@ export function SharedScreen() {
   const [notice, setNotice] = useState('')
   const [saving, setSaving] = useState(false)
   const [openExpense, setOpenExpense] = useState<ExpenseItem | null>(null)
+  const [loanNote, setLoanNote] = useState<{ pendingLine: string; netLine: string } | null>(null)
+
+  useEffect(() => {
+    if (!profile || !data) return
+    const otherId = partnerId(data, profile.id)
+    const partner = (otherId && data.names[otherId]) || 'tu compañera'
+    const sharedSigned = sharedSignedBalance(profile.id, monthSplit(data))
+    let active = true
+    loadLoanBalances()
+      .then((rows) => {
+        if (!active) return
+        setLoanNote(sharedLoanNote(partner, signedLoanBalance(profile.id, rows), sharedSigned))
+      })
+      .catch(() => {
+        if (active) setLoanNote(null)
+      })
+    return () => {
+      active = false
+    }
+  }, [profile, data])
 
   if (!profile) return null
   if (loading && !data) return <p className="py-16 text-center font-bold text-muted">Cargando…</p>
@@ -107,6 +128,7 @@ export function SharedScreen() {
           expenses={shared}
           names={data.names}
           categories={data.categories}
+          loanNote={loanNote}
           onOpen={setOpenExpense}
         />
       ) : (
@@ -117,6 +139,7 @@ export function SharedScreen() {
           split={split}
           sentence={sentence}
           settlement={data.settlement}
+          loanNote={loanNote}
         />
       )}
       {friendly && data.settlement ? (
@@ -164,6 +187,7 @@ function FriendlyShared({
   expenses,
   names,
   categories,
+  loanNote,
   onOpen,
 }: {
   sentence: string
@@ -174,6 +198,7 @@ function FriendlyShared({
   expenses: ExpenseItem[]
   names: Record<string, string>
   categories: { id: string; name: string; icon: string }[]
+  loanNote: { pendingLine: string; netLine: string } | null
   onOpen: (expense: ExpenseItem) => void
 }) {
   return (
@@ -183,6 +208,7 @@ function FriendlyShared({
           <Plant stage={even ? 'lush' : 'steady'} />
           <p className="min-w-0 font-display text-3xl font-semibold leading-tight text-primary">{sentence}</p>
         </div>
+        {loanNote ? <LoanNet note={loanNote} /> : null}
       </Card>
       <div className="mb-3 grid grid-cols-2 gap-3">
         <section className="rounded-3xl bg-card p-4 shadow-card">
@@ -235,6 +261,7 @@ function AccountingShared({
   split,
   sentence,
   settlement,
+  loanNote,
 }: {
   shared: ExpenseItem[]
   names: Record<string, string>
@@ -242,6 +269,7 @@ function AccountingShared({
   split: ReturnType<typeof monthSplit>
   sentence: string
   settlement: { amount: number } | null
+  loanNote: { pendingLine: string; netLine: string } | null
 }) {
   return (
     <>
@@ -308,10 +336,20 @@ function AccountingShared({
           </tbody>
         </table>
         <p className="mt-2 font-display text-lg font-semibold text-primary">Saldo: {sentence}</p>
+        {loanNote ? <LoanNet note={loanNote} /> : null}
         {settlement ? (
           <p className="mt-1 text-sm font-bold text-good">Mes saldado por {formatMoney(settlement.amount)}.</p>
         ) : null}
       </Card>
     </>
+  )
+}
+
+function LoanNet({ note }: { note: { pendingLine: string; netLine: string } }) {
+  return (
+    <div className="mt-3 border-t border-dashed border-line pt-3">
+      <p className="text-sm font-semibold text-muted">{note.pendingLine}</p>
+      <p className="mt-1 font-display text-lg font-semibold text-primary">Neto: {note.netLine}</p>
+    </div>
   )
 }
