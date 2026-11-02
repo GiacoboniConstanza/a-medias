@@ -64,7 +64,7 @@ export function PartnerMemos() {
         return (
           <div
             key={memo.id}
-            className="mb-2.5 flex items-center gap-1 rounded-[22px] bg-[#F6F3FB] py-1 pl-1 pr-3.5 shadow-[inset_4px_0_0_#A79BCB,0_4px_14px_#85503c12]"
+            className="mb-2.5 flex items-center gap-1 rounded-[22px] bg-lavender-soft py-1 pl-1 pr-3.5 shadow-[inset_4px_0_0_var(--color-lavender)] shadow-soft"
           >
             <button
               type="button"
@@ -72,11 +72,11 @@ export function PartnerMemos() {
               aria-label={`Marcar hecho: ${memo.text}`}
               onClick={() => void markDone(memo)}
             >
-              <span className="grid h-7 w-7 place-items-center rounded-full border-[2.5px] border-[#cbbda8]" />
+              <span className="grid h-7 w-7 place-items-center rounded-full border-[2.5px] border-line" />
             </button>
             <div className="min-w-0 flex-1 py-2">
               <p className="text-[15.5px] font-bold leading-snug">{memo.text}</p>
-              <p className="mt-0.5 text-[12.5px] font-bold text-[#5f548c]">
+              <p className="mt-0.5 text-sm font-bold text-lavender-ink">
                 <AppIcon name="note-sticky" className="mr-1" /> Memo de {author}
               </p>
             </div>

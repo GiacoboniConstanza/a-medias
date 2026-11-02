@@ -175,7 +175,7 @@ export function SalaryScreen() {
   return (
     <>
       <header className="mb-3 flex items-center justify-between">
-        <Link to="/" className="inline-flex min-h-11 items-center gap-1 font-semibold text-text">
+        <Link to="/" className="inline-flex min-h-11 items-center gap-1 font-semibold text-title">
           <AppIcon name="chevron-left" /> Inicio
         </Link>
         <span className="font-display font-semibold text-primary">A Medias</span>
@@ -192,7 +192,7 @@ export function SalaryScreen() {
         <button
           type="button"
           onClick={openCreate}
-          className="mt-3 block min-h-[52px] w-full rounded-2xl bg-primary text-base font-semibold text-white"
+          className="mt-3 block min-h-[52px] w-full rounded-2xl bg-primary text-base font-semibold text-on-primary"
         >
           Registrar aumento
         </button>
@@ -234,11 +234,11 @@ export function SalaryScreen() {
                     </div>
                     {confirmId === row.id ? (
                       <div className="mt-2 rounded-2xl bg-sand p-3">
-                        <p className="text-sm font-semibold text-text">¿Sacar este sueldo? Vuelve a valer el anterior.</p>
+                        <p className="text-sm font-semibold text-title">¿Sacar este sueldo? Vuelve a valer el anterior.</p>
                         <div className="mt-2 flex gap-2">
                           <button
                             type="button"
-                            className="min-h-11 flex-1 rounded-2xl bg-primary text-sm font-semibold text-white disabled:opacity-50"
+                            className="min-h-11 flex-1 rounded-2xl bg-primary text-sm font-semibold text-on-primary disabled:opacity-50"
                             disabled={saving}
                             onClick={() => void remove(row.id)}
                           >
@@ -331,13 +331,13 @@ export function SalaryScreen() {
                 setWhenError('')
                 setPicked(event.target.value)
               }}
-              className="mt-1 min-h-11 w-full rounded-2xl border border-line bg-sand px-3 py-2 font-semibold text-text"
+              className="mt-1 min-h-11 w-full rounded-2xl border border-line bg-sand px-3 py-2 font-semibold text-title"
             />
           </label>
         ) : null}
         <FieldError>{whenError || liveMonthError}</FieldError>
         {preview && amount > 0 ? (
-          <div className="mt-3 rounded-2xl bg-sand p-3 text-sm font-semibold text-text">
+          <div className="mt-3 rounded-2xl bg-sand p-3 text-sm font-semibold text-title">
             <p>
               {alone
                 ? 'Cuando se sume tu compañera, calculamos el porcentaje.'
@@ -354,7 +354,7 @@ export function SalaryScreen() {
       {toast ? (
         <p
           role="status"
-          className="fixed bottom-28 left-1/2 z-50 max-w-[20rem] -translate-x-1/2 rounded-2xl bg-primary px-4 py-3 text-center text-sm font-semibold text-white shadow-fab"
+          className="fixed bottom-28 left-1/2 z-50 max-w-[20rem] -translate-x-1/2 rounded-2xl bg-primary px-4 py-3 text-center text-sm font-semibold text-on-primary shadow-fab"
         >
           {toast}
         </p>

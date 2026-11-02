@@ -34,7 +34,7 @@ import { ContributeSheet } from './GoalScreen.tsx'
 
 type MoveMode = 'to_fund' | 'to_gustos' | 'use'
 
-const primaryButton = 'block min-h-[52px] w-full rounded-2xl bg-primary text-base font-semibold text-white disabled:opacity-50'
+const primaryButton = 'block min-h-[52px] w-full rounded-2xl bg-primary text-base font-semibold text-on-primary disabled:opacity-50'
 const quietButton = 'mt-2 block min-h-[52px] w-full rounded-2xl border-2 border-primary bg-card text-base font-semibold text-primary'
 
 export function SavingsScreen() {
@@ -233,7 +233,7 @@ export function SavingsScreen() {
             Pasar a un fondo
           </button>
           {gustos.level === 'low' ? (
-            <Card className="mt-3 bg-debt text-base">
+            <Card className="mt-3 bg-copper-soft text-base">
               <b className="inline-flex items-center gap-1 text-alert-ink">
                 <AppIcon name="triangle-exclamation" /> Ojo:
               </b>{' '}
@@ -301,7 +301,7 @@ function ScopeTag({ shared }: { shared: boolean }) {
   return (
     <span
       className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2 py-0.5 text-base font-semibold ${
-        shared ? 'bg-[#EDE6F5] text-text' : 'bg-sand text-text'
+        shared ? 'bg-lavender-soft text-title' : 'bg-sand text-title'
       }`}
     >
       {shared ? 'Compartido' : 'Privado'}

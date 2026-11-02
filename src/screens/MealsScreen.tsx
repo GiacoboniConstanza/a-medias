@@ -45,11 +45,11 @@ type DayOffset = -1 | 0 | 1
 const DAY_LABEL: Record<DayOffset, string> = { [-1]: 'Ayer', 0: 'Hoy', 1: 'Mañana' }
 
 const MEAL_TONE: Record<MealType, string> = {
-  desayuno: 'bg-[#FFF1C2] text-[#85503C]',
-  almuerzo: 'bg-[#E3EED4] text-primary',
-  merienda: 'bg-[#FCE6EA] text-[#85503C]',
-  cena: 'bg-[#E3EED4] text-primary',
-  snack: 'bg-[#FFF1C2] text-[#85503C]',
+  desayuno: 'bg-gold-soft text-alert-ink',
+  almuerzo: 'bg-sage-soft text-primary',
+  merienda: 'bg-copper-soft text-alert-ink',
+  cena: 'bg-sage-soft text-primary',
+  snack: 'bg-gold-soft text-alert-ink',
 }
 
 const EMPTY_GOALS: Goals = { proteinG: null, carbsG: null, fatG: null, kcal: null }
@@ -154,7 +154,7 @@ export function MealsScreen() {
           >
             <AppIcon name="bullseye" /> Objetivos
           </button>
-          <span className="inline-flex items-center gap-1 rounded-2xl bg-[#FCE6EA] px-3 py-1.5 text-xs font-extrabold text-[#85503C]">
+          <span className="inline-flex items-center gap-1 rounded-2xl bg-copper-soft px-3 py-1.5 text-sm font-extrabold text-alert-ink">
             <AppIcon name="lock" /> Solo vos
           </span>
         </div>
@@ -193,7 +193,7 @@ export function MealsScreen() {
             </p>
             {proteinRatio != null ? (
               <div className="mt-2">
-                <Progress value={proteinRatio} color="#F7B7C4" />
+                <Progress value={proteinRatio} color="var(--color-alert)" />
               </div>
             ) : (
               <p className="mt-1 text-sm font-bold text-muted">Cargá un objetivo para ver la barra.</p>
@@ -201,12 +201,12 @@ export function MealsScreen() {
           </div>
         </div>
         <div className="mt-4 grid grid-cols-3 gap-3">
-          <MacroStat label="Carbos" text={`${formatAmount(totals.carbs)} g`} percent={proteinPercent(totals.carbs, goals.carbsG)} color="#F4C542" />
-          <MacroStat label="Grasas" text={`${formatAmount(totals.fat)} g`} percent={proteinPercent(totals.fat, goals.fatG)} color="#DEC59E" />
-          <MacroStat label="kcal" text={formatAmount(totals.kcal)} percent={proteinPercent(totals.kcal, goals.kcal)} color="#C7DDAE" />
+          <MacroStat label="Carbos" text={`${formatAmount(totals.carbs)} g`} percent={proteinPercent(totals.carbs, goals.carbsG)} color="var(--color-warn)" />
+          <MacroStat label="Grasas" text={`${formatAmount(totals.fat)} g`} percent={proteinPercent(totals.fat, goals.fatG)} color="var(--color-warn-soft)" />
+          <MacroStat label="kcal" text={formatAmount(totals.kcal)} percent={proteinPercent(totals.kcal, goals.kcal)} color="var(--color-sage-light)" />
         </div>
       </section>
-      <h2 className="mb-2 px-1 text-[13px] font-bold text-[#8a8370]">Lo que comiste</h2>
+      <h2 className="mb-2 px-1 text-sm font-bold text-muted">Lo que comiste</h2>
       {loading ? <p className="py-6 text-center font-extrabold text-muted">Cargando comidas…</p> : null}
       {!loading && meals.length === 0 ? <p className="py-4 text-center text-sm font-bold text-muted">Todavía no hay comidas este día.</p> : null}
       {MEAL_TYPES.map((type) => {
@@ -214,7 +214,7 @@ export function MealsScreen() {
         if (items.length === 0) return null
         return (
           <section key={type} className="mb-2">
-            <h3 className="mb-1.5 px-1 text-[13px] font-extrabold text-primary">{MEAL_LABEL[type]}</h3>
+            <h3 className="mb-1.5 px-1 text-sm font-extrabold text-primary">{MEAL_LABEL[type]}</h3>
             <ul>
               {items.map((meal) => (
                 <li key={meal.id} className="mb-2 flex min-h-16 items-center gap-3 rounded-[22px] bg-card px-3 py-2 shadow-card">
@@ -243,7 +243,7 @@ export function MealsScreen() {
         onClick={() => setMealOpen(true)}
         className="mt-1 flex min-h-[52px] w-full items-center gap-3 rounded-[22px] border-2 border-dashed border-line px-4 text-left"
       >
-        <span className="grid h-11 w-11 place-items-center rounded-full bg-[#F2EADF] text-muted">
+        <span className="grid h-11 w-11 place-items-center rounded-full bg-sand text-muted">
           <AppIcon name="plus" />
         </span>
         <span className="font-extrabold text-muted">Nueva comida</span>
@@ -279,7 +279,7 @@ export function MealsScreen() {
 function MacroStat({ label, text, percent, color }: { label: string; text: string; percent: number | null; color: string }) {
   return (
     <div>
-      <span className="block text-[12px] font-bold text-muted">{label}</span>
+      <span className="block text-sm font-bold text-muted">{label}</span>
       <b className="mt-0.5 block text-[15px] font-extrabold">{text}</b>
       {percent != null ? (
         <span className="mt-1.5 block">
@@ -428,7 +428,7 @@ function MealSheet({
                 key={food.id}
                 type="button"
                 onClick={() => applySaved(food)}
-                className="min-h-11 shrink-0 rounded-2xl bg-[#FCE6EA] px-3 text-sm font-extrabold text-[#85503C]"
+                className="min-h-11 shrink-0 rounded-2xl bg-copper-soft px-3 text-sm font-extrabold text-alert-ink"
               >
                 {food.name}
               </button>

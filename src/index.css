@@ -10,7 +10,7 @@ body,
 body {
   margin: 0;
   background: var(--color-shell);
-  color: var(--color-text);
+  color: var(--color-title);
   font-family: var(--font-sans);
 }
 

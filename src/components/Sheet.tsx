@@ -9,7 +9,7 @@ export function Sheet({
   footer,
 }: {
   open: boolean
-  title: string
+  title: ReactNode
   onClose: () => void
   children: ReactNode
   footer?: ReactNode
@@ -129,7 +129,7 @@ export function Sheet({
       <button
         type="button"
         aria-label="Cerrar"
-        className={`sheet-motion absolute inset-0 bg-[#202808]/45 transition-opacity duration-300 motion-reduce:transition-none ${visible ? 'opacity-100' : 'opacity-0'}`}
+        className={`sheet-motion absolute inset-0 bg-title/45 transition-opacity duration-300 motion-reduce:transition-none ${visible ? 'opacity-100' : 'opacity-0'}`}
         onClick={onClose}
       />
       <div
@@ -153,7 +153,7 @@ export function Sheet({
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
         >
-          <span className="h-1.5 w-12 rounded-full bg-[#E8DCCB]" aria-hidden="true" />
+          <span className="h-1.5 w-12 rounded-full bg-line" aria-hidden="true" />
         </div>
         <h2 id={titleId} className="px-5 pb-2 font-display text-xl font-semibold">
           {title}

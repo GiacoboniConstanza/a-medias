@@ -668,6 +668,7 @@ export type Database = {
           notes: string | null
           created_by: string
           created_at: string
+          settlement_id: string | null
         },
         {
           id?: string
@@ -678,6 +679,7 @@ export type Database = {
           notes?: string | null
           created_by?: string
           created_at?: string
+          settlement_id?: string | null
         },
         {
           amount?: number
@@ -743,6 +745,22 @@ export type Database = {
           partner_new_percent: number
           shared_total: number
         }[]
+      }
+      settle_shared_month: {
+        Args: {
+          p_month: string
+          p_debtor: string
+          p_creditor: string
+          p_amount: number
+          p_expense_amount: number
+          p_expense_debtor: string | null
+          p_repayments: { loan_id: string; amount: number }[]
+        }
+        Returns: string
+      }
+      undo_shared_month: {
+        Args: { p_settlement: string }
+        Returns: undefined
       }
     }
   }

@@ -31,7 +31,7 @@ export function MonthSwitcher({
           <button
             type="button"
             onClick={goToday}
-            className={`min-h-11 rounded-full bg-card px-4 text-sm font-semibold shadow-soft ${home ? 'text-primary' : 'text-text'}`}
+            className={`min-h-11 rounded-full bg-card px-4 text-sm font-semibold shadow-soft ${home ? 'text-primary' : 'text-title'}`}
           >
             Hoy
           </button>

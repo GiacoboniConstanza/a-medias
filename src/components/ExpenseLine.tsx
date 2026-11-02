@@ -15,9 +15,9 @@ export function PeriodTag({
   if (!periodDiffersFromDate(expense.spentOn, expense.period)) return null
   const size = readable
     ? 'px-2 py-0.5 text-base font-bold'
-    : 'px-1.5 py-0.5 text-[10px] font-extrabold leading-none'
+    : 'px-2 py-0.5 text-sm font-bold leading-none'
   return (
-    <span className={`ml-1 inline-flex items-center rounded-full bg-[#A79BCB] text-[#2C2440] ${size}`}>
+    <span className={`ml-1 inline-flex items-center rounded-full bg-lavender-light text-lavender-ink ${size}`}>
       {shortPeriodLabel(expense.period)}
     </span>
   )
@@ -27,11 +27,13 @@ export function ExpenseLine({
   expense,
   categoryName,
   categoryIcon,
+  payerName,
   onOpen,
 }: {
   expense: ExpenseItem
   categoryName: string
   categoryIcon: string
+  payerName?: string
   onOpen: () => void
 }) {
   return (
@@ -40,14 +42,14 @@ export function ExpenseLine({
         <span className="block font-extrabold">
           {expense.title}
           <PeriodTag expense={expense} />
-          {expense.notes ? <AppIcon name="note-sticky" className="ml-1.5 text-xs text-muted" /> : null}
+          {expense.notes ? <AppIcon name="note-sticky" className="ml-1.5 text-sm text-muted" /> : null}
         </span>
         <span className="mt-0.5 block font-semibold text-muted">
           {shortDate(expense.spentOn)} · <AppIcon name={categoryIcon || DEFAULT_ICON} /> {categoryName}
-          {expense.isShared ? ' · Compartido' : expense.paidFromBag ? ' · Privado, pagado con la bolsa' : ' · Privado'}
+          {payerName ? ` · Pagó ${payerName}` : expense.isShared ? ' · Compartido' : expense.paidFromBag ? ' · Privado, pagado con la bolsa' : ' · Privado'}
         </span>
       </span>
-      <span className="shrink-0 font-extrabold">{formatMoney(expense.amount)}</span>
+      <span className="shrink-0 whitespace-nowrap font-extrabold">{formatMoney(expense.amount)}</span>
     </button>
   )
 }

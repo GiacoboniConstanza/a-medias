@@ -190,11 +190,11 @@ export function HubScreen() {
         </Link>
       </header>
       <h1 className="font-display text-[1.8rem] font-bold leading-tight">{hubDayLabel()}</h1>
-      <section className="mb-3 mt-3.5 flex items-center gap-1.5 rounded-3xl bg-gradient-to-br from-card to-[#EEF4E6] py-2.5 pl-0 pr-4 shadow-card">
+      <section className="mb-3 mt-3.5 flex items-center gap-1.5 rounded-3xl bg-gradient-to-br from-card to-[var(--color-sage-soft)] py-2.5 pl-0 pr-4 shadow-card">
         <HubPlant bloom={counts.pending + checkedThisWeek(memos, profile.id) > 0} solid={leaves.solid} dashed={leaves.dashed} fruit={fruit} />
         <div className="min-w-0">
-          <h2 className="font-display text-xl font-semibold leading-tight text-good">{line.title}</h2>
-          <p className="mt-1.5 text-xs font-bold text-muted">{line.detail}</p>
+          <h2 className="font-display text-xl font-semibold leading-tight text-title">{line.title}</h2>
+          <p className="mt-1.5 text-sm font-bold text-muted">{line.detail}</p>
         </div>
       </section>
       {error || memoError || habitError || foodError ? (
@@ -257,14 +257,14 @@ function ModuleCard({
         {module === 'finanzas' ? (
           <span className="block font-display text-xl font-bold leading-tight">
             {spentReady ? formatMoney(spent) : '…'}{' '}
-            <span className="font-sans text-[12.5px] font-bold text-muted">gastado en {month}</span>
+            <span className="font-sans text-sm font-bold text-muted">gastado en {month}</span>
           </span>
         ) : null}
         {module === 'memos' ? (
           <>
             <span className="block font-display text-xl font-bold leading-tight">{pendingLabel(pending)}</span>
             {sharedPending > 0 ? (
-              <span className="mt-0.5 block text-[12.5px] font-bold text-[#5f548c]">
+              <span className="mt-0.5 block text-sm font-bold text-lavender-ink">
                 <AppIcon name="user-group" className="mr-1 text-[10px]" />
                 {sharedPending} con {partnerName}
               </span>
@@ -281,7 +281,7 @@ function ModuleCard({
                 {Array.from({ length: habitTotal }, (_, index) => (
                   <i
                     key={index}
-                    className={`h-2 min-w-1 flex-1 rounded-full ${index < habitDone ? 'bg-good' : 'bg-[#F2EADF]'}`}
+                    className={`h-2 min-w-1 flex-1 rounded-full ${index < habitDone ? 'bg-good' : 'bg-sand'}`}
                   />
                 ))}
               </span>
@@ -294,7 +294,7 @@ function ModuleCard({
               <span className="block font-display text-xl font-bold leading-tight">{proteinLabel(foodProtein, foodGoal)}</span>
               {foodGoal != null && foodGoal > 0 ? (
                 <span className="mt-1.5 block">
-                  <Progress value={proteinPercent(foodProtein, foodGoal) ?? 0} color="#F7B7C4" />
+                  <Progress value={proteinPercent(foodProtein, foodGoal) ?? 0} color="var(--color-alert)" />
                 </span>
               ) : null}
             </>
@@ -303,7 +303,7 @@ function ModuleCard({
           )
         ) : null}
       </span>
-      <AppIcon name="chevron-right" className="text-[#c9b9a3]" />
+      <AppIcon name="chevron-right" className="text-muted" />
     </Link>
   )
 }

@@ -30,7 +30,7 @@ export function MoneyField({
           className="min-h-11 w-full max-w-[16rem] bg-transparent text-center font-display font-bold outline-none"
         />
       </div>
-      {error ? <p className="mt-1 text-base font-bold text-[#85503C]">{error}</p> : null}
+      {error ? <p className="mt-1 text-base font-bold text-alert-ink">{error}</p> : null}
       {readOnly ? null : (
         <div className="mt-2">
           <Keypad onKey={(key) => onDraft(applyMoneyKey(draft, key))} />

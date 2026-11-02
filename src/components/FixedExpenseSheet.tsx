@@ -8,7 +8,7 @@ import type { FixedItem } from '../lib/api.ts'
 import { editedCaption, remindSwitchLabel, shareSentence } from '../lib/fixed.ts'
 import { clampNotes, formatMoney, moneyDraftFromAmount, normalizeMoney } from '../lib/format.ts'
 
-const primaryButton = 'block min-h-11 w-full rounded-2xl bg-primary text-base font-bold text-white disabled:opacity-50'
+const primaryButton = 'block min-h-11 w-full rounded-2xl bg-primary text-base font-bold text-on-primary disabled:opacity-50'
 const quietButton = 'block min-h-11 w-full rounded-2xl text-base font-bold text-primary disabled:opacity-50'
 const dangerButton = 'block min-h-11 w-full rounded-2xl text-base font-bold text-alert-ink disabled:opacity-50'
 
@@ -182,7 +182,7 @@ function FixedExpenseForm({
     return (
       <div>
         <p className="font-display text-xl font-semibold">¿Eliminar {expense.title}?</p>
-        <p className="mt-2 text-sm font-semibold text-text">Se borra el recordatorio. Los gastos ya anotados quedan.</p>
+        <p className="mt-2 text-sm font-semibold text-title">Se borra el recordatorio. Los gastos ya anotados quedan.</p>
         <button type="button" className={`mt-4 ${primaryButton} bg-alert-ink`} onClick={onDelete} disabled={saving}>
           Eliminar
         </button>
@@ -220,7 +220,7 @@ function FixedExpenseForm({
           type="button"
           aria-pressed={shared}
           onClick={() => setShared(true)}
-          className={`min-h-11 rounded-[15px] text-sm font-extrabold ${shared ? 'bg-primary text-white' : 'text-muted'}`}
+          className={`min-h-11 rounded-[15px] text-sm font-extrabold ${shared ? 'bg-primary text-on-primary' : 'text-muted'}`}
         >
           Compartido
         </button>
@@ -228,7 +228,7 @@ function FixedExpenseForm({
           type="button"
           aria-pressed={!shared}
           onClick={() => setShared(false)}
-          className={`min-h-11 rounded-[15px] text-sm font-extrabold ${shared ? 'text-muted' : 'bg-primary text-white'}`}
+          className={`min-h-11 rounded-[15px] text-sm font-extrabold ${shared ? 'text-muted' : 'bg-primary text-on-primary'}`}
         >
           Privado
         </button>
@@ -243,14 +243,14 @@ function FixedExpenseForm({
         <p className="mb-3 text-sm font-semibold text-muted">Si lo compartís, lo ven las dos.</p>
       ) : null}
       <div className="mb-3 flex items-center justify-between gap-3">
-        <p id={remindId} className="text-sm font-bold text-text">
+        <p id={remindId} className="text-sm font-bold text-title">
           {remindSwitchLabel(leadDays)}
         </p>
         <Toggle labelledBy={remindId} checked={remind} onClick={() => setRemind((current) => !current)} />
       </div>
       {amountChanged ? (
         <div className="mb-3">
-          <p className="mb-2 text-sm font-semibold text-text">¿Desde cuándo aplica?</p>
+          <p className="mb-2 text-sm font-semibold text-title">¿Desde cuándo aplica?</p>
           <div className="flex flex-wrap gap-2">
             <Chip active={applies === 'this'} onClick={() => setApplies('this')}>
               Este mes
@@ -288,7 +288,7 @@ function FixedExpenseForm({
           </button>
         </div>
       ) : null}
-      {caption ? <p className="mt-3 text-center text-xs font-semibold text-muted">{caption}</p> : null}
+      {caption ? <p className="mt-3 text-center text-sm font-semibold text-muted">{caption}</p> : null}
       <ErrorText>{shownError}</ErrorText>
     </div>
   )

@@ -29,7 +29,7 @@ function ToggleButton({ active, onClick, children }: { active: boolean; onClick:
       onClick={onClick}
       aria-pressed={active}
       className={`inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-full px-3 text-sm font-extrabold ${
-        active ? 'bg-primary text-white' : 'text-muted'
+        active ? 'bg-primary text-on-primary' : 'text-muted'
       }`}
     >
       {active ? <AppIcon name="check" /> : null}

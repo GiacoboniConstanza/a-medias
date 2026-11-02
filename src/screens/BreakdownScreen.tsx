@@ -162,12 +162,12 @@ export function BreakdownScreen() {
           aria-expanded={sheetOpen}
           aria-label={activeCount > 0 ? `Filtros, ${activeCount} activos` : 'Filtros'}
           className={`relative grid h-11 w-11 shrink-0 place-items-center rounded-full border text-lg ${
-            activeCount > 0 ? 'border-primary bg-primary text-white' : 'border-[#E8DCCB] bg-card text-primary'
+            activeCount > 0 ? 'border-primary bg-primary text-on-primary' : 'border-line bg-card text-primary'
           }`}
         >
           <AppIcon name="sliders" />
           {activeCount > 0 ? (
-            <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-card px-1 text-xs font-extrabold text-primary ring-2 ring-primary">
+            <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-card px-1 text-sm font-extrabold text-primary ring-2 ring-primary">
               {activeCount}
             </span>
           ) : null}
@@ -184,7 +184,7 @@ export function BreakdownScreen() {
         </p>
       ) : null}
 
-      <p className="mb-3 text-sm font-semibold text-text">{shareLine}</p>
+      <p className="mb-3 text-sm font-semibold text-title">{shareLine}</p>
 
       {listError ? <p className="mb-3 text-center text-sm font-bold text-alert-ink">{listError}</p> : null}
 
@@ -198,14 +198,14 @@ export function BreakdownScreen() {
               <p className="mt-1 font-display text-3xl font-bold leading-none">{formatMoney(total)}</p>
               <div className="my-2 flex h-2.5 overflow-hidden rounded-full bg-sand" aria-hidden="true">
                 <i className="h-full bg-lavender" style={{ width: `${sharedWidth}%` }} />
-                <i className="h-full bg-blush" style={{ width: `${privateWidth}%` }} />
+                <i className="h-full bg-alert" style={{ width: `${privateWidth}%` }} />
               </div>
               <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 text-sm font-semibold text-muted">
                 <span className="inline-flex items-center gap-1">
                   <AppIcon name="circle" className="text-[8px] text-lavender" /> Compartidos {formatMoney(shared)}
                 </span>
                 <span className="inline-flex items-center gap-1">
-                  <AppIcon name="circle" className="text-[8px] text-blush" /> Privados {formatMoney(privateSpent)}
+                  <AppIcon name="circle" className="text-[8px] text-alert" /> Privados {formatMoney(privateSpent)}
                 </span>
               </div>
             </>
@@ -239,7 +239,7 @@ export function BreakdownScreen() {
             <p className="text-sm font-semibold text-muted">Gastaste {formatMoney(periodTotal)} este mes</p>
             <div className="mt-1.5 flex h-1 overflow-hidden rounded-full bg-sand" aria-hidden="true">
               <i className="h-full bg-lavender" style={{ width: `${periodSharedWidth}%` }} />
-              <i className="h-full bg-blush" style={{ width: `${periodPrivateWidth}%` }} />
+              <i className="h-full bg-alert" style={{ width: `${periodPrivateWidth}%` }} />
             </div>
           </div>
           <BagPaidList expenses={visible.filter((expense) => expense.paidFromBag)} onOpen={setEditing} />
@@ -361,11 +361,11 @@ function ExpenseRows({
 function SoftEmpty() {
   return (
     <svg viewBox="0 0 160 120" className="mx-auto mb-2 h-28 w-40" role="img" aria-label="Ilustración de un filtro sin gastos">
-      <ellipse cx="80" cy="100" rx="48" ry="8" fill="#EADCCB" />
-      <circle cx="80" cy="62" r="30" fill="#F7B7C4" />
-      <path d="M80 84 C80 68 78 58 76 48" stroke="#6A784D" strokeWidth="3" fill="none" strokeLinecap="round" />
-      <path d="M76 60 C62 58 54 48 56 40 C70 40 78 50 76 60Z" fill="#C7DDAE" />
-      <circle cx="118" cy="34" r="9" fill="#F4C542" />
+      <ellipse cx="80" cy="100" rx="48" ry="8" fill="var(--color-line)" />
+      <circle cx="80" cy="62" r="30" fill="var(--color-alert)" />
+      <path d="M80 84 C80 68 78 58 76 48" stroke="var(--color-good)" strokeWidth="3" fill="none" strokeLinecap="round" />
+      <path d="M76 60 C62 58 54 48 56 40 C70 40 78 50 76 60Z" fill="var(--color-sage-light)" />
+      <circle cx="118" cy="34" r="9" fill="var(--color-warn)" />
     </svg>
   )
 }

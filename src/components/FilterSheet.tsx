@@ -178,7 +178,7 @@ export function FilterSheet({
       <button
         type="button"
         aria-label="Cerrar filtros"
-        className={`absolute inset-0 bg-[#202808]/45 transition-opacity duration-300 ${visible ? 'opacity-100' : 'opacity-0'}`}
+        className={`absolute inset-0 bg-title/45 transition-opacity duration-300 ${visible ? 'opacity-100' : 'opacity-0'}`}
         onClick={onClose}
       />
       <div
@@ -199,7 +199,7 @@ export function FilterSheet({
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
         >
-          <span className="h-1.5 w-12 rounded-full bg-[#E8DCCB]" aria-hidden="true" />
+          <span className="h-1.5 w-12 rounded-full bg-line" aria-hidden="true" />
         </div>
         <div className="flex items-center justify-between gap-3 px-5 pb-2">
           <h2 id={titleId} className="font-display text-xl font-semibold">
@@ -276,7 +276,7 @@ export function FilterSheet({
           <button
             type="button"
             onClick={() => onApply({ preset, customFrom, customTo, categoryIds: friendly ? [] : categoryIds })}
-            className="block min-h-[52px] w-full rounded-2xl bg-primary text-base font-semibold text-white"
+            className="block min-h-[52px] w-full rounded-2xl bg-primary text-base font-semibold text-on-primary"
           >
             {applyLabel}
           </button>
@@ -300,8 +300,8 @@ function SheetChip({ active, onClick, children }: { active: boolean; onClick: ()
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-2xl border-2 px-3 text-sm font-semibold text-text ${
-        active ? 'border-primary bg-sage-light' : 'border-[#E8DCCB] bg-white'
+      className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-2xl border-2 px-3 text-sm font-semibold text-title ${
+        active ? 'border-primary bg-sage-light' : 'border-line bg-sand-soft'
       }`}
     >
       {active ? <AppIcon name="check" /> : null}

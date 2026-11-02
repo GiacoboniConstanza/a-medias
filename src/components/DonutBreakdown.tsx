@@ -29,7 +29,7 @@ export function DonutBreakdown({
   titleIcon,
   center,
   slices,
-  track = '#EDE6F5',
+  track = 'var(--color-lavender-soft)',
   onSelect,
 }: {
   title: string
@@ -87,9 +87,9 @@ export function DonutBreakdown({
           })}
         </svg>
         <div className="pointer-events-none absolute top-1/2 left-1/2 flex w-[6.4rem] -translate-x-1/2 -translate-y-1/2 flex-col items-center text-center">
-          <p className="text-xs font-semibold leading-none text-muted">{center.kicker}</p>
+          <p className="text-sm font-semibold leading-none text-muted">{center.kicker}</p>
           <p className="mt-1 font-display text-[17px] font-bold leading-none">{center.value}</p>
-          {center.hint ? <p className="mt-1 text-[11px] font-semibold leading-none text-muted">{center.hint}</p> : null}
+          {center.hint ? <p className="mt-1 text-sm font-semibold leading-none text-muted">{center.hint}</p> : null}
         </div>
       </div>
       <div className="mt-2">
@@ -117,7 +117,7 @@ export function MonthBars({
         return (
           <li key={row.key} className="flex min-h-11 items-center gap-3">
             <span className="w-28 shrink-0 text-sm font-semibold">{row.label}</span>
-            <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-[#EDE6F5]" aria-hidden="true">
+            <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-lavender-soft" aria-hidden="true">
               <span className="donut-arc block h-full rounded-full" style={{ width: `${width}%`, background: color }} />
             </span>
             <span className="w-24 shrink-0 text-right font-display text-sm font-semibold">{formatMoney(row.amount)}</span>
@@ -132,23 +132,23 @@ function LegendRow({ slice, onSelect }: { slice: DonutSlice; onSelect?: (id: str
   const interactive = Boolean(onSelect && slice.selectable !== false)
   const marker = (
     <span
-      className={`grid h-7 w-7 place-items-center rounded-full text-xs font-semibold ${slice.soft ? 'ring-1 ring-line ring-inset' : ''}`}
-      style={{ background: slice.color, color: slice.ink ?? '#fff' }}
+      className={`grid h-7 w-7 place-items-center rounded-full text-sm font-semibold ${slice.soft ? 'ring-1 ring-line ring-inset' : ''}`}
+      style={{ background: slice.color, color: slice.ink ?? 'var(--color-on-primary)' }}
       aria-hidden="true"
     >
       {slice.marker}
     </span>
   )
   const body = slice.detail ? (
-    <span className="col-span-2 text-right text-xs font-semibold text-muted">{slice.detail}</span>
+    <span className="col-span-2 text-right text-sm font-semibold text-muted">{slice.detail}</span>
   ) : (
     <>
       <span className="text-right font-extrabold text-alert-ink">{slice.percent}</span>
-      <span className="text-right text-xs font-semibold text-muted">{formatMoney(slice.amount)}</span>
+      <span className="text-right text-sm font-semibold text-muted">{formatMoney(slice.amount)}</span>
     </>
   )
   const className =
-    'grid w-full grid-cols-[1.75rem_minmax(0,1fr)_2.4rem_5.75rem] items-center gap-1.5 border-b border-dashed border-line py-1.5 text-left text-[13px] last:border-b-0'
+    'grid w-full grid-cols-[1.75rem_minmax(0,1fr)_2.4rem_5.75rem] items-center gap-1.5 border-b border-dashed border-line py-1.5 text-left text-sm last:border-b-0'
 
   if (!interactive) {
     return (

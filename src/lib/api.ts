@@ -11,8 +11,8 @@ import { sortedTimes, type DailyKind, type ReminderPrefs, DEFAULT_REMINDER_PREFS
 import { supabase } from './supabase.ts'
 import { parseYearBalance, type YearReport } from './year.ts'
 
-const FUND_BAR = ['#4F6B57', '#6A784D', '#8FA37A']
-const GUSTOS_BAR = '#F4C542'
+const FUND_BAR = ['var(--color-primary)', 'var(--color-good)', 'var(--color-sage-light)']
+const GUSTOS_BAR = 'var(--color-warn)'
 
 export type Category = {
   id: string
@@ -311,14 +311,14 @@ export async function loadFinance(householdId: string, userId: string, month: st
             label: fund?.name ?? 'Gustos',
             icon: fund?.icon || 'bag-shopping',
             amount: money(allocation.amount),
-            color: toGustos ? GUSTOS_BAR : '#4F6B57',
+            color: toGustos ? GUSTOS_BAR : 'var(--color-primary)',
             toGustos,
           }
         })
       let fundShade = 0
       for (const part of parts) {
         if (part.toGustos) continue
-        part.color = FUND_BAR[fundShade % FUND_BAR.length] ?? '#4F6B57'
+        part.color = FUND_BAR[fundShade % FUND_BAR.length] ?? 'var(--color-primary)'
         fundShade += 1
       }
       return {
@@ -812,26 +812,28 @@ export async function contributeToGoal(input: {
 }
 
 export async function settleMonth(input: {
-  householdId: string
   month: string
   debtorId: string
   creditorId: string
   amount: number
-  settledBy: string
+  expenseAmount: number
+  expenseDebtorId: string | null
+  repayments: { loanId: string; amount: number }[]
 }): Promise<void> {
-  const { error } = await supabase.from('settlements').insert({
-    household_id: input.householdId,
-    month: input.month,
-    debtor_id: input.debtorId,
-    creditor_id: input.creditorId,
-    amount: input.amount,
-    settled_by: input.settledBy,
+  const { error } = await supabase.rpc('settle_shared_month', {
+    p_month: input.month,
+    p_debtor: input.debtorId,
+    p_creditor: input.creditorId,
+    p_amount: input.amount,
+    p_expense_amount: input.expenseAmount,
+    p_expense_debtor: input.expenseDebtorId,
+    p_repayments: input.repayments.map((row) => ({ loan_id: row.loanId, amount: row.amount })),
   })
   fail(error)
 }
 
 export async function undoSettlement(id: string): Promise<void> {
-  const { error } = await supabase.from('settlements').delete().eq('id', id)
+  const { error } = await supabase.rpc('undo_shared_month', { p_settlement: id })
   fail(error)
 }
 

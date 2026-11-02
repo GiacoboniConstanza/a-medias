@@ -14,8 +14,10 @@ import {
   faCar,
   faCartShopping,
   faChampagneGlasses,
+  faChartColumn,
   faChartPie,
   faCheck,
+  faCircleQuestion,
   faCircle,
   faCircleInfo,
   faCookie,
@@ -50,6 +52,7 @@ import {
   faPlane,
   faPlus,
   faReceipt,
+  faScaleBalanced,
   faSackDollar,
   faSeedling,
   faSun,
@@ -122,7 +125,9 @@ const ICONS: Record<string, IconDefinition> = {
   car: faCar,
   'cart-shopping': faCartShopping,
   'champagne-glasses': faChampagneGlasses,
+  'chart-column': faChartColumn,
   'chart-pie': faChartPie,
+  'circle-question': faCircleQuestion,
   check: faCheck,
   circle: faCircle,
   'circle-info': faCircleInfo,
@@ -161,6 +166,7 @@ const ICONS: Record<string, IconDefinition> = {
   pills: faPills,
   'piggy-bank': faPiggyBank,
   receipt: faReceipt,
+  'scale-balanced': faScaleBalanced,
   'sack-dollar': faSackDollar,
   seedling: faSeedling,
   sun: faSun,
@@ -191,11 +197,11 @@ export function iconByName(name: string | null | undefined): IconDefinition {
   return ICONS[DEFAULT_ICON] ?? faTag
 }
 
-const SAGE_SURFACE = { background: '#E3EED4', color: '#4F6B57' }
-const COPPER_SURFACE = { background: '#FCE6EA', color: '#85503C' }
-const GOLD_SURFACE = { background: '#FFF1C2', color: '#85503C' }
-const BLUE_SURFACE = { background: '#E6EFF7', color: '#3D5874' }
-const LAVENDER_SURFACE = { background: '#EDE6F5', color: '#5C5180' }
+const SAGE_SURFACE = { background: 'var(--color-sage-soft)', color: 'var(--color-primary)' }
+const COPPER_SURFACE = { background: 'var(--color-copper-soft)', color: 'var(--color-alert-ink)' }
+const GOLD_SURFACE = { background: 'var(--color-gold-soft)', color: 'var(--color-warn-ink)' }
+const BLUE_SURFACE = { background: 'var(--color-blue-soft)', color: 'var(--color-blue-ink)' }
+const LAVENDER_SURFACE = { background: 'var(--color-lavender-soft)', color: 'var(--color-lavender-ink)' }
 
 const ICON_SURFACES: Record<string, { background: string; color: string }> = {
   wifi: BLUE_SURFACE,

@@ -2,7 +2,7 @@ import type { ButtonHTMLAttributes, ReactNode } from 'react'
 import { AppIcon } from './AppIcon.tsx'
 
 export const inputClass =
-  'min-h-11 w-full rounded-2xl border border-line bg-sand px-3 py-2 text-base font-semibold text-text placeholder:text-muted'
+  'min-h-11 w-full rounded-2xl border border-line bg-sand-soft px-3 py-2 text-base font-semibold text-title placeholder:text-muted'
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
   return <section className={`mb-3 rounded-3xl bg-card p-4 shadow-card ${className}`}>{children}</section>
@@ -14,9 +14,9 @@ export function Button({
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'alt' | 'pink' }) {
   const tone = {
-    primary: 'bg-primary text-white',
+    primary: 'bg-primary text-on-primary',
     alt: 'bg-sand text-primary',
-    pink: 'bg-primary text-white',
+    pink: 'bg-primary text-on-primary',
   }[variant]
   return (
     <button
@@ -65,7 +65,7 @@ export function Chip({
       onClick={onClick}
       aria-pressed={active}
       className={`inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-2xl px-3 text-sm font-semibold ${
-        active ? 'bg-primary text-white' : 'border border-line bg-card text-text'
+        active ? 'bg-primary text-on-primary' : 'border border-line bg-card text-title'
       } ${className}`}
     >
       {active ? <AppIcon name="check" /> : null}
@@ -149,7 +149,7 @@ export function Toggle({
       className={`relative h-11 w-16 shrink-0 rounded-full border border-line disabled:opacity-50 ${checked ? 'bg-primary' : 'bg-sand'}`}
     >
       <span
-        className={`absolute left-1 top-1.5 h-8 w-8 rounded-full bg-white shadow-soft transition-transform motion-reduce:transition-none ${
+        className={`absolute left-1 top-1.5 h-8 w-8 rounded-full bg-sand-soft shadow-soft transition-transform motion-reduce:transition-none ${
           checked ? 'translate-x-6' : 'translate-x-0'
         }`}
       />
@@ -160,7 +160,7 @@ export function Toggle({
 export function Toast({ children }: { children: string }) {
   if (!children) return null
   return (
-    <p role="status" className="fixed bottom-28 left-1/2 z-50 max-w-[20rem] -translate-x-1/2 rounded-2xl bg-primary px-4 py-3 text-center text-sm font-semibold text-white shadow-fab">
+    <p role="status" className="fixed bottom-28 left-1/2 z-50 max-w-[20rem] -translate-x-1/2 rounded-2xl bg-primary px-4 py-3 text-center text-sm font-semibold text-on-primary shadow-fab">
       {children}
     </p>
   )

@@ -27,7 +27,7 @@ import {
 import { monthTitle, shortDate, todayISO } from '../lib/month.ts'
 import type { ContributionMode } from '../types/database.ts'
 
-const primaryButton = 'block min-h-[52px] w-full rounded-2xl bg-primary text-base font-semibold text-white disabled:opacity-50'
+const primaryButton = 'block min-h-[52px] w-full rounded-2xl bg-primary text-base font-semibold text-on-primary disabled:opacity-50'
 const quietButton = 'mt-2 block min-h-[52px] w-full rounded-2xl border-2 border-primary bg-card text-base font-semibold text-primary'
 
 export function GoalScreen() {
@@ -105,7 +105,7 @@ export function GoalScreen() {
             <DonutBreakdown
               title={goal.name}
               titleIcon={
-                <span className="grid h-7 w-7 place-items-center rounded-full bg-[#EDE6F5] text-sm text-[#5C4E86]" aria-hidden="true">
+                <span className="grid h-7 w-7 place-items-center rounded-full bg-lavender-soft text-sm text-lavender-ink" aria-hidden="true">
                   <AppIcon name={goal.icon} />
                 </span>
               }
@@ -114,24 +114,24 @@ export function GoalScreen() {
                 value: formatMoney(saved),
                 hint: `de ${formatMoney(goal.target)}`,
               }}
-              track="#EDE6F5"
+              track="var(--color-lavender-soft)"
               slices={goalSlices(people, goal.byUser, goal.target, remaining)}
               onSelect={setDetailId}
             />
-            {pace ? <p className="mt-3 text-center text-xs font-semibold leading-5 text-muted">{pace}</p> : null}
-            <p className={`text-center text-xs font-bold leading-5 text-primary ${pace ? 'mt-1' : 'mt-3'}`}>
+            {pace ? <p className="mt-3 text-center text-sm font-semibold leading-5 text-muted">{pace}</p> : null}
+            <p className={`text-center text-sm font-bold leading-5 text-primary ${pace ? 'mt-1' : 'mt-3'}`}>
               {goalPhrase(saved, goal.target)}
             </p>
           </Card>
 
           <button
             type="button"
-            className="mt-4 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-primary text-base font-semibold text-white"
+            className="mt-4 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-primary text-base font-semibold text-on-primary"
             onClick={() => setSheetOpen(true)}
           >
             <AppIcon name="plus" /> Sumar a la meta
           </button>
-          <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-sm font-semibold text-text">
+          <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-sm font-semibold text-title">
             <AppIcon name="lock" /> {partnerName} ve tu aporte acá, no tus fondos privados.
           </p>
 
@@ -208,7 +208,7 @@ export function GoalScreen() {
             value={name}
             onChange={(event) => setName(event.target.value)}
             aria-label="Nombre de la meta"
-            className="mt-2 min-h-11 w-full rounded-2xl bg-sand px-3 py-2 font-bold text-text"
+            className="mt-2 min-h-11 w-full rounded-2xl bg-sand px-3 py-2 font-bold text-title"
           />
           <div className="my-2">
             <IconPicker value={icon} onChange={setIcon} />
@@ -222,7 +222,7 @@ export function GoalScreen() {
               type="date"
               value={targetDate}
               onChange={(event) => setTargetDate(event.target.value)}
-              className="mt-1 min-h-11 w-full rounded-2xl bg-sand px-3 py-2 font-bold text-text"
+              className="mt-1 min-h-11 w-full rounded-2xl bg-sand px-3 py-2 font-bold text-title"
             />
           </label>
           {editingTarget ? (
@@ -239,7 +239,7 @@ export function GoalScreen() {
       {toast ? (
         <p
           role="status"
-          className="fixed bottom-28 left-1/2 z-50 max-w-[20rem] -translate-x-1/2 rounded-2xl bg-primary px-4 py-3 text-center text-sm font-semibold text-white shadow-fab"
+          className="fixed bottom-28 left-1/2 z-50 max-w-[20rem] -translate-x-1/2 rounded-2xl bg-primary px-4 py-3 text-center text-sm font-semibold text-on-primary shadow-fab"
         >
           {toast}
         </p>
@@ -266,7 +266,7 @@ function goalSlices(
         color,
         percent: shareLabel(amount, basis),
         marker: initials(person.name),
-        ink: color === '#A79BCB' ? '#202808' : '#ffffff',
+        ink: color === 'var(--color-lavender)' ? 'var(--color-lavender-ink)' : 'var(--color-on-primary)',
         detail: amount > 0 ? undefined : 'Todavía no sumó',
       }
     }),
@@ -274,9 +274,9 @@ function goalSlices(
       id: 'falta',
       label: 'Falta',
       amount: remaining,
-      color: '#EDE6F5',
+      color: 'var(--color-lavender-soft)',
       percent: shareLabel(remaining, basis),
-      ink: '#202808',
+      ink: 'var(--color-title)',
       selectable: false,
       soft: true,
     },
@@ -295,7 +295,7 @@ function PersonSheet({
   const mine = contributions.filter((item) => item.userId === person?.id)
   const total = mine.reduce((sum, item) => sum + item.amount, 0)
   const index = person ? personRank(person.name) : 0
-  const color = person ? personTone(person.name, index).bar : '#4F6B57'
+  const color = person ? personTone(person.name, index).bar : 'var(--color-primary)'
   const rows = contributionMonths(mine).map((row) => ({
     key: row.month,
     label: monthTitle(row.month),
@@ -435,8 +435,8 @@ function personRank(name: string): number {
 function personTone(name: string, index: number): { circle: string; bar: string } {
   const key = name.trim().toLowerCase()
   const lavender = key === 'maru' || (key !== 'coty' && index % 2 === 1)
-  if (lavender) return { circle: 'bg-[#EDE6F5] text-text', bar: '#A79BCB' }
-  return { circle: 'bg-sage-light text-text', bar: '#4F6B57' }
+  if (lavender) return { circle: 'bg-lavender-soft text-title', bar: 'var(--color-lavender)' }
+  return { circle: 'bg-sage-light text-title', bar: 'var(--color-primary)' }
 }
 
 function initials(name: string): string {

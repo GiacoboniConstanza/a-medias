@@ -26,6 +26,7 @@ export type LoanRepayment = {
   period: string
   notes: string | null
   createdBy: string
+  settlementId: string | null
 }
 
 export type LoanSide = {
@@ -306,7 +307,7 @@ export async function loadLoanBalances(): Promise<Loan[]> {
 export async function loadRepayments(loanId: string): Promise<LoanRepayment[]> {
   const { data, error } = await supabase
     .from('loan_repayments')
-    .select('id, loan_id, amount, paid_on, period, notes, created_by')
+    .select('id, loan_id, amount, paid_on, period, notes, created_by, settlement_id')
     .eq('loan_id', loanId)
     .order('paid_on', { ascending: true })
   if (error) throw new Error(error.message)
@@ -318,7 +319,23 @@ export async function loadRepayments(loanId: string): Promise<LoanRepayment[]> {
     period: row.period,
     notes: row.notes,
     createdBy: row.created_by,
+    settlementId: row.settlement_id,
   }))
+}
+
+export async function loadSettlementRepayments(settlementId: string): Promise<{ loanId: string; lenderId: string; borrowerId: string; amount: number }[]> {
+  const [repayments, loans] = await Promise.all([
+    supabase.from('loan_repayments').select('loan_id, amount').eq('settlement_id', settlementId),
+    supabase.from('loans').select('id, lender_id, borrower_id'),
+  ])
+  if (repayments.error) throw new Error(repayments.error.message)
+  if (loans.error) throw new Error(loans.error.message)
+  const parties = new Map((loans.data ?? []).map((loan) => [loan.id, { lenderId: loan.lender_id, borrowerId: loan.borrower_id }]))
+  return (repayments.data ?? []).flatMap((row) => {
+    const loan = parties.get(row.loan_id)
+    if (!loan) return []
+    return [{ loanId: row.loan_id, ...loan, amount: money(row.amount) }]
+  })
 }
 
 export async function saveLoan(input: {

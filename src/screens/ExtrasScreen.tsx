@@ -88,7 +88,7 @@ export function ExtrasScreen() {
         </h2>
         <p className="mt-1 font-display text-[26px] font-bold leading-none text-alert-ink">{formatMoney(split.total)}</p>
         {latestExtra ? (
-          <p className="mt-1 text-xs font-semibold text-muted">
+          <p className="mt-1 text-sm font-semibold text-muted">
             {data.extrasThisMonth.length === 1
               ? `${latestExtra.label} · ${shortDate(latestExtra.receivedOn)}`
               : `${data.extrasThisMonth.length} extras este mes`}
@@ -100,17 +100,17 @@ export function ExtrasScreen() {
           aria-label={`A tus fondos ${formatMoney(split.funds)}, a gustos ${formatMoney(split.gustos)}`}
         >
           <i className="h-full bg-sage-light" style={{ width: `${fundWidth}%` }} />
-          <i className="h-full bg-blush" style={{ width: `${gustosWidth}%` }} />
+          <i className="h-full bg-alert" style={{ width: `${gustosWidth}%` }} />
         </div>
-        <div className="flex justify-between gap-2 text-xs font-semibold text-muted">
+        <div className="flex justify-between gap-2 text-sm font-semibold text-muted">
           <span className="inline-flex items-center gap-1">
             <AppIcon name="circle" className="text-[8px] text-sage-light" /> A tus fondos {formatMoney(split.funds)}
           </span>
           <span className="inline-flex items-center gap-1">
-            <AppIcon name="circle" className="text-[8px] text-blush" /> A gustos {formatMoney(split.gustos)}
+            <AppIcon name="circle" className="text-[8px] text-alert" /> A gustos {formatMoney(split.gustos)}
           </span>
         </div>
-        <button type="button" onClick={() => setExtraOpen(true)} className="mt-3 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-primary text-base font-semibold text-white">
+        <button type="button" onClick={() => setExtraOpen(true)} className="mt-3 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-primary text-base font-semibold text-on-primary">
           <AppIcon name="plus" /> Cargar un extra
         </button>
       </Card>
@@ -138,13 +138,13 @@ export function ExtrasScreen() {
                     <PotPlant variant="fondo" progress={percent} className="mx-auto aspect-[92/104] w-full max-w-[92px]" />
                     <b className="mt-0.5 block truncate text-sm">{fund.name}</b>
                     <span className="block font-display text-[15px] font-bold leading-tight text-primary">{percent}%</span>
-                    <span className="block text-xs font-semibold text-muted">{formatMoney(Math.max(fund.saved, 0))}</span>
+                    <span className="block text-sm font-semibold text-muted">{formatMoney(Math.max(fund.saved, 0))}</span>
                   </button>
                   <div className="flex items-center justify-center gap-1">
-                    <button type="button" onClick={() => openMove('use', fund)} className="min-h-11 px-1 text-xs font-extrabold text-primary">
+                    <button type="button" onClick={() => openMove('use', fund)} className="min-h-11 px-1 text-sm font-extrabold text-primary">
                       Usar
                     </button>
-                    <button type="button" onClick={() => openMove('to_gustos', fund)} className="min-h-11 px-1 text-xs font-extrabold text-primary">
+                    <button type="button" onClick={() => openMove('to_gustos', fund)} className="min-h-11 px-1 text-sm font-extrabold text-primary">
                       A gustos
                     </button>
                   </div>
@@ -161,10 +161,10 @@ export function ExtrasScreen() {
           <div className="min-w-0 flex-1">
             <h2 className="font-display text-sm font-semibold text-muted">Gustos</h2>
             <p className="font-display text-[19px] font-bold leading-tight">Te quedan {formatMoney(Math.max(data.gustosFree, 0))}</p>
-            <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-[#F2EADF]" role="img" aria-label={`${Math.round(freeWidth)} por ciento libre`}>
-              <div className="h-full rounded-full bg-[#E98C9E]" style={{ width: `${freeWidth}%` }} />
+            <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-sand" role="img" aria-label={`${Math.round(freeWidth)} por ciento libre`}>
+              <div className="h-full rounded-full bg-[var(--color-alert)]" style={{ width: `${freeWidth}%` }} />
             </div>
-            <p className="mt-1 text-xs font-semibold text-muted">
+            <p className="mt-1 text-sm font-semibold text-muted">
               {data.gustosPool > 0
                 ? `de ${formatMoney(data.gustosPool)} de este mes`
                 : 'Cuando un extra no va a un fondo, queda acá.'}
@@ -175,7 +175,7 @@ export function ExtrasScreen() {
           type="button"
           onClick={() => setGustoOpen(true)}
           disabled={data.gustosFree <= 0}
-          className="mt-3 block min-h-11 w-full rounded-2xl bg-primary text-sm font-semibold text-white disabled:opacity-50"
+          className="mt-3 block min-h-11 w-full rounded-2xl bg-primary text-sm font-semibold text-on-primary disabled:opacity-50"
         >
           Me di un gusto
         </button>
@@ -191,7 +191,7 @@ export function ExtrasScreen() {
       </Card>
 
       {gustos.level === 'low' ? (
-        <Card className="bg-debt text-sm">
+        <Card className="bg-copper-soft text-sm">
           <b className="inline-flex items-center gap-1 text-alert-ink">
             <AppIcon name="triangle-exclamation" /> Ojo:
           </b>{' '}
@@ -212,7 +212,7 @@ export function ExtrasScreen() {
       </Card>
 
       {toast ? (
-        <p role="status" className="fixed bottom-28 left-1/2 z-50 max-w-[20rem] -translate-x-1/2 rounded-2xl bg-primary px-4 py-3 text-center text-sm font-semibold text-white shadow-fab">
+        <p role="status" className="fixed bottom-28 left-1/2 z-50 max-w-[20rem] -translate-x-1/2 rounded-2xl bg-primary px-4 py-3 text-center text-sm font-semibold text-on-primary shadow-fab">
           {toast}
         </p>
       ) : null}
@@ -262,7 +262,7 @@ function EmptyFunds({ onCreate }: { onCreate: () => void }) {
       <button
         type="button"
         onClick={onCreate}
-        className="mt-3 inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-primary px-4 text-sm font-semibold text-white"
+        className="mt-3 inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-primary px-4 text-sm font-semibold text-on-primary"
       >
         <AppIcon name="plus" /> Crear el primer fondo
       </button>
@@ -277,19 +277,19 @@ function ExtraRow({ extra }: { extra: ExtraItem }) {
   return (
     <div className="border-b border-dashed border-line py-2.5 last:border-0">
       <button type="button" className="flex min-h-11 w-full items-center gap-3 text-left" onClick={() => extra.notes && setOpen((current) => !current)}>
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#FFF1C2] text-alert-ink">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gold-soft text-alert-ink">
           <AppIcon name="sun" />
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-base font-extrabold">
             {extra.label}
-            {extra.notes ? <AppIcon name="note-sticky" className="ml-1.5 text-xs text-muted" /> : null}
+            {extra.notes ? <AppIcon name="note-sticky" className="ml-1.5 text-sm text-muted" /> : null}
           </p>
           <p className="text-base font-semibold text-muted">
             {shortDate(extra.receivedOn)} · {split}
           </p>
         </div>
-        <p className="shrink-0 font-display text-base font-bold text-good">+ {formatMoney(extra.amount)}</p>
+        <p className="shrink-0 whitespace-nowrap font-display text-base font-bold text-primary">+ {formatMoney(extra.amount)}</p>
       </button>
       {open && extra.notes ? <p className="mt-2 text-base font-semibold text-muted">{extra.notes}</p> : null}
     </div>
@@ -308,16 +308,16 @@ function MovementRow({ movement }: { movement: BagMovementItem }) {
   const outgoing = movement.kind === 'gusto' || movement.kind === 'use'
   return (
     <div className="flex items-center gap-3 border-b border-dashed border-line py-2.5 last:border-0">
-      <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${movement.kind === 'gusto' ? 'bg-[#FCE6EA] text-alert-ink' : 'bg-sage-light text-primary'}`}>
+      <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-full ${movement.kind === 'gusto' ? 'bg-copper-soft text-alert-ink' : 'bg-sage-light text-primary'}`}>
         <AppIcon name={movement.kind === 'gusto' ? 'bag-shopping' : 'seedling'} />
       </span>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-extrabold">{copy.title}</p>
-        <p className="text-xs font-semibold text-muted">
+        <p className="text-sm font-semibold text-muted">
           {shortDate(movement.happenedOn)} · {copy.detail}
         </p>
       </div>
-      <p className={`shrink-0 font-display text-[15px] font-bold ${outgoing ? 'text-text' : 'text-good'}`}>
+      <p className={`shrink-0 whitespace-nowrap font-display text-[15px] font-bold ${outgoing ? 'text-title' : 'text-primary'}`}>
         {outgoing ? '−' : '+'} {formatMoney(movement.amount)}
       </p>
     </div>

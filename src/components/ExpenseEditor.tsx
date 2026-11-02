@@ -31,9 +31,9 @@ export type ExpensePrefill = {
 }
 
 const saveButton =
-  'inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#4F6B57] px-4 text-base font-semibold text-white disabled:opacity-50'
+  'inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 text-base font-semibold text-on-primary disabled:opacity-50'
 const deleteButton =
-  'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl border border-[#85503C] text-base font-semibold text-[#85503C] disabled:opacity-50'
+  'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl border border-alert-ink text-base font-semibold text-alert-ink disabled:opacity-50'
 
 export function ExpenseEditor({
   presentation,
@@ -268,7 +268,7 @@ function ExpenseForm({
 
   const footer = readOnly ? null : confirming === 'delete' ? (
     <div className="space-y-2">
-      <p className="text-center text-sm font-bold text-text">¿Eliminar este gasto? No se puede deshacer.</p>
+      <p className="text-center text-sm font-bold text-title">¿Eliminar este gasto? No se puede deshacer.</p>
       <button type="button" className={deleteButton} onClick={() => void remove()} disabled={saving}>
         <AppIcon name="trash" /> {saving ? 'Eliminando…' : 'Eliminar'}
       </button>
@@ -278,7 +278,7 @@ function ExpenseForm({
     </div>
   ) : confirming === 'discard' ? (
     <div className="space-y-2">
-      <p className="text-center text-sm font-bold text-text">¿Descartar este gasto?</p>
+      <p className="text-center text-sm font-bold text-title">¿Descartar este gasto?</p>
       <button type="button" className={deleteButton} onClick={onClose}>
         Descartar
       </button>
@@ -318,7 +318,7 @@ function ExpenseForm({
       }}
     >
       {prefill ? (
-        <p className="mb-3 rounded-2xl bg-[#FCE6EA] px-3 py-2 text-sm font-bold leading-snug text-[#85503C]">
+        <p className="mb-3 rounded-2xl bg-copper-soft px-3 py-2 text-sm font-bold leading-snug text-alert-ink">
           Revisá el comprobante. No se guarda hasta que toques Guardar.
         </p>
       ) : null}
@@ -376,9 +376,9 @@ function ExpenseForm({
           className={`mt-1 ${inputClass}`}
           placeholder="Alquiler, súper, café…"
         />
-        {showErrors && missingName ? <span className="mt-1 block font-bold text-[#85503C]">Poné un nombre.</span> : null}
+        {showErrors && missingName ? <span className="mt-1 block font-bold text-alert-ink">Poné un nombre.</span> : null}
         {prefill?.missingTitle && title.trim() === '' ? (
-          <span className="mt-1 block font-bold text-[#85503C]">No pude leer el comercio. Podés escribirlo vos.</span>
+          <span className="mt-1 block font-bold text-alert-ink">No pude leer el comercio. Podés escribirlo vos.</span>
         ) : null}
       </label>
       <div className="mb-3">
@@ -388,7 +388,7 @@ function ExpenseForm({
             <Chip
               key={category.id}
               active={categoryId === category.id}
-              className={category.id === suggestedId ? 'ring-2 ring-[#E98C9E]' : ''}
+              className={category.id === suggestedId ? 'ring-2 ring-alert' : ''}
               onClick={() => {
                 if (readOnly) return
                 setCategoryTouched(true)
@@ -404,7 +404,7 @@ function ExpenseForm({
             </Chip>
           )}
         </div>
-        {showErrors && missingCategory ? <p className="mt-1 text-sm font-bold text-[#85503C]">Elegí una categoría.</p> : null}
+        {showErrors && missingCategory ? <p className="mt-1 text-sm font-bold text-alert-ink">Elegí una categoría.</p> : null}
         {drafting ? (
           <div className="mt-2 rounded-3xl bg-card p-4 shadow-card">
             <input
@@ -450,7 +450,7 @@ function ExpenseForm({
           className={`mt-1 ${inputClass}`}
         />
         {prefill?.missingDate && !dateTouched ? (
-          <span className="mt-1 block font-bold text-[#85503C]">No pude leer la fecha. Dejé la de hoy para que la corrijas.</span>
+          <span className="mt-1 block font-bold text-alert-ink">No pude leer la fecha. Dejé la de hoy para que la corrijas.</span>
         ) : null}
       </label>
       <div className="mb-3">
@@ -504,7 +504,7 @@ function ExpenseForm({
   return (
     <>
       <header className="mb-2 flex items-center justify-between">
-        <button type="button" onClick={requestClose} className="inline-flex min-h-11 items-center gap-1 font-semibold text-text">
+        <button type="button" onClick={requestClose} className="inline-flex min-h-11 items-center gap-1 font-semibold text-title">
           <AppIcon name="xmark" /> Cancelar
         </button>
         <b className="font-display font-semibold">{editing ? 'Editar gasto' : 'Nuevo gasto'}</b>

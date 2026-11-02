@@ -86,14 +86,14 @@ export function YearScreen() {
 
   return (
     <>
-      <Link to="/" className="mb-2 inline-flex min-h-11 items-center gap-1 font-semibold text-text">
+      <Link to="/" className="mb-2 inline-flex min-h-11 items-center gap-1 font-semibold text-title">
         <AppIcon name="chevron-left" /> Volver
       </Link>
       <header className="mb-1 flex items-center justify-between gap-3">
         <h1 className="inline-flex items-center gap-1.5 font-display text-base font-semibold text-primary">
           <AppIcon name="chart-pie" /> Mi año
         </h1>
-        <span className="inline-flex min-h-7 items-center gap-1.5 rounded-2xl bg-sage-light px-2.5 py-1 text-xs font-extrabold text-primary">
+        <span className="inline-flex min-h-7 items-center gap-1.5 rounded-2xl bg-sage-light px-2.5 py-1 text-sm font-extrabold text-primary">
           <AppIcon name="lock" /> Solo vos
         </span>
       </header>
@@ -168,18 +168,18 @@ function FriendlyView({
 
   return (
     <>
-      <Card className="year-rise bg-[linear-gradient(160deg,#FFFAF4,#eef5e3)]">
+      <Card className="year-rise bg-[linear-gradient(160deg,var(--color-card),var(--color-sage-soft))]">
         <div className="flex items-center gap-3">
           <YearPlant />
           <div>
             <h2 className="font-display text-[17px] font-semibold">Tu año en un vistazo</h2>
-            <p className="text-sm font-bold text-good">{yearGlancePhrase(totals, report.previous)}</p>
+            <p className="text-sm font-bold text-title">{yearGlancePhrase(totals, report.previous)}</p>
           </div>
         </div>
         <div className="mt-3 flex gap-1.5">
-          <Stat icon="arrow-down" label="Ingresos" value={totals.income} className="bg-[#F2EADF]" />
-          <Stat icon="arrow-up" label="Gastos" value={totals.expenses} className="bg-[#FCE6EA]" valueClass="text-alert-ink" />
-          <Stat icon="piggy-bank" label="Ahorraste" value={totals.saved} className="bg-[#E3EED4]" valueClass="text-primary" />
+          <Stat icon="arrow-down" label="Ingresos" value={totals.income} className="bg-sand" />
+          <Stat icon="arrow-up" label="Gastos" value={totals.expenses} className="bg-copper-soft" valueClass="text-alert-ink" />
+          <Stat icon="piggy-bank" label="Ahorraste" value={totals.saved} className="bg-sage-soft" valueClass="text-primary" />
         </div>
       </Card>
 
@@ -187,7 +187,7 @@ function FriendlyView({
         <h2 className="mb-2 flex items-center gap-2 font-display text-[17px] font-semibold">
           <AppIcon name="seedling" className="text-primary" /> Cómo fueron tus ingresos
         </h2>
-        <p className="mb-1 flex flex-wrap gap-3.5 text-xs font-semibold text-muted">
+        <p className="mb-1 flex flex-wrap gap-3.5 text-sm font-semibold text-muted">
           <span className="inline-flex items-center gap-1">
             <AppIcon name="minus" className="text-primary" /> Sueldo base
           </span>
@@ -196,25 +196,25 @@ function FriendlyView({
           </span>
         </p>
         <IncomeChart year={report.year} months={report.months} caption={caption} today={today} />
-        <p className="mt-1.5 text-xs font-semibold text-muted">{caption}</p>
+        <p className="mt-1.5 text-sm font-semibold text-muted">{caption}</p>
       </Card>
 
       <div className="mb-3 flex gap-3">
-        <Card className="year-rise mb-0 flex-1 bg-[#eef5e3]">
+        <Card className="year-rise mb-0 flex-1 bg-[var(--color-sage-soft)]">
           <span className="grid h-10 w-10 place-items-center rounded-full bg-sage-light text-primary">
             <AppIcon name="trophy" />
           </span>
-          <p className="mt-2 text-xs text-muted">Tu mejor mes</p>
+          <p className="mt-2 text-sm text-muted">Tu mejor mes</p>
           <p className="font-display text-xl font-bold">{best ? monthHeading(best.month) : '—'}</p>
-          <p className="text-xs text-muted">{best?.saved != null ? `Ahorraste ${formatMoney(best.saved)}` : 'Todavía no hay un mes para comparar'}</p>
+          <p className="text-sm text-muted">{best?.saved != null ? `Ahorraste ${formatMoney(best.saved)}` : 'Todavía no hay un mes para comparar'}</p>
         </Card>
-        <Card className="year-rise mb-0 flex-1 bg-[#fdeee9]">
-          <span className="grid h-10 w-10 place-items-center rounded-full bg-blush text-alert-ink">
+        <Card className="year-rise mb-0 flex-1 bg-copper-soft">
+          <span className="grid h-10 w-10 place-items-center rounded-full bg-copper-soft text-alert-ink">
             <AppIcon name="fire" />
           </span>
-          <p className="mt-2 text-xs text-muted">El mes más gastador</p>
+          <p className="mt-2 text-sm text-muted">El mes más gastador</p>
           <p className="font-display text-xl font-bold">{spender ? monthHeading(spender.month) : '—'}</p>
-          <p className="text-xs text-muted">{spender?.expenses != null ? `Gastaste ${formatMoney(spender.expenses)}` : 'Cuando anotes gastos, va a aparecer acá'}</p>
+          <p className="text-sm text-muted">{spender?.expenses != null ? `Gastaste ${formatMoney(spender.expenses)}` : 'Cuando anotes gastos, va a aparecer acá'}</p>
         </Card>
       </div>
 
@@ -240,21 +240,21 @@ function FriendlyView({
                   amount: item.total,
                   color: color.fill,
                   ink: color.ink,
-                  soft: color.ink !== '#ffffff',
+                  soft: color.ink !== 'var(--color-on-primary)',
                   percent: `${percents[index] ?? 0}%`,
                   marker: <AppIcon name={item.icon} />,
                 }
               })}
               onSelect={onCategory}
             />
-            <p className="mt-2 text-center text-xs font-semibold text-muted">
+            <p className="mt-2 text-center text-sm font-semibold text-muted">
               <AppIcon name="hand-pointer" /> Tocá una categoría para ver el detalle
             </p>
           </>
         )}
       </Card>
 
-      <Card className="year-rise bg-[#FFF3DC]">
+      <Card className="year-rise bg-gold-soft">
         <h2 className="mb-1 flex items-center gap-2 font-display text-[17px] font-semibold">
           <AppIcon name="bag-shopping" className="text-alert-ink" /> Tus gustos del año
         </h2>
@@ -276,7 +276,7 @@ function FriendlyView({
               <Ring
                 key={fund.id}
                 icon={fund.icon}
-                color="#4F6B57"
+                color="var(--color-primary)"
                 ratio={fund.target > 0 ? fund.saved / fund.target : 0}
                 title={fund.name}
                 detail={`${formatMoney(fund.saved)} / ${formatMoney(fund.target)}`}
@@ -286,7 +286,7 @@ function FriendlyView({
             {report.goal ? (
               <Ring
                 icon={report.goal.icon}
-                color="#A79BCB"
+                color="var(--color-lavender)"
                 ratio={report.goal.target > 0 ? report.goal.total / report.goal.target : 0}
                 title={report.goal.name}
                 detail={`${formatMoney(report.goal.total)} / ${formatMoney(report.goal.target)}`}
@@ -305,7 +305,7 @@ function FriendlyView({
         <Card key={moment.text} className="year-rise flex items-center gap-3">
           <span
             className={`grid h-10 w-10 shrink-0 place-items-center rounded-full ${
-              moment.tone === 'blush' ? 'bg-[#FCE6EA] text-alert-ink' : moment.tone === 'sun' ? 'bg-[#FFF3C9] text-alert-ink' : 'bg-[#E3EED4] text-primary'
+              moment.tone === 'blush' ? 'bg-copper-soft text-alert-ink' : moment.tone === 'sun' ? 'bg-gold-soft text-alert-ink' : 'bg-sage-soft text-primary'
             }`}
           >
             <AppIcon name={moment.icon} />
@@ -336,8 +336,8 @@ function AccountingView({
       <Card className="mb-0">
         <h2 className="mb-3 font-display text-[17px] font-semibold">Resumen</h2>
         <ul>
-          <SummaryRow icon="arrow-down" label="Ingresos" value={totals.income} iconClass="bg-[#F2EADF] text-primary" />
-          <SummaryRow icon="arrow-up" label="Gastos" value={totals.expenses} iconClass="bg-[#FCE6EA] text-alert-ink" valueClass="text-alert-ink" />
+          <SummaryRow icon="arrow-down" label="Ingresos" value={totals.income} iconClass="bg-sand text-primary" />
+          <SummaryRow icon="arrow-up" label="Gastos" value={totals.expenses} iconClass="bg-copper-soft text-alert-ink" valueClass="text-alert-ink" />
           <SummaryRow icon="piggy-bank" label="Ahorraste" value={totals.saved} iconClass="bg-sage-light text-primary" valueClass="text-primary" />
         </ul>
       </Card>
@@ -347,7 +347,7 @@ function AccountingView({
           {rows.map((row) => {
             if (row.kind === 'empty') {
               return (
-                <li key={`empty-${row.from}`} className="border-b border-line py-1.5 text-[13px] font-semibold leading-5 text-muted last:border-b-0">
+                <li key={`empty-${row.from}`} className="border-b border-line py-1.5 text-sm font-semibold leading-5 text-muted last:border-b-0">
                   {monthSpan(row.from, row.to)} · sin registros
                 </li>
               )
@@ -355,7 +355,7 @@ function AccountingView({
             if (row.kind === 'future') {
               const pending = row.from === row.to ? 'todavía no llega' : 'todavía no llegan'
               return (
-                <li key={`future-${row.from}`} className="border-b border-line py-1.5 text-[13px] font-medium leading-5 text-muted last:border-b-0">
+                <li key={`future-${row.from}`} className="border-b border-line py-1.5 text-sm font-medium leading-5 text-muted last:border-b-0">
                   {monthSpan(row.from, row.to)} · {pending}
                 </li>
               )
@@ -398,7 +398,7 @@ function AccountingView({
           })}
         </ul>
         <div className="mt-3 flex h-14 items-center justify-between rounded-2xl bg-sage-light px-3 font-display">
-          <span className="text-base font-semibold text-text">Total del año</span>
+          <span className="text-base font-semibold text-title">Total del año</span>
           {totals.saved === null ? (
             <span className="text-xl font-bold text-muted tabular-nums">—</span>
           ) : (
@@ -419,7 +419,7 @@ function AccountingView({
                 <li key={category.id} className="border-b border-line last:border-b-0">
                   <button type="button" className="flex h-14 w-full items-center gap-3 text-left" onClick={() => onCategory(category.id)}>
                     <span
-                      className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-sm ${color.ink === '#ffffff' ? '' : 'ring-1 ring-line ring-inset'}`}
+                      className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-sm ${color.ink === 'var(--color-on-primary)' ? '' : 'ring-1 ring-line ring-inset'}`}
                       style={{ background: color.fill, color: color.ink }}
                       aria-hidden="true"
                     >
@@ -433,7 +433,7 @@ function AccountingView({
                     </span>
                     <span className="flex w-[7.25rem] shrink-0 flex-col items-end">
                       <FitMoney value={category.total} className="w-full text-right font-display text-sm font-semibold" />
-                      <span className="text-[13px] font-semibold leading-none text-muted">{percent}%</span>
+                      <span className="text-sm font-semibold leading-none text-muted">{percent}%</span>
                     </span>
                   </button>
                 </li>
@@ -521,7 +521,7 @@ function SummaryRow({
 function MonthFact({ label, value, valueClass = '' }: { label: string; value: number | null; valueClass?: string }) {
   return (
     <div className="min-w-0">
-      <dt className="text-[13px] font-semibold text-muted">{label}</dt>
+      <dt className="text-sm font-semibold text-muted">{label}</dt>
       <dd className={`font-display text-base font-semibold break-words tabular-nums ${valueClass}`}>{yearCell(value)}</dd>
     </div>
   )
@@ -656,7 +656,7 @@ function Ring({
     <div className="flex w-[9.5rem] flex-col items-center gap-1 text-center">
       <div className="relative h-[70px] w-[70px]">
         <svg viewBox="0 0 70 70" className="h-full w-full" aria-hidden="true">
-          <circle cx="35" cy="35" r={radius} fill="none" stroke="#F1E5D6" strokeWidth="8" />
+          <circle cx="35" cy="35" r={radius} fill="none" stroke="var(--color-sand)" strokeWidth="8" />
           <circle
             className="year-ring"
             cx="35"
@@ -674,12 +674,12 @@ function Ring({
           <AppIcon name={icon} />
         </span>
       </div>
-      <p className="text-[13px] font-bold">{title}</p>
-      <p className="text-xs text-muted">{detail}</p>
-      <p className="text-xs font-extrabold" style={{ color }}>
+      <p className="text-sm font-bold">{title}</p>
+      <p className="text-sm text-muted">{detail}</p>
+      <p className="text-sm font-extrabold" style={{ color }}>
         {note}
       </p>
-      {extra ? <p className="text-xs font-semibold text-muted">{extra}</p> : null}
+      {extra ? <p className="text-sm font-semibold text-muted">{extra}</p> : null}
     </div>
   )
 }
@@ -699,7 +699,7 @@ function Stat({
 }) {
   return (
     <div className={`min-w-0 flex-1 rounded-[18px] px-2 py-2.5 text-center ${className}`}>
-      <p className="text-xs text-muted">
+      <p className="text-sm text-muted">
         <AppIcon name={icon} /> {label}
       </p>
       <p className={`mt-0.5 font-display text-[14.5px] font-bold leading-tight ${valueClass}`}>{yearCell(value)}</p>
@@ -710,18 +710,18 @@ function Stat({
 function YearPlant() {
   return (
     <svg width="70" height="70" viewBox="0 0 70 70" className="shrink-0" role="img" aria-label="Plantita y sol">
-      <circle cx="48" cy="20" r="12" fill="#F4C542" />
-      <path d="M35 64 C35 48 34 40 32 30" stroke="#6A784D" strokeWidth="3" fill="none" />
-      <path d="M33 44 C22 43 16 35 17 28 C27 28 33 35 33 44Z" fill="#C7DDAE" />
-      <path d="M33 38 C43 36 48 28 47 21 C38 22 32 29 33 38Z" fill="#6A784D" />
-      <path d="M20 60 h30 l-4 10 h-22z" fill="#C4866D" />
+      <circle cx="48" cy="20" r="12" fill="var(--color-warn)" />
+      <path d="M35 64 C35 48 34 40 32 30" stroke="var(--color-good)" strokeWidth="3" fill="none" />
+      <path d="M33 44 C22 43 16 35 17 28 C27 28 33 35 33 44Z" fill="var(--color-sage-light)" />
+      <path d="M33 38 C43 36 48 28 47 21 C38 22 32 29 33 38Z" fill="var(--color-good)" />
+      <path d="M20 60 h30 l-4 10 h-22z" fill="var(--color-alert)" />
     </svg>
   )
 }
 
 function EmptyYear({ year }: { year: number }) {
   return (
-    <Card className="year-rise bg-[linear-gradient(160deg,#FFFAF4,#eef5e3)] text-center">
+    <Card className="year-rise bg-[linear-gradient(160deg,var(--color-card),var(--color-sage-soft))] text-center">
       <div className="flex justify-center">
         <YearPlant />
       </div>
@@ -749,5 +749,5 @@ function YearSkeleton() {
 }
 
 function Table({ children }: { children: ReactNode }) {
-  return <table className="w-full border-collapse text-[13px]">{children}</table>
+  return <table className="w-full border-collapse text-sm">{children}</table>
 }

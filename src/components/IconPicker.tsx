@@ -25,7 +25,7 @@ export function IconPicker({
               aria-label={choice.label}
               onClick={() => onChange(choice.name)}
               className={`grid aspect-square min-h-11 place-items-center rounded-2xl text-base ${
-                active ? 'bg-primary text-white' : 'bg-sand text-text'
+                active ? 'bg-primary text-on-primary' : 'bg-sand text-title'
               }`}
             >
               <AppIcon name={choice.name} />

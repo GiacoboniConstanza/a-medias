@@ -1,74 +1,131 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { ExpenseEditor } from '../components/ExpenseEditor.tsx'
-import { PeriodTag } from '../components/ExpenseLine.tsx'
+import { ExpenseLine } from '../components/ExpenseLine.tsx'
+import { HelpSheet, type HelpBlock } from '../components/HelpSheet.tsx'
 import { MonthSwitcher } from '../components/MonthSwitcher.tsx'
-import { Plant } from '../components/Plant.tsx'
-import { SectionHeader } from '../components/SectionHeader.tsx'
+import { Sheet } from '../components/Sheet.tsx'
 import { ViewToggle } from '../components/ViewToggle.tsx'
-import { Button, Card, ErrorText } from '../components/ui.tsx'
+import { Button, Card, ErrorText, FilterBar, Toast } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
 import { useMonth } from '../context/MonthProvider.tsx'
 import { saveViewMode, settleMonth, undoSettlement, type ExpenseItem } from '../lib/api.ts'
 import { buildSharedCsv, downloadText } from '../lib/csv.ts'
-import { monthSplit } from '../lib/derive.ts'
-import { loadLoanBalances, settlementPhrases, signedLoanBalance, type SettlementPhrases } from '../lib/loans.ts'
+import { monthSplit, partnerId } from '../lib/derive.ts'
 import { formatMoney } from '../lib/format.ts'
 import { DEFAULT_ICON } from '../lib/icons.ts'
-import { shortDate } from '../lib/month.ts'
-import { paidHalfCaption, pairBalance } from '../lib/split.ts'
+import { loadLoanBalances, loadSettlementRepayments } from '../lib/loans.ts'
+import { monthName, shortDate } from '../lib/month.ts'
+import {
+  linkedLoanAmount,
+  passPhrase,
+  planMonthSettlement,
+  type SettleLoan,
+} from '../lib/settle.ts'
+import type { SplitResult, SplitRow } from '../lib/split.ts'
 import type { ViewMode } from '../types/database.ts'
 
 export function SharedScreen() {
+  const navigate = useNavigate()
   const { profile, refreshProfile } = useAuth()
   const { month } = useMonth()
   const { data, loading, error, refresh } = useFinance()
   const [message, setMessage] = useState('')
   const [notice, setNotice] = useState('')
+  const [settledNote, setSettledNote] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [help, setHelp] = useState(false)
+  const [confirm, setConfirm] = useState<'settle' | 'undo' | null>(null)
   const [openExpense, setOpenExpense] = useState<ExpenseItem | null>(null)
-  const [loanSigned, setLoanSigned] = useState<number | null>(null)
+  const [payerFilter, setPayerFilter] = useState('all')
+  const [loans, setLoans] = useState<SettleLoan[]>([])
+  const [linked, setLinked] = useState<{ lenderId: string; borrowerId: string; amount: number }[]>([])
+
+  const settlementId = data?.settlement?.id ?? null
 
   useEffect(() => {
-    if (!profile || !data) return
+    if (!profile) return
     let active = true
-    loadLoanBalances()
-      .then((rows) => {
+    Promise.all([loadLoanBalances(), settlementId ? loadSettlementRepayments(settlementId) : Promise.resolve([])])
+      .then(([rows, linkedRows]) => {
         if (!active) return
-        setLoanSigned(signedLoanBalance(profile.id, rows))
+        setLoans(
+          rows.map((loan) => ({
+            id: loan.id,
+            lenderId: loan.lenderId,
+            borrowerId: loan.borrowerId,
+            pending: loan.pending,
+            period: loan.period,
+          })),
+        )
+        setLinked(linkedRows)
       })
       .catch(() => {
-        if (active) setLoanSigned(null)
+        if (!active) return
+        setLoans([])
+        setLinked([])
       })
     return () => {
       active = false
     }
-  }, [profile, data])
+  }, [profile, settlementId, data])
 
   if (!profile) return null
   if (loading && !data) return <p className="py-16 text-center font-bold text-muted">Cargando…</p>
   if (!data) return <p className="py-16 text-center font-bold text-alert-ink">{error}</p>
 
+  const meId = profile.id
+  const otherId = partnerId(data, meId)
   const shared = data.monthExpenses.filter((expense) => expense.isShared)
   const split = monthSplit(data)
-  const balance = pairBalance(profile.id, split)
-  const phrases = settlementPhrases(profile.id, split, loanSigned ?? 0)
-  const friendly = profile.viewMode === 'friendly'
+  const plan = planMonthSettlement({
+    month,
+    meId,
+    partnerId: otherId,
+    split,
+    loans,
+    alreadySettled: Boolean(data.settlement),
+  })
+  const people = [...split.rows].sort((a, b) => personRank(a.name) - personRank(b.name))
+  const partner = people.find((row) => row.id !== meId) ?? null
+  const settled = data.settlement
+  const loanAmount = settled ? linkedLoanAmount(linked) : plan.loanAmount
+  const expenseAmount = plan.expenseAmount
+  const headlineAmount = settled ? settled.amount : plan.amount
+  const creditorId = settled ? settled.creditorId : plan.creditorId
+  const favor = headlineAmount > 0 && creditorId === meId
+  const owed = headlineAmount > 0 && creditorId !== meId
+  const amountClass = favor ? 'text-primary' : owed ? 'text-alert-ink' : 'text-title'
+  const visible = payerFilter === 'all' ? shared : shared.filter((expense) => expense.payerId === payerFilter)
+  const filters = [
+    { id: 'all', label: 'Todos' },
+    ...people.map((row) => ({ id: row.id, label: `Pagó ${row.name}` })),
+  ]
 
-  async function settle() {
-    if (!profile || !split.debtorId || !split.creditorId || split.amount <= 0) return
+  async function changeMode(mode: ViewMode) {
+    if (!profile) return
+    await saveViewMode(profile.id, mode)
+    await refreshProfile()
+  }
+
+  async function confirmSettle() {
+    if (!plan.canSettle || !plan.debtorId || !plan.creditorId) return
     setSaving(true)
     setMessage('')
     try {
       await settleMonth({
-        householdId: profile.householdId as string,
         month,
-        debtorId: split.debtorId,
-        creditorId: split.creditorId,
-        amount: split.amount,
-        settledBy: profile.id,
+        debtorId: plan.debtorId,
+        creditorId: plan.creditorId,
+        amount: plan.amount,
+        expenseAmount: plan.expenseAmount,
+        expenseDebtorId: plan.expenseDebtorId,
+        repayments: plan.repayments.map((row) => ({ loanId: row.loanId, amount: row.amount })),
       })
+      setConfirm(null)
+      setSettledNote(true)
       await refresh()
     } catch (caught) {
       setMessage(caught instanceof Error ? caught.message : 'No pude saldar el mes.')
@@ -77,24 +134,20 @@ export function SharedScreen() {
     }
   }
 
-  async function undo() {
+  async function confirmUndo() {
     if (!data?.settlement) return
     setSaving(true)
     setMessage('')
     try {
       await undoSettlement(data.settlement.id)
+      setConfirm(null)
+      setSettledNote(false)
       await refresh()
     } catch (caught) {
       setMessage(caught instanceof Error ? caught.message : 'No pude deshacer el saldo.')
     } finally {
       setSaving(false)
     }
-  }
-
-  async function changeMode(mode: ViewMode) {
-    if (!profile) return
-    await saveViewMode(profile.id, mode)
-    await refreshProfile()
   }
 
   function exportCsv() {
@@ -112,52 +165,185 @@ export function SharedScreen() {
 
   return (
     <>
-      <SectionHeader icon="user-group" title="Compartidos" />
+      <header className="mb-4 flex items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          aria-label="Volver"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-card text-title shadow-soft"
+        >
+          <AppIcon name="chevron-left" />
+        </button>
+        <h1 className="inline-flex min-w-0 items-center gap-1.5 text-base font-semibold text-title">
+          <AppIcon name="user-group" className="text-alert-ink" />
+          Compartidos
+        </h1>
+        <button
+          type="button"
+          onClick={() => setHelp(true)}
+          aria-label="Cómo leer Compartidos"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-card text-alert-ink shadow-soft"
+        >
+          <AppIcon name="circle-question" />
+        </button>
+      </header>
       <MonthSwitcher heading />
       <ViewToggle mode={profile.viewMode} onChange={(mode) => void changeMode(mode)} className="mb-3" />
-      {friendly ? (
-        <FriendlyShared
-          phrases={phrases}
-          even={phrases.totalLine === 'Están a mano'}
-          myPaid={balance.myPaid}
-          partnerPaid={balance.partnerPaid}
-          partnerName={balance.partnerName}
-          expenses={shared}
-          names={data.names}
-          categories={data.categories}
-          onOpen={setOpenExpense}
-        />
-      ) : (
-        <AccountingShared
-          shared={shared}
-          names={data.names}
-          categories={data.categories}
-          split={split}
-          phrases={phrases}
-          settlement={data.settlement}
-        />
-      )}
-      {friendly && data.settlement ? (
-        <p className="mb-2 text-base font-bold text-good">Mes saldado por {formatMoney(data.settlement.amount)}.</p>
-      ) : null}
-      {data.settlement ? (
-        <Button type="button" variant="alt" onClick={() => void undo()} disabled={saving}>
-          Deshacer saldo
-        </Button>
-      ) : (
-        <Button type="button" onClick={() => void settle()} disabled={saving || split.amount === 0 || split.rows.length < 2}>
-          <span className="inline-flex items-center justify-center gap-2">
-            <AppIcon name="check" /> Saldar mes
+
+      <Card>
+        <div className="flex items-start justify-between gap-3">
+          <h2 className="inline-flex items-center gap-1.5 font-display text-base font-semibold text-primary">
+            <AppIcon name="scale-balanced" /> Total a saldar
+          </h2>
+          <span
+            className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-sm font-bold ${
+              settled ? 'bg-sage-soft text-primary' : 'bg-gold-soft text-warn-ink'
+            }`}
+          >
+            <AppIcon name="circle" className={settled ? 'text-primary' : 'text-warn'} />
+            {settled ? 'Saldado' : 'Sin saldar'}
           </span>
-        </Button>
+        </div>
+        {headlineAmount === 0 || !partner ? (
+          <p className="mt-3 font-display text-3xl font-semibold text-title">Están a mano</p>
+        ) : (
+          <>
+            <p className={`mt-3 text-base font-semibold ${amountClass}`}>{favor ? `${partner.name} te debe` : `Le debés a ${partner.name}`}</p>
+            <p className={`font-display text-3xl font-semibold whitespace-nowrap ${amountClass}`}>{formatMoney(headlineAmount)}</p>
+          </>
+        )}
+        <SplitBar expense={expenseAmount} loans={loanAmount} />
+        <MoneyRow label="Por gastos" amount={formatMoney(expenseAmount)} amountClass="text-alert-ink" dotClass="text-alert" />
+        <MoneyRow label="Por préstamos" amount={formatMoney(loanAmount)} amountClass="text-lavender-ink" dotClass="text-lavender" />
+        {settled ? (
+          <Button type="button" variant="alt" className="mt-3" onClick={() => setConfirm('undo')} disabled={saving}>
+            Deshacer
+          </Button>
+        ) : (
+          <>
+            <Button type="button" className="mt-3" onClick={() => setConfirm('settle')} disabled={saving || !plan.canSettle}>
+              <span className="inline-flex items-center justify-center gap-2">
+                <AppIcon name="check" /> Saldar mes
+              </span>
+            </Button>
+            {plan.blockedReason ? <p className="mt-2 text-center text-sm font-semibold text-muted">{plan.blockedReason}</p> : null}
+          </>
+        )}
+      </Card>
+
+      <Card>
+        <h2 className="inline-flex items-center gap-1.5 font-display text-base font-semibold text-alert-ink">
+          <AppIcon name="chart-column" /> Cómo se reparte
+        </h2>
+        <p className="mt-1 text-sm font-semibold text-muted">{shareCaption(split, people)}</p>
+        <ul className="mt-2">
+          {people.map((row) => (
+            <PersonShare key={row.id} row={row} />
+          ))}
+        </ul>
+      </Card>
+
+      <div className="mb-1 flex items-baseline justify-between gap-3">
+        <h2 className="font-display text-base font-semibold text-lavender-ink">Gastos compartidos</h2>
+        <p className="shrink-0 whitespace-nowrap font-display text-2xl font-semibold text-title">{formatMoney(split.total)}</p>
+      </div>
+      <FilterBar label="Quién pagó" options={filters} value={payerFilter} onChange={setPayerFilter} />
+      {visible.length === 0 ? (
+        <p className="mb-3 text-base font-semibold text-muted">Este mes no hay gastos compartidos.</p>
+      ) : (
+        <ul className="mb-3">
+          {visible.map((expense) => {
+            const category = data.categories.find((item) => item.id === expense.categoryId)
+            return (
+              <li key={expense.id} className="border-b border-dashed border-line last:border-0">
+                <ExpenseLine
+                  expense={expense}
+                  categoryName={category?.name ?? 'Otros'}
+                  categoryIcon={category?.icon || DEFAULT_ICON}
+                  payerName={data.names[expense.payerId] ?? 'Sin nombre'}
+                  onOpen={() => setOpenExpense(expense)}
+                />
+              </li>
+            )
+          })}
+        </ul>
       )}
-      <Button type="button" variant="alt" className="mt-2" onClick={exportCsv}>
+
+      <Button type="button" variant="alt" onClick={exportCsv}>
         <span className="inline-flex items-center justify-center gap-2">
           <AppIcon name="download" /> Exportar a planilla
         </span>
       </Button>
-      {notice ? <p className="mt-2 text-center text-base font-bold text-good">{notice}</p> : null}
       <ErrorText>{message}</ErrorText>
+
+      {settledNote ? (
+        <div
+          role="status"
+          className="fixed bottom-28 left-1/2 z-50 flex w-[min(20rem,calc(100vw-2.5rem))] -translate-x-1/2 flex-col gap-2 rounded-2xl bg-primary px-4 py-3 text-on-primary shadow-fab"
+        >
+          <p className="text-center text-sm font-semibold">Mes saldado. Si te equivocaste, lo podés deshacer.</p>
+          <button type="button" className="min-h-11 rounded-2xl bg-on-primary font-semibold text-primary" onClick={() => setConfirm('undo')}>
+            Deshacer
+          </button>
+        </div>
+      ) : (
+        <Toast>{notice}</Toast>
+      )}
+
+      <HelpSheet
+        open={help}
+        onClose={() => setHelp(false)}
+        kicker="Cómo leer Compartidos"
+        intro="Primero el resultado, después la cuenta y al final el detalle."
+        blocks={helpBlocks(split, people, monthName(month))}
+      />
+      <Sheet
+        open={confirm === 'settle'}
+        title="Saldar mes"
+        onClose={() => setConfirm(null)}
+        footer={
+          <div className="space-y-2">
+            <Button type="button" onClick={() => void confirmSettle()} disabled={saving || !plan.canSettle}>
+              Sí, saldar mes
+            </Button>
+            <Button type="button" variant="alt" onClick={() => setConfirm(null)} disabled={saving}>
+              Cancelar
+            </Button>
+          </div>
+        }
+      >
+        {partner && plan.amount > 0 ? (
+          <>
+            <p className="font-display text-2xl font-semibold whitespace-nowrap text-title">
+              {passPhrase(partner.name, plan.creditorId === meId, plan.amount)}
+            </p>
+            <MoneyRow label="Por gastos" amount={formatMoney(plan.expenseAmount)} amountClass="text-alert-ink" dotClass="text-alert" />
+            <MoneyRow label="Por préstamos" amount={formatMoney(plan.loanAmount)} amountClass="text-lavender-ink" dotClass="text-lavender" />
+            <p className="mt-3 text-base font-semibold text-muted">
+              Los gastos y préstamos de {monthName(month)} quedan marcados como saldados. Si te equivocás, lo podés deshacer.
+            </p>
+          </>
+        ) : null}
+      </Sheet>
+      <Sheet
+        open={confirm === 'undo'}
+        title="Deshacer saldo"
+        onClose={() => setConfirm(null)}
+        footer={
+          <div className="space-y-2">
+            <Button type="button" onClick={() => void confirmUndo()} disabled={saving}>
+              Sí, deshacer
+            </Button>
+            <Button type="button" variant="alt" onClick={() => setConfirm(null)} disabled={saving}>
+              Cancelar
+            </Button>
+          </div>
+        }
+      >
+        <p className="text-base font-semibold text-title">
+          ¿Deshacer el saldo de {monthName(month)}? Se borran las devoluciones de este saldo. Las que cargaste a mano quedan.
+        </p>
+      </Sheet>
       {openExpense ? (
         <ExpenseEditor
           presentation="sheet"
@@ -173,260 +359,170 @@ export function SharedScreen() {
   )
 }
 
-function FriendlyShared({
-  phrases,
-  even,
-  myPaid,
-  partnerPaid,
-  partnerName,
-  expenses,
-  names,
-  categories,
-  onOpen,
-}: {
-  phrases: SettlementPhrases
-  even: boolean
-  myPaid: number
-  partnerPaid: number
-  partnerName: string | null
-  expenses: ExpenseItem[]
-  names: Record<string, string>
-  categories: { id: string; name: string; icon: string }[]
-  onOpen: (expense: ExpenseItem) => void
-}) {
-  return (
-    <>
-      <Card>
-        <div className="flex items-start gap-2">
-          <Plant stage={even ? 'lush' : 'steady'} />
-          <div className="min-w-0 flex-1">
-            <SettlementCopy phrases={phrases} />
-          </div>
-        </div>
-      </Card>
-      <div className="mb-3 grid grid-cols-2 gap-3">
-        <section className="rounded-3xl bg-card p-4 shadow-card">
-          <p className="text-base font-semibold text-muted">Pagaste vos</p>
-          <p className="mt-1 font-display text-2xl font-bold">{formatMoney(myPaid)}</p>
-        </section>
-        <section className="rounded-3xl bg-card p-4 shadow-card">
-          <p className="text-base font-semibold text-muted">{partnerName ? `Pagó ${partnerName}` : 'Tu compañera'}</p>
-          <p className="mt-1 font-display text-2xl font-bold">{formatMoney(partnerPaid)}</p>
-        </section>
-      </div>
-      {expenses.length === 0 ? (
-        <p className="mb-3 text-base font-semibold text-muted">Este mes no hay gastos compartidos.</p>
-      ) : (
-        expenses.map((expense) => {
-          const category = categories.find((item) => item.id === expense.categoryId)
-          const payer = names[expense.payerId] ?? 'Sin nombre'
-          return (
-            <button
-              key={expense.id}
-              type="button"
-              onClick={() => onOpen(expense)}
-              className="mb-3 w-full rounded-3xl bg-card p-4 text-left shadow-card"
-            >
-              <span className="flex items-start justify-between gap-3">
-                <span className="font-display text-xl font-semibold">
-                  {expense.title}
-                  <PeriodTag expense={expense} />
-                  {expense.notes ? <AppIcon name="note-sticky" className="ml-1.5 text-base text-muted" /> : null}
-                </span>
-                <span className="shrink-0 font-display text-xl font-bold">{formatMoney(expense.amount)}</span>
-              </span>
-              <span className="mt-1 flex items-center gap-2 text-base font-semibold">
-                <AppIcon name={category?.icon || DEFAULT_ICON} className="text-primary" />
-                {category?.name ?? 'Otros'}
-              </span>
-              <span className="mt-1 block text-base font-semibold text-muted">{paidHalfCaption(payer, expense.amount)}</span>
-            </button>
-          )
-        })
-      )}
-    </>
-  )
+function personRank(name: string): number {
+  const key = name.trim().toLowerCase()
+  if (key === 'maru') return 0
+  if (key === 'coty') return 1
+  return 2
 }
 
-function AccountingShared({
-  shared,
-  names,
-  categories,
-  split,
-  phrases,
-  settlement,
-}: {
-  shared: ExpenseItem[]
-  names: Record<string, string>
-  categories: { id: string; icon: string }[]
-  split: ReturnType<typeof monthSplit>
-  phrases: SettlementPhrases
-  settlement: { amount: number } | null
-}) {
-  return (
-    <>
-      <SharedExpenseList shared={shared} names={names} categories={categories} total={split.total} />
-      <Card>
-        <h2 className="font-display text-xl font-semibold">Paso 1. Cuánto pagó cada una</h2>
-        <p className="mt-1 text-base font-semibold text-muted">Suma de los gastos compartidos del mes que pagó cada una.</p>
-        <div className="mt-2">
-          {split.rows.map((row) => (
-            <MoneyLine key={row.id} label={`${row.name} pagó`} amount={formatMoney(row.paid)} />
-          ))}
-          <MoneyLine label="Total" amount={formatMoney(split.total)} strong />
-        </div>
-      </Card>
-      <Card>
-        <h2 className="font-display text-xl font-semibold">Paso 2. Cuánto le toca a cada una</h2>
-        <p className="mt-1 text-base font-semibold text-muted">{shareExplanation(split)}</p>
-        <div className="mt-2">
-          {split.rows.map((row) => (
-            <MoneyLine
-              key={row.id}
-              label={`${row.name} (${row.percent}%) le toca`}
-              amount={formatMoney(row.share)}
-            />
-          ))}
-        </div>
-      </Card>
-      <Card>
-        <h2 className="font-display text-xl font-semibold">Paso 3. Quién le debe a quién</h2>
-        <div className="mt-2">
-          <SettlementCopy phrases={phrases} />
-        </div>
-        {settlement ? (
-          <p className="mt-3 text-base font-bold text-good">Mes saldado por {formatMoney(settlement.amount)}.</p>
-        ) : null}
-      </Card>
-    </>
-  )
+function shareCaption(split: SplitResult, people: SplitRow[]): string {
+  if (split.usedEvenSplit) return 'Falta algún sueldo base: por ahora, en partes iguales. Los extras no entran.'
+  const parts = people.map((row) => `${row.name} ${row.percent}%`).join(' · ')
+  return parts ? `Según sueldo base: ${parts}` : 'Los extras no entran en este porcentaje.'
 }
 
-function SharedExpenseList({
-  shared,
-  names,
-  categories,
-  total,
-}: {
-  shared: ExpenseItem[]
-  names: Record<string, string>
-  categories: { id: string; icon: string }[]
-  total: number
-}) {
-  return (
-    <>
-      <div className="sm:hidden">
-        {shared.length === 0 ? (
-          <p className="mb-3 text-base font-semibold text-muted">Este mes no hay gastos compartidos.</p>
-        ) : (
-          shared.map((expense) => {
-            const category = categories.find((item) => item.id === expense.categoryId)
-            const payer = names[expense.payerId] ?? 'Sin nombre'
-            return (
-              <div key={expense.id} className="mb-3 rounded-3xl bg-card p-4 shadow-card">
-                <div className="flex min-h-11 items-center justify-between gap-3">
-                  <span className="inline-flex min-w-0 items-center gap-2 text-base font-semibold">
-                    <AppIcon name={category?.icon || DEFAULT_ICON} className="shrink-0 text-primary" />
-                    <span className="min-w-0">{expense.title}</span>
-                  </span>
-                  <span className="shrink-0 whitespace-nowrap font-display text-base font-bold">{formatMoney(expense.amount)}</span>
-                </div>
-                <p className="mt-1 flex min-h-11 flex-wrap items-center gap-x-2 text-base font-semibold text-muted">
-                  <span>{shortDate(expense.spentOn)}</span>
-                  <span>Pagó {payer}</span>
-                  <PeriodTag expense={expense} readable />
-                </p>
-              </div>
-            )
-          })
-        )}
-        <SharedTotal total={total} />
-      </div>
-      <Card className="hidden overflow-x-auto sm:block">
-        {shared.length === 0 ? (
-          <p className="mb-2 text-base font-semibold text-muted">Este mes no hay gastos compartidos.</p>
-        ) : null}
-        <table className="w-full border-collapse text-left text-base">
-          <thead>
-            <tr className="text-muted">
-              <th className="py-3 pr-3 font-bold">Fecha</th>
-              <th className="px-3 py-3 font-bold">Gasto</th>
-              <th className="px-3 py-3 font-bold">Pagó</th>
-              <th className="py-3 pl-3 text-right font-bold">Monto</th>
-            </tr>
-          </thead>
-          <tbody>
-            {shared.map((expense) => {
-              const category = categories.find((item) => item.id === expense.categoryId)
-              return (
-                <tr key={expense.id} className="border-t border-line">
-                  <td className="min-h-11 py-3 pr-3 whitespace-nowrap">{shortDate(expense.spentOn)}</td>
-                  <td className="min-h-11 px-3 py-3">
-                    <span className="inline-flex items-center gap-2">
-                      <AppIcon name={category?.icon || DEFAULT_ICON} className="text-primary" />
-                      {expense.title}
-                      <PeriodTag expense={expense} readable />
-                    </span>
-                  </td>
-                  <td className="min-h-11 px-3 py-3 whitespace-nowrap">{names[expense.payerId]}</td>
-                  <td className="min-h-11 py-3 pl-3 text-right font-bold whitespace-nowrap">{formatMoney(expense.amount)}</td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
-        <SharedTotal total={total} bordered />
-      </Card>
-    </>
-  )
+function helpBlocks(split: SplitResult, people: SplitRow[], monthLabel: string): HelpBlock[] {
+  const base = split.usedEvenSplit
+    ? 'en partes iguales, porque falta algún sueldo base'
+    : people.map((row) => `${row.name} ${row.percent}%`).join(', ')
+  return [
+    {
+      title: 'Total a saldar',
+      titleClass: 'text-primary',
+      icon: 'scale-balanced',
+      iconWrapClass: 'bg-sage-soft text-primary',
+      body: 'Cuánta plata tiene que pasarle una a la otra este mes. Suma lo que falta por gastos y los préstamos pendientes.',
+    },
+    {
+      title: 'Cómo se reparte',
+      titleClass: 'text-alert-ink',
+      icon: 'chart-column',
+      iconWrapClass: 'bg-copper-soft text-alert-ink',
+      body: (
+        <div className="rounded-2xl bg-sand-soft p-3">
+          <p>
+            <span className="font-bold text-title">Pagó:</span> lo que puso de su bolsillo en gastos compartidos.
+          </p>
+          <p className="mt-2">
+            <span className="font-bold text-primary">Su parte:</span> lo que le corresponde poner según su sueldo base: {base}.
+          </p>
+          <p className="mt-2">
+            Si pagó menos que su parte, <span className="text-alert-ink">debe</span> la diferencia. Si pagó más, la tiene{' '}
+            <span className="text-primary">a favor</span>.
+          </p>
+        </div>
+      ),
+    },
+    {
+      title: 'Gastos compartidos',
+      titleClass: 'text-lavender-ink',
+      icon: 'receipt',
+      iconWrapClass: 'bg-lavender-soft text-lavender-ink',
+      body: `Los gastos que cuentan para este mes y quién los pagó. La etiqueta marca gastos de otra fecha que se cuentan en ${monthLabel}.`,
+    },
+    {
+      title: 'Saldar mes',
+      titleClass: 'text-warn-ink',
+      icon: 'check',
+      iconWrapClass: 'bg-gold-soft text-warn-ink',
+      body: 'Tocalo cuando ya se pasaron la plata. Te pedimos confirmación antes de marcar el mes como saldado, y lo podés deshacer.',
+    },
+  ]
 }
 
-function SharedTotal({ total, bordered = false }: { total: number; bordered?: boolean }) {
+function SplitBar({ expense, loans }: { expense: number; loans: number }) {
+  const total = expense + loans
+  const expenseWidth = total > 0 ? (expense / total) * 100 : 0
+  const loanWidth = total > 0 ? (loans / total) * 100 : 0
   return (
-    <div
-      className={`flex min-h-11 items-center justify-between gap-3 text-base font-bold ${
-        bordered ? 'border-t border-line py-3' : 'mb-3'
-      }`}
-    >
-      <span>Total de gastos compartidos del mes</span>
-      <span className="shrink-0 whitespace-nowrap">{formatMoney(total)}</span>
+    <div className="mt-3 flex h-2.5 overflow-hidden rounded-full bg-sand" role="img" aria-label="Gastos y préstamos">
+      <div className="h-full bg-alert" style={{ width: `${expenseWidth}%` }} />
+      <div className="h-full bg-lavender" style={{ width: `${loanWidth}%` }} />
     </div>
   )
 }
 
-function MoneyLine({ label, amount, strong = false }: { label: string; amount: string; strong?: boolean }) {
+function MoneyRow({
+  label,
+  amount,
+  amountClass,
+  dotClass,
+}: {
+  label: string
+  amount: string
+  amountClass: string
+  dotClass: string
+}) {
   return (
-    <div className={`flex min-h-11 items-center justify-between gap-3 text-base ${strong ? 'font-bold' : 'font-semibold'}`}>
-      <span className="min-w-0">{label}</span>
-      <span className="shrink-0 whitespace-nowrap font-display font-bold">{amount}</span>
+    <div className="mt-2 flex min-h-11 items-center justify-between gap-3 text-base font-semibold">
+      <span className="inline-flex min-w-0 items-center gap-1.5">
+        <AppIcon name="circle" className={dotClass} />
+        {label}
+      </span>
+      <span className={`shrink-0 whitespace-nowrap font-display font-bold ${amountClass}`}>{amount}</span>
     </div>
   )
 }
 
-function shareExplanation(split: ReturnType<typeof monthSplit>): string {
-  if (split.usedEvenSplit) {
-    return 'Falta algún sueldo base: por ahora partimos en partes iguales. Los extras no entran en este porcentaje.'
-  }
-  const parts = split.rows.map((row) => `${row.name} ${row.percent}%`)
-  const who = parts.length === 2 ? `${parts[0]} y ${parts[1]}` : parts.join(', ')
-  if (!who) return 'Los extras no entran en este porcentaje.'
-  return `Los gastos se reparten según el sueldo base de cada una: ${who}. Los extras no entran en este porcentaje.`
+function PersonShare({ row }: { row: SplitRow }) {
+  const key = row.name.trim().toLowerCase()
+  const maru = key === 'maru'
+  const nameClass = maru ? 'text-lavender-ink' : key === 'coty' ? 'text-alert-ink' : 'text-title'
+  const debt = row.balance < 0
+  const favor = row.balance > 0
+  const chip = debt
+    ? { label: `Debe ${formatMoney(-row.balance)}`, className: 'bg-copper-soft text-alert-ink', icon: 'arrow-down' }
+    : favor
+      ? { label: `A favor ${formatMoney(row.balance)}`, className: 'bg-sage-soft text-primary', icon: 'arrow-up' }
+      : { label: 'A mano', className: 'bg-sand text-muted', icon: '' }
+  const scale = Math.max(row.paid, row.share)
+  const paidWidth = scale > 0 ? (row.paid / scale) * 100 : 0
+  const shareWidth = scale > 0 ? (row.share / scale) * 100 : 0
+  return (
+    <li className="border-t border-dashed border-line py-3 first:border-t-0">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className={`font-display text-xl font-semibold ${nameClass}`}>{row.name}</p>
+        <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1 text-sm font-bold whitespace-nowrap ${chip.className}`}>
+          {chip.icon ? <AppIcon name={chip.icon} /> : null}
+          {chip.label}
+        </span>
+      </div>
+      <BarLine label="Pagó" amount={formatMoney(row.paid)} width={paidWidth} className={maru ? 'bg-lavender' : 'bg-alert'} />
+      <BarLine
+        label={`Su parte (${row.percent}%)`}
+        amount={formatMoney(row.share)}
+        width={shareWidth}
+        className={maru ? '' : 'bg-copper-soft'}
+        hatch={maru}
+      />
+    </li>
+  )
 }
 
-function SettlementCopy({ phrases }: { phrases: SettlementPhrases }) {
+function BarLine({
+  label,
+  amount,
+  width,
+  className,
+  hatch = false,
+}: {
+  label: string
+  amount: string
+  width: number
+  className: string
+  hatch?: boolean
+}) {
   return (
-    <>
-      <p className="text-base font-bold">Por gastos</p>
-      <p className="text-base font-semibold">{phrases.expenseLine}</p>
-      {phrases.loanLine ? (
-        <>
-          <p className="mt-3 text-base font-bold">Por préstamos</p>
-          <p className="text-base font-semibold">{phrases.loanLine}</p>
-        </>
-      ) : null}
-      <p className="mt-3 text-base font-bold text-muted">Total a saldar</p>
-      <p className="font-display text-3xl font-semibold leading-tight text-primary">{phrases.totalLine}</p>
-      {phrases.breakdown ? <p className="mt-1 text-base font-semibold text-muted">{phrases.breakdown}</p> : null}
-    </>
+    <div className="mt-2">
+      <div className="flex items-baseline justify-between gap-3 text-sm font-semibold text-muted">
+        <span className="min-w-0">{label}</span>
+        <span className="shrink-0 whitespace-nowrap text-base font-bold text-title">{amount}</span>
+      </div>
+      <div className="mt-1 h-2.5 overflow-hidden rounded-full bg-sand">
+        <div
+          className={`h-full rounded-full ${className}`}
+          style={{
+            width: `${width}%`,
+            ...(hatch
+              ? {
+                  backgroundImage:
+                    'repeating-linear-gradient(-45deg, var(--color-lavender-light) 0 5px, var(--color-sand) 5px 9px)',
+                }
+              : {}),
+          }}
+        />
+      </div>
+    </div>
   )
 }

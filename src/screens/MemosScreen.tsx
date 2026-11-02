@@ -90,7 +90,7 @@ export function MemosScreen() {
         </p>
       </header>
       <h1 className="font-display text-[1.8rem] font-bold leading-tight">Mis memos</h1>
-      <div className="mb-1 mt-2 flex items-center gap-2 text-[13.5px] font-bold text-good">
+      <div className="mb-1 mt-2 flex items-center gap-2 text-sm font-bold text-title">
         <Sprout module="memos" size={30} />
         <span>{cheer}</span>
       </div>
@@ -105,7 +105,7 @@ export function MemosScreen() {
         type="button"
         aria-label="Nuevo memo"
         onClick={() => setOpen(true)}
-        className="fixed bottom-24 right-[max(1.25rem,calc(50vw-190px))] z-30 grid h-[58px] w-[58px] place-items-center rounded-full bg-primary text-2xl text-white shadow-fab"
+        className="fixed bottom-24 right-[max(1.25rem,calc(50vw-190px))] z-30 grid h-[58px] w-[58px] place-items-center rounded-full bg-primary text-2xl text-on-primary shadow-fab"
       >
         <AppIcon name="plus" />
       </button>
@@ -138,13 +138,13 @@ function MemoGroup({
   if (memos.length === 0) return null
   return (
     <section>
-      <h2 className="mb-2 ml-1 mt-4 text-[13px] font-bold text-[#8a8370]">{title}</h2>
+      <h2 className="mb-2 ml-1 mt-4 text-sm font-bold text-muted">{title}</h2>
       {memos.map((memo) => (
         <article
           key={memo.id}
           className={`mb-2.5 flex items-center gap-1 rounded-[22px] py-1 pl-1 pr-3.5 shadow-card ${
-            memo.shared ? 'bg-[#F6F3FB] shadow-[inset_4px_0_0_#A79BCB,0_4px_14px_#85503c12]' : 'bg-card'
-          } ${memo.done ? 'text-[#a49c88]' : ''}`}
+            memo.shared ? 'bg-lavender-soft shadow-[inset_4px_0_0_var(--color-lavender)] shadow-soft' : 'bg-card'
+          } ${memo.done ? 'text-muted' : ''}`}
         >
           <button
             type="button"
@@ -154,8 +154,8 @@ function MemoGroup({
             onClick={() => onToggle(memo)}
           >
             <span
-              className={`grid h-7 w-7 place-items-center rounded-full border-[2.5px] text-[13px] text-white ${
-                memo.done ? 'border-primary bg-primary' : 'border-[#cbbda8]'
+              className={`grid h-7 w-7 place-items-center rounded-full border-[2.5px] text-sm text-on-primary ${
+                memo.done ? 'border-primary bg-primary' : 'border-line'
               }`}
             >
               {memo.done ? <AppIcon name="check" /> : null}
@@ -164,9 +164,9 @@ function MemoGroup({
           <div className="min-w-0 flex-1 py-2">
             <p className={`text-[15.5px] font-bold leading-snug ${memo.done ? 'line-through' : ''}`}>{memo.text}</p>
             {memo.shared || memo.done ? (
-              <p className="mt-0.5 text-[12.5px] font-semibold text-muted">
+              <p className="mt-0.5 text-sm font-semibold text-muted">
                 {memo.shared ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[#ECE8F6] px-2 py-0.5 text-[11px] font-extrabold text-[#5f548c]">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-lavender-soft px-2 py-0.5 text-sm font-extrabold text-lavender-ink">
                     <AppIcon name="user-group" /> Las dos
                   </span>
                 ) : null}
@@ -257,17 +257,17 @@ function NewMemoSheet({
           rows={3}
           placeholder="Anotá algo para acordarte"
           onChange={(event) => setText(event.target.value)}
-          className="min-h-[88px] w-full rounded-[20px] border-2 border-sage-light bg-white px-4 py-3.5 text-base font-bold text-text outline-none placeholder:font-semibold placeholder:text-muted"
+          className="min-h-[88px] w-full rounded-[20px] border-2 border-sage-light bg-sand-soft px-4 py-3.5 text-base font-bold text-title outline-none placeholder:font-semibold placeholder:text-muted"
         />
       </label>
       {canShare ? (
-        <div className={`mt-2.5 flex min-h-16 items-center gap-3 rounded-[20px] px-3.5 py-3 ${shared ? 'bg-[#F6F3FB]' : 'bg-card'}`}>
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#ECE8F6] text-[#5f548c]">
+        <div className={`mt-2.5 flex min-h-16 items-center gap-3 rounded-[20px] px-3.5 py-3 ${shared ? 'bg-lavender-soft' : 'bg-card'}`}>
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-lavender-soft text-lavender-ink">
             <AppIcon name="user-group" />
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-[15px] font-extrabold">Compartir con {partnerName}</span>
-            <span className="block text-[12.5px] font-semibold text-muted">Lo ve en su Inicio y cualquiera lo puede tachar</span>
+            <span className="block text-sm font-semibold text-muted">Lo ve en su Inicio y cualquiera lo puede tachar</span>
           </span>
           <ModuleSwitch
             on={shared}

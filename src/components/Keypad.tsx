@@ -11,7 +11,7 @@ export function Keypad({ onKey }: { onKey: (key: string) => void }) {
           key={key}
           type="button"
           onClick={() => onKey(key)}
-          className="min-h-12 rounded-2xl bg-card text-center font-display text-[22px] font-semibold text-text shadow-soft"
+          className="min-h-12 rounded-2xl bg-card text-center font-display text-[22px] font-semibold text-title shadow-soft"
         >
           {key === '⌫' ? <AppIcon name="delete-left" /> : key}
         </button>

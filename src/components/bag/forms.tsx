@@ -10,7 +10,7 @@ import { ICON_CHOICES } from '../../lib/icons.ts'
 import { todayISO } from '../../lib/month.ts'
 
 const primaryButton =
-  'block min-h-[52px] w-full rounded-2xl bg-primary text-base font-semibold text-white disabled:opacity-50'
+  'block min-h-[52px] w-full rounded-2xl bg-primary text-base font-semibold text-on-primary disabled:opacity-50'
 const quietButton =
   'mt-2 block min-h-[52px] w-full rounded-2xl border-2 border-primary bg-card text-base font-semibold text-primary'
 
@@ -27,8 +27,8 @@ function IconGrid({ value, onChange }: { value: string; onChange: (name: string)
             aria-selected={selected}
             aria-label={choice.label}
             onClick={() => onChange(choice.name)}
-            className={`relative grid aspect-square min-h-11 place-items-center rounded-2xl border-2 text-lg text-text ${
-              selected ? 'border-primary bg-sage-light' : 'border-[#E8DCCB] bg-white'
+            className={`relative grid aspect-square min-h-11 place-items-center rounded-2xl border-2 text-lg text-title ${
+              selected ? 'border-primary bg-sage-light' : 'border-line bg-sand-soft'
             }`}
           >
             <AppIcon name={choice.name} />
@@ -329,7 +329,7 @@ export function ExtraSheet({
                   aria-pressed={selected}
                   onClick={() => setActiveFund(fund.id)}
                   className={`mb-2 flex min-h-11 w-full items-center justify-between gap-2 rounded-2xl border-2 px-3 text-left text-sm font-semibold ${
-                    selected ? 'border-primary bg-sage-light' : 'border-[#E8DCCB] bg-white'
+                    selected ? 'border-primary bg-sage-light' : 'border-line bg-sand-soft'
                   }`}
                 >
                   <span className="inline-flex items-center gap-2">
@@ -340,7 +340,7 @@ export function ExtraSheet({
               )
             })}
           </div>
-          <p className="text-sm font-semibold text-text">El resto va a gustos: {formatMoney(Math.max(gustosPart, 0))}</p>
+          <p className="text-sm font-semibold text-title">El resto va a gustos: {formatMoney(Math.max(gustosPart, 0))}</p>
           <FieldError id={splitErrorId}>{splitTouched ? splitError : ''}</FieldError>
           {funds.length > 0 ? (
             <div className="mt-3">
@@ -511,7 +511,7 @@ export function GustoSheet({
                 setCategoryTouched(true)
               }}
               className={`inline-flex min-h-11 items-center gap-1.5 rounded-2xl border-2 px-3 text-sm font-semibold ${
-                selected ? 'border-primary bg-sage-light' : 'border-[#E8DCCB] bg-white'
+                selected ? 'border-primary bg-sage-light' : 'border-line bg-sand-soft'
               }`}
             >
               <AppIcon name={category.icon} /> {category.name}
@@ -522,7 +522,7 @@ export function GustoSheet({
           type="button"
           aria-pressed={drafting}
           onClick={() => setDrafting((current) => !current)}
-          className="inline-flex min-h-11 items-center gap-1.5 rounded-2xl border-2 border-[#E8DCCB] bg-white px-3 text-sm font-semibold"
+          className="inline-flex min-h-11 items-center gap-1.5 rounded-2xl border-2 border-line bg-sand-soft px-3 text-sm font-semibold"
         >
           <AppIcon name="plus" /> Nueva
         </button>
@@ -684,7 +684,7 @@ export function MoveSheet({
                     setFundTouched(true)
                   }}
                   className={`flex min-h-11 flex-col items-start justify-center gap-1 rounded-2xl border-2 px-3 py-2 text-left text-sm font-semibold ${
-                    selected ? 'border-primary bg-sage-light' : 'border-[#E8DCCB] bg-white'
+                    selected ? 'border-primary bg-sage-light' : 'border-line bg-sand-soft'
                   }`}
                 >
                   <AppIcon name={item.icon} />

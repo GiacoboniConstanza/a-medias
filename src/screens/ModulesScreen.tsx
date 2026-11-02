@@ -30,7 +30,7 @@ export function ModulesScreen() {
         </Link>
       </header>
       <h1 className="font-display text-[1.8rem] font-bold leading-tight">Mis módulos</h1>
-      <section className="mb-3 mt-3.5 flex items-center gap-3 rounded-3xl bg-gradient-to-br from-card to-[#EEF4E6] p-3 shadow-card">
+      <section className="mb-3 mt-3.5 flex items-center gap-3 rounded-3xl bg-gradient-to-br from-card to-[var(--color-sage-soft)] p-3 shadow-card">
         <Planter />
         <p className="text-sm font-bold leading-snug">
           Elegí qué querés ver. Lo que apagues queda como semillita, por si algún día lo querés.
@@ -51,7 +51,7 @@ export function ModulesScreen() {
               <Sprout module={module} muted={!on} />
               <div className="min-w-0 flex-1">
                 <p className="text-[15px] font-extrabold">{meta.label}</p>
-                <p className="text-[12.5px] font-semibold text-muted">{detail}</p>
+                <p className="text-sm font-semibold text-muted">{detail}</p>
               </div>
               <ModuleSwitch
                 on={on}
@@ -64,7 +64,7 @@ export function ModulesScreen() {
         })}
       </ul>
       {error ? <p className="mb-3 text-center text-sm font-bold text-alert-ink">{error}</p> : null}
-      <p className="mt-3 flex gap-2 px-1.5 text-[12.5px] font-semibold leading-snug text-muted">
+      <p className="mt-3 flex gap-2 px-1.5 text-sm font-semibold leading-snug text-muted">
         <AppIcon name="circle-info" className="mt-0.5 shrink-0 text-primary" />
         <span>
           Siempre queda al menos un módulo prendido. Aunque no uses Memos, vas a ver en tu Inicio los que te compartan.
@@ -83,7 +83,7 @@ export function ComingSoonScreen({ module }: { module: ModuleId }) {
       </div>
       <h1 className="font-display text-[1.8rem] font-bold">{meta.label}</h1>
       <p className="mt-2 font-bold text-muted">Próximamente</p>
-      <Link to="/" className="mt-6 inline-flex min-h-11 items-center justify-center rounded-2xl bg-primary px-5 font-extrabold text-white">
+      <Link to="/" className="mt-6 inline-flex min-h-11 items-center justify-center rounded-2xl bg-primary px-5 font-extrabold text-on-primary">
         Volver al inicio
       </Link>
     </section>

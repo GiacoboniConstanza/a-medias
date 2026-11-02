@@ -55,7 +55,7 @@ export function ShareScreen() {
   if (phase === 'ready' && prefill) {
     return (
       <>
-        {readNote ? <p className="mb-3 rounded-2xl bg-[#FCE6EA] px-3 py-2 text-sm font-bold text-[#85503C]">{readNote}</p> : null}
+        {readNote ? <p className="mb-3 rounded-2xl bg-copper-soft px-3 py-2 text-sm font-bold text-alert-ink">{readNote}</p> : null}
         <ExpenseScreen
           prefill={prefill}
           onCancel={() => {
@@ -82,10 +82,10 @@ export function ShareScreen() {
         </p>
       ) : null}
       {phase === 'error' ? (
-        <p className="mt-3 text-base font-bold leading-snug text-[#85503C]">No pude recuperar el comprobante. Podés cargar el gasto a mano.</p>
+        <p className="mt-3 text-base font-bold leading-snug text-alert-ink">No pude recuperar el comprobante. Podés cargar el gasto a mano.</p>
       ) : null}
       {phase === 'empty' || phase === 'error' ? (
-        <Link to="/cargar" className="mt-6 inline-flex min-h-11 items-center justify-center rounded-2xl bg-primary px-4 font-semibold text-white">
+        <Link to="/cargar" className="mt-6 inline-flex min-h-11 items-center justify-center rounded-2xl bg-primary px-4 font-semibold text-on-primary">
           Nuevo gasto
         </Link>
       ) : null}

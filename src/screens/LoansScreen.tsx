@@ -265,9 +265,9 @@ function LoanCard({
         </span>
         {loan.notes ? <span className="mt-1 block text-sm font-semibold text-muted">{loan.notes}</span> : null}
         <span className="mt-3 block">
-          <Progress value={progress} color="#6A784D" />
+          <Progress value={progress} color="var(--color-good)" />
         </span>
-        <span className="mt-1 block text-xs font-bold text-muted">
+        <span className="mt-1 block text-sm font-bold text-muted">
           Devuelto {formatMoney(loan.repaid)} · falta {formatMoney(loan.pending)}
         </span>
       </button>
@@ -276,15 +276,15 @@ function LoanCard({
           Registrar devolución
         </button>
       ) : (
-        <p className="mt-3 text-sm font-bold text-good">Saldado</p>
+        <p className="mt-3 text-sm font-bold text-primary">Saldado</p>
       )}
     </article>
   )
 }
 
 const LOAN_STATUS: Record<Loan['status'], { label: string; className: string }> = {
-  pendiente: { label: 'Pendiente', className: 'bg-warn-soft text-text' },
-  parcial: { label: 'Parcial', className: 'bg-debt text-alert-ink' },
+  pendiente: { label: 'Pendiente', className: 'bg-warn-soft text-title' },
+  parcial: { label: 'Parcial', className: 'bg-copper-soft text-alert-ink' },
   saldado: { label: 'Saldado', className: 'bg-sage-light text-primary' },
 }
 
@@ -464,7 +464,7 @@ function LoanDetail({
               <span>{formatMoney(repayment.amount)}</span>
             </p>
             {repayment.notes ? <p className="text-sm font-semibold text-muted">{repayment.notes}</p> : null}
-            {repayment.createdBy === meId && confirming !== repayment.id ? (
+            {repayment.createdBy === meId && !repayment.settlementId && confirming !== repayment.id ? (
               <p className="mt-1 flex gap-3">
                 <button type="button" className="min-h-11 font-semibold text-primary" onClick={() => onEditRepayment(repayment)}>
                   Editar

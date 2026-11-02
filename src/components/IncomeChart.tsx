@@ -75,8 +75,8 @@ export function IncomeChart({
         const fill = `${line} L ${last.x1} ${baseline} L ${first.x0} ${baseline} Z`
         return (
           <g key={first.x0} className={`year-line ${drawn ? 'opacity-100' : 'opacity-0'}`}>
-            <path d={fill} fill="#C7DDAE" opacity="0.55" />
-            <path d={line} fill="none" stroke="#4F6B57" strokeWidth="3.5" strokeLinejoin="round" />
+            <path d={fill} fill="var(--color-sage-light)" opacity="0.55" />
+            <path d={line} fill="none" stroke="var(--color-primary)" strokeWidth="3.5" strokeLinejoin="round" />
           </g>
         )
       })}
@@ -89,13 +89,13 @@ export function IncomeChart({
                 : `L ${segment.x0} ${segment.y} L ${segment.x1} ${segment.y}`,
             )
             .join(' ')} L ${futureRun[futureRun.length - 1]?.x1} ${baseline} L ${futureRun[0]?.x0} ${baseline} Z`}
-          fill="#C7DDAE"
+          fill="var(--color-sage-light)"
           opacity="0.25"
-          stroke="#C7DDAE"
+          stroke="var(--color-sage-light)"
           strokeDasharray="4 4"
         />
       ) : null}
-      <line x1={left} y1={baseline} x2={width - left} y2={baseline} stroke="#EADCCB" strokeWidth="2" />
+      <line x1={left} y1={baseline} x2={width - left} y2={baseline} stroke="var(--color-line)" strokeWidth="2" />
       {months.map((month, index) => {
         const future = isFutureMonth(year, month.month, today)
         const center = left + slot * index + slot / 2
@@ -114,7 +114,7 @@ export function IncomeChart({
                 width="12"
                 height={Math.max(barHeight, 4)}
                 rx="5"
-                fill="#F4C542"
+                fill="var(--color-warn)"
                 style={{ animationDelay: `${index * 40}ms` }}
               />
             ) : null}
@@ -125,13 +125,13 @@ export function IncomeChart({
                   y1={yFor(month.base, max)}
                   x2={left + slot * index}
                   y2={Math.max(yFor(month.base, max) - 36, 8)}
-                  stroke="#4F6B57"
+                  stroke="var(--color-primary)"
                   strokeWidth="2"
                   strokeDasharray="3 3"
                 />
                 <g transform={`translate(${Math.min(left + slot * index - 28, width - 64)}, ${Math.max(yFor(month.base, max) - 52, 4)})`}>
-                  <rect width="56" height="20" rx="10" fill="#4F6B57" />
-                  <text x="28" y="14" textAnchor="middle" fontSize="10.5" fontWeight="800" fill="#ffffff">
+                  <rect width="56" height="20" rx="10" fill="var(--color-primary)" />
+                  <text x="28" y="14" textAnchor="middle" fontSize="10.5" fontWeight="800" fill="var(--color-on-primary)">
                     Aumento
                   </text>
                 </g>
@@ -143,7 +143,7 @@ export function IncomeChart({
               textAnchor="middle"
               fontSize="11"
               fontWeight="700"
-              fill={future ? '#6B6656' : '#202808'}
+              fill={future ? 'var(--color-muted)' : 'var(--color-title)'}
             >
               {MONTH_INITIALS[index]}
               {future ? <title>aún no</title> : null}

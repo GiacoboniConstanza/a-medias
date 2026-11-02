@@ -143,7 +143,7 @@ export function HabitsScreen() {
         <p className="text-[15px] font-semibold text-muted">
           <AppIcon name="seedling" className="mr-1.5" /> Hábitos
         </p>
-        <span className="inline-flex items-center gap-1 rounded-2xl bg-sage-light px-3 py-1.5 text-xs font-extrabold text-primary">
+        <span className="inline-flex items-center gap-1 rounded-2xl bg-sage-light px-3 py-1.5 text-sm font-extrabold text-primary">
           <AppIcon name="lock" /> Solo vos
         </span>
       </header>
@@ -158,7 +158,7 @@ export function HabitsScreen() {
       </div>
       {todayISO(weekStart) !== todayISO(startOfWeek(today)) ? (
         <div className="mb-3 flex justify-center">
-          <button type="button" onClick={() => setWeekStart(startOfWeek(new Date()))} className="min-h-11 rounded-full bg-card px-4 text-sm font-semibold text-text shadow-soft">
+          <button type="button" onClick={() => setWeekStart(startOfWeek(new Date()))} className="min-h-11 rounded-full bg-card px-4 text-sm font-semibold text-title shadow-soft">
             Hoy
           </button>
         </div>
@@ -168,7 +168,7 @@ export function HabitsScreen() {
           <h2 className="flex items-center gap-1.5 font-display text-sm font-semibold text-muted">
             <AppIcon name="sun" className="text-warn" /> Tu semana en brotes
           </h2>
-          <p className="text-xs font-extrabold text-good">{counter.elapsed > 0 ? weekCounterLabel(counter.touched, counter.elapsed) : 'Sin hábitos'}</p>
+          <p className="text-sm font-extrabold text-title">{counter.elapsed > 0 ? weekCounterLabel(counter.touched, counter.elapsed) : 'Sin hábitos'}</p>
         </div>
         <div className="mt-1.5 flex justify-between">
           {days.map((day, index) => {
@@ -178,19 +178,19 @@ export function HabitsScreen() {
             return (
               <div
                 key={day.iso}
-                className={`flex w-10 flex-col items-center rounded-2xl py-1 ${day.when === 'today' ? 'bg-[#EEF4E6] text-primary' : 'text-[#a49c88]'}`}
+                className={`flex w-10 flex-col items-center rounded-2xl py-1 ${day.when === 'today' ? 'bg-sage-soft text-primary' : 'text-muted'}`}
                 aria-label={`${meta?.name ?? ''}, ${detail}`}
               >
                 <DaySprout stage={stage} />
-                <span className="text-[11.5px] font-extrabold">{meta?.label}</span>
+                <span className="text-sm font-extrabold">{meta?.label}</span>
               </div>
             )
           })}
         </div>
       </section>
       <div className="mb-2 flex items-center justify-between px-1">
-        <h2 className="text-[13px] font-bold text-[#8a8370]">Hoy · {weekday}</h2>
-        <p className="text-[13px] font-extrabold text-good">
+        <h2 className="text-sm font-bold text-muted">Hoy · {weekday}</h2>
+        <p className="text-sm font-extrabold text-title">
           {progress.total > 0 ? `${todayCounterLabel(progress.done, progress.total)} hoy` : 'Nada para hoy'}
         </p>
       </div>
@@ -201,7 +201,7 @@ export function HabitsScreen() {
           const done = checks.some((check) => check.habitId === habit.id && check.day === todayIso)
           return (
             <li key={habit.id} className="mb-2 flex min-h-[58px] items-center gap-2 rounded-[22px] bg-card py-1.5 pl-4 pr-2.5 shadow-card">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#E3EED4] text-primary">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-sage-soft text-primary">
                 <AppIcon name={habit.iconName} />
               </span>
               <button type="button" onClick={() => openEdit(habit)} className="min-h-11 min-w-0 flex-1 text-left text-[15.5px] font-bold">
@@ -212,7 +212,7 @@ export function HabitsScreen() {
                 disabled={pendingId === habit.id}
                 onClick={() => void toggleDone(habit)}
                 className={`inline-flex min-h-11 min-w-[92px] items-center justify-center gap-1.5 rounded-full px-4 text-sm font-extrabold ${
-                  done ? 'bg-primary text-white' : 'border-2 border-sage-light text-primary'
+                  done ? 'bg-primary text-on-primary' : 'border-2 border-sage-light text-primary'
                 }`}
               >
                 {done ? (
@@ -232,7 +232,7 @@ export function HabitsScreen() {
         onClick={openNew}
         className="mt-1 flex min-h-[52px] w-full items-center gap-3 rounded-[22px] border-2 border-dashed border-line px-4 text-left"
       >
-        <span className="grid h-11 w-11 place-items-center rounded-full bg-[#F2EADF] text-muted">
+        <span className="grid h-11 w-11 place-items-center rounded-full bg-sand text-muted">
           <AppIcon name="plus" />
         </span>
         <span className="font-extrabold text-muted">Nuevo hábito</span>
@@ -389,14 +389,14 @@ function HabitSheet({
               aria-pressed={on}
               aria-label={day.name}
               onClick={() => toggleDay(day.index)}
-              className={`grid h-11 w-11 place-items-center rounded-2xl text-sm font-extrabold ${on ? 'bg-primary text-white' : 'bg-sand text-muted'}`}
+              className={`grid h-11 w-11 place-items-center rounded-2xl text-sm font-extrabold ${on ? 'bg-primary text-on-primary' : 'bg-sand text-muted'}`}
             >
               {day.label}
             </button>
           )
         })}
       </div>
-      <p className="mt-2 text-xs font-semibold text-muted">Elegí al menos un día.</p>
+      <p className="mt-2 text-sm font-semibold text-muted">Elegí al menos un día.</p>
       {habit ? (
         <button type="button" onClick={() => void archive()} disabled={saving} className="mt-4 min-h-11 w-full rounded-2xl border-2 border-line text-base font-extrabold text-alert-ink">
           Archivar
