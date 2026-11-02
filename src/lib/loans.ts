@@ -1,4 +1,5 @@
 import { formatMoney, money, normalizeMoney } from './format.ts'
+import { debtSentence, type SplitResult } from './split.ts'
 import { supabase } from './supabase.ts'
 
 export type LoanStatus = 'pendiente' | 'parcial' | 'saldado'
@@ -102,6 +103,60 @@ export function sharedSignedBalance(
   if (split.creditorId === meId) return normalizeMoney(split.amount)
   if (split.debtorId === meId) return normalizeMoney(-split.amount)
   return 0
+}
+
+export type SettlementPhrases = {
+  expenseLine: string
+  loanLine: string | null
+  totalLine: string
+  breakdown: string | null
+}
+
+/** Frases del paso 3. Los montos salen del reparto y del saldo de préstamos, sin recalcular. */
+export function settlementPhrases(meId: string, result: SplitResult, loanSigned: number): SettlementPhrases {
+  const loans = normalizeMoney(loanSigned)
+  const partner = result.rows.find((row) => row.id !== meId) ?? null
+  const sharedSigned = sharedSignedBalance(meId, result)
+  const net = normalizeMoney(sharedSigned + loans)
+  const expenseLine = expenseDebtLine(meId, result)
+  if (!partner || result.rows.length < 2) {
+    return { expenseLine, loanLine: null, totalLine: expenseLine, breakdown: null }
+  }
+  return {
+    expenseLine,
+    loanLine: loanPendingLine(loans),
+    totalLine: balanceSentence(partner.name, net),
+    breakdown: settlementBreakdown(sharedSigned, loans),
+  }
+}
+
+function expenseDebtLine(meId: string, result: SplitResult): string {
+  if (result.rows.length < 2) return debtSentence(meId, result)
+  if (result.amount === 0 || !result.debtorId || !result.creditorId) return 'Están a mano'
+  const debtor = result.rows.find((row) => row.id === result.debtorId)
+  const creditor = result.rows.find((row) => row.id === result.creditorId)
+  if (!debtor || !creditor) return 'Están a mano'
+  const paid = formatMoney(debtor.paid)
+  const share = formatMoney(debtor.share)
+  const owed = formatMoney(result.amount)
+  if (meId === creditor.id) return `${debtor.name} pagó ${paid} y le tocaba ${share}, así que te debe ${owed}.`
+  if (meId === debtor.id) return `Pagaste ${paid} y te tocaba ${share}, así que le debés ${owed} a ${creditor.name}.`
+  return `${debtor.name} pagó ${paid} y le tocaba ${share}, así que le debe ${owed} a ${creditor.name}.`
+}
+
+function loanPendingLine(loanSigned: number): string | null {
+  if (loanSigned === 0) return null
+  if (loanSigned > 0) return `Además, tiene préstamos pendientes por ${formatMoney(loanSigned)}.`
+  return `Además, tenés préstamos pendientes por ${formatMoney(-loanSigned)}.`
+}
+
+function settlementBreakdown(sharedSigned: number, loanSigned: number): string | null {
+  if (sharedSigned === 0 || loanSigned === 0) return null
+  const sharedAbs = Math.abs(sharedSigned)
+  const loanAbs = Math.abs(loanSigned)
+  if ((sharedSigned > 0) === (loanSigned > 0)) return `${formatMoney(sharedAbs)} + ${formatMoney(loanAbs)}`
+  const [larger, smaller] = sharedAbs >= loanAbs ? [sharedAbs, loanAbs] : [loanAbs, sharedAbs]
+  return `${formatMoney(larger)} - ${formatMoney(smaller)}`
 }
 
 /** El cupo de una devolución nueva es el pendiente. Al editarla, vuelve a sumar su monto. */

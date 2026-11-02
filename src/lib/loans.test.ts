@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { monthPocket } from './derive.ts'
+import { formatMoney, normalizeMoney } from './format.ts'
 import {
   balanceSentence,
   friendlyLoanSummary,
@@ -12,9 +13,12 @@ import {
   matchesLoanFilter,
   remainingAfterLoans,
   repaymentRoom,
+  settlementPhrases,
   sharedLoanNote,
+  sharedSignedBalance,
   signedLoanBalance,
 } from './loans.ts'
+import { splitByPercents } from './split.ts'
 
 const coty = 'coty'
 const maru = 'maru'
@@ -65,6 +69,127 @@ describe('neto de Compartido con préstamos', () => {
     expect(note?.netLine).toBe('Maru te debe $ 250.000,00')
     expect(balanceSentence('Coty', -250_000)).toBe('Le debés $ 250.000,00 a Coty')
     expect(sharedLoanNote('Maru', 0, -30_000)).toBeNull()
+  })
+})
+
+describe('frases del paso 3', () => {
+  const maruDebe = splitByPercents(
+    779_553,
+    [
+      { id: 'maru', name: 'Maru', percent: 40, paid: 154_900 },
+      { id: 'coty', name: 'Coty', percent: 60, paid: 624_653 },
+    ],
+    false,
+  )
+  const cotyDebe = splitByPercents(
+    779_553,
+    [
+      { id: 'maru', name: 'Maru', percent: 40, paid: 624_653 },
+      { id: 'coty', name: 'Coty', percent: 60, paid: 154_900 },
+    ],
+    false,
+  )
+  const aMano = splitByPercents(
+    10_000,
+    [
+      { id: 'coty', name: 'Coty', percent: 60, paid: 6_000 },
+      { id: 'maru', name: 'Maru', percent: 40, paid: 4_000 },
+    ],
+    false,
+  )
+
+  it('coincide con el reparto cuando Maru debe, con y sin préstamos', () => {
+    expect(maruDebe.rows.map((row) => row.share)).toEqual([311_821.2, 467_731.8])
+    expect(maruDebe.amount).toBe(156_921.2)
+    expect(sharedSignedBalance('coty', maruDebe)).toBe(156_921.2)
+
+    const sinPrestamos = settlementPhrases('coty', maruDebe, 0)
+    expect(sinPrestamos).toEqual({
+      expenseLine: 'Maru pagó $ 154.900,00 y le tocaba $ 311.821,20, así que te debe $ 156.921,20.',
+      loanLine: null,
+      totalLine: 'Maru te debe $ 156.921,20',
+      breakdown: null,
+    })
+    expect(sinPrestamos.totalLine).toBe(balanceSentence('Maru', sharedSignedBalance('coty', maruDebe)))
+
+    const conPrestamos = settlementPhrases('coty', maruDebe, 275_000)
+    expect(conPrestamos).toEqual({
+      expenseLine: 'Maru pagó $ 154.900,00 y le tocaba $ 311.821,20, así que te debe $ 156.921,20.',
+      loanLine: 'Además, tiene préstamos pendientes por $ 275.000,00.',
+      totalLine: 'Maru te debe $ 431.921,20',
+      breakdown: '$ 156.921,20 + $ 275.000,00',
+    })
+    expect(conPrestamos.totalLine).toBe(
+      balanceSentence('Maru', normalizeMoney(sharedSignedBalance('coty', maruDebe) + 275_000)),
+    )
+
+    const desdeMaru = settlementPhrases('maru', maruDebe, -275_000)
+    expect(desdeMaru.expenseLine).toBe(
+      'Pagaste $ 154.900,00 y te tocaba $ 311.821,20, así que le debés $ 156.921,20 a Coty.',
+    )
+    expect(desdeMaru.loanLine).toBe('Además, tenés préstamos pendientes por $ 275.000,00.')
+    expect(desdeMaru.totalLine).toBe('Le debés $ 431.921,20 a Coty')
+    expect(desdeMaru.totalLine).toBe(
+      balanceSentence('Coty', normalizeMoney(sharedSignedBalance('maru', maruDebe) - 275_000)),
+    )
+
+    const cruzado = settlementPhrases('coty', maruDebe, -275_000)
+    expect(cruzado.breakdown).toBe('$ 275.000,00 - $ 156.921,20')
+    expect(cruzado.totalLine).toBe(
+      balanceSentence('Maru', normalizeMoney(sharedSignedBalance('coty', maruDebe) - 275_000)),
+    )
+    expect(cruzado.totalLine).toBe('Le debés $ 118.078,80 a Maru')
+  })
+
+  it('invierte la frase cuando Coty debe, con y sin préstamos', () => {
+    expect(cotyDebe.debtorId).toBe('coty')
+    expect(cotyDebe.creditorId).toBe('maru')
+    const deudora = cotyDebe.rows.find((row) => row.id === 'coty')
+    expect(deudora).toBeTruthy()
+    const owed = formatMoney(cotyDebe.amount)
+
+    const sinPrestamos = settlementPhrases('maru', cotyDebe, 0)
+    expect(sinPrestamos.loanLine).toBeNull()
+    expect(sinPrestamos.breakdown).toBeNull()
+    expect(sinPrestamos.expenseLine).toBe(
+      `Coty pagó ${formatMoney(deudora?.paid ?? 0)} y le tocaba ${formatMoney(deudora?.share ?? 0)}, así que te debe ${owed}.`,
+    )
+    expect(sinPrestamos.totalLine).toBe(`Coty te debe ${owed}`)
+    expect(sinPrestamos.totalLine).toBe(balanceSentence('Coty', sharedSignedBalance('maru', cotyDebe)))
+
+    const conPrestamos = settlementPhrases('maru', cotyDebe, 80_000)
+    expect(conPrestamos.loanLine).toBe('Además, tiene préstamos pendientes por $ 80.000,00.')
+    expect(conPrestamos.breakdown).toBe(`${owed} + $ 80.000,00`)
+    expect(conPrestamos.totalLine).toBe(
+      balanceSentence('Coty', normalizeMoney(sharedSignedBalance('maru', cotyDebe) + 80_000)),
+    )
+
+    const desdeCoty = settlementPhrases('coty', cotyDebe, -80_000)
+    expect(desdeCoty.expenseLine).toBe(
+      `Pagaste ${formatMoney(deudora?.paid ?? 0)} y te tocaba ${formatMoney(deudora?.share ?? 0)}, así que le debés ${owed} a Maru.`,
+    )
+    expect(desdeCoty.loanLine).toBe('Además, tenés préstamos pendientes por $ 80.000,00.')
+    expect(desdeCoty.totalLine).toBe(
+      balanceSentence('Maru', normalizeMoney(sharedSignedBalance('coty', cotyDebe) - 80_000)),
+    )
+  })
+
+  it('dice que están a mano, y suma préstamos si los hay', () => {
+    expect(aMano.amount).toBe(0)
+    const sinPrestamos = settlementPhrases('coty', aMano, 0)
+    expect(sinPrestamos.expenseLine).toBe('Están a mano')
+    expect(sinPrestamos.loanLine).toBeNull()
+    expect(sinPrestamos.totalLine).toBe('Están a mano')
+    expect(sinPrestamos.breakdown).toBeNull()
+    expect(settlementPhrases('maru', aMano, 0).totalLine).toBe('Están a mano')
+
+    const conPrestamos = settlementPhrases('coty', aMano, 275_000)
+    expect(conPrestamos.expenseLine).toBe('Están a mano')
+    expect(conPrestamos.loanLine).toBe('Además, tiene préstamos pendientes por $ 275.000,00.')
+    expect(conPrestamos.breakdown).toBeNull()
+    expect(conPrestamos.totalLine).toBe('Maru te debe $ 275.000,00')
+    expect(conPrestamos.totalLine).toBe(balanceSentence('Maru', 275_000))
+    expect(settlementPhrases('maru', aMano, -275_000).totalLine).toBe('Le debés $ 275.000,00 a Coty')
   })
 })
 

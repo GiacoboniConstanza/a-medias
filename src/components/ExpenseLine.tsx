@@ -5,10 +5,19 @@ import { DEFAULT_ICON } from '../lib/icons.ts'
 import { shortDate } from '../lib/month.ts'
 import { periodDiffersFromDate, shortPeriodLabel } from '../lib/period.ts'
 
-export function PeriodTag({ expense }: { expense: Pick<ExpenseItem, 'spentOn' | 'period'> }) {
+export function PeriodTag({
+  expense,
+  readable = false,
+}: {
+  expense: Pick<ExpenseItem, 'spentOn' | 'period'>
+  readable?: boolean
+}) {
   if (!periodDiffersFromDate(expense.spentOn, expense.period)) return null
+  const size = readable
+    ? 'px-2 py-0.5 text-base font-bold'
+    : 'px-1.5 py-0.5 text-[10px] font-extrabold leading-none'
   return (
-    <span className="ml-1 inline-flex rounded-full bg-[#A79BCB] px-1.5 py-0.5 text-[10px] font-extrabold leading-none text-[#2C2440]">
+    <span className={`ml-1 inline-flex items-center rounded-full bg-[#A79BCB] text-[#2C2440] ${size}`}>
       {shortPeriodLabel(expense.period)}
     </span>
   )

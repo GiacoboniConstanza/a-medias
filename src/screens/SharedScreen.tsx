@@ -12,8 +12,8 @@ import { useFinance } from '../context/FinanceProvider.tsx'
 import { useMonth } from '../context/MonthProvider.tsx'
 import { saveViewMode, settleMonth, undoSettlement, type ExpenseItem } from '../lib/api.ts'
 import { buildSharedCsv, downloadText } from '../lib/csv.ts'
-import { debtCopy, monthSplit, partnerId } from '../lib/derive.ts'
-import { loadLoanBalances, sharedLoanNote, sharedSignedBalance, signedLoanBalance } from '../lib/loans.ts'
+import { monthSplit } from '../lib/derive.ts'
+import { loadLoanBalances, settlementPhrases, signedLoanBalance, type SettlementPhrases } from '../lib/loans.ts'
 import { formatMoney } from '../lib/format.ts'
 import { DEFAULT_ICON } from '../lib/icons.ts'
 import { shortDate } from '../lib/month.ts'
@@ -28,21 +28,18 @@ export function SharedScreen() {
   const [notice, setNotice] = useState('')
   const [saving, setSaving] = useState(false)
   const [openExpense, setOpenExpense] = useState<ExpenseItem | null>(null)
-  const [loanNote, setLoanNote] = useState<{ pendingLine: string; netLine: string } | null>(null)
+  const [loanSigned, setLoanSigned] = useState<number | null>(null)
 
   useEffect(() => {
     if (!profile || !data) return
-    const otherId = partnerId(data, profile.id)
-    const partner = (otherId && data.names[otherId]) || 'tu compañera'
-    const sharedSigned = sharedSignedBalance(profile.id, monthSplit(data))
     let active = true
     loadLoanBalances()
       .then((rows) => {
         if (!active) return
-        setLoanNote(sharedLoanNote(partner, signedLoanBalance(profile.id, rows), sharedSigned))
+        setLoanSigned(signedLoanBalance(profile.id, rows))
       })
       .catch(() => {
-        if (active) setLoanNote(null)
+        if (active) setLoanSigned(null)
       })
     return () => {
       active = false
@@ -56,7 +53,7 @@ export function SharedScreen() {
   const shared = data.monthExpenses.filter((expense) => expense.isShared)
   const split = monthSplit(data)
   const balance = pairBalance(profile.id, split)
-  const sentence = debtCopy(profile.id, split)
+  const phrases = settlementPhrases(profile.id, split, loanSigned ?? 0)
   const friendly = profile.viewMode === 'friendly'
 
   async function settle() {
@@ -120,15 +117,14 @@ export function SharedScreen() {
       <ViewToggle mode={profile.viewMode} onChange={(mode) => void changeMode(mode)} className="mb-3" />
       {friendly ? (
         <FriendlyShared
-          sentence={balance.sentence}
-          even={balance.even}
+          phrases={phrases}
+          even={phrases.totalLine === 'Están a mano'}
           myPaid={balance.myPaid}
           partnerPaid={balance.partnerPaid}
           partnerName={balance.partnerName}
           expenses={shared}
           names={data.names}
           categories={data.categories}
-          loanNote={loanNote}
           onOpen={setOpenExpense}
         />
       ) : (
@@ -137,9 +133,8 @@ export function SharedScreen() {
           names={data.names}
           categories={data.categories}
           split={split}
-          sentence={sentence}
+          phrases={phrases}
           settlement={data.settlement}
-          loanNote={loanNote}
         />
       )}
       {friendly && data.settlement ? (
@@ -179,7 +174,7 @@ export function SharedScreen() {
 }
 
 function FriendlyShared({
-  sentence,
+  phrases,
   even,
   myPaid,
   partnerPaid,
@@ -187,10 +182,9 @@ function FriendlyShared({
   expenses,
   names,
   categories,
-  loanNote,
   onOpen,
 }: {
-  sentence: string
+  phrases: SettlementPhrases
   even: boolean
   myPaid: number
   partnerPaid: number
@@ -198,17 +192,17 @@ function FriendlyShared({
   expenses: ExpenseItem[]
   names: Record<string, string>
   categories: { id: string; name: string; icon: string }[]
-  loanNote: { pendingLine: string; netLine: string } | null
   onOpen: (expense: ExpenseItem) => void
 }) {
   return (
     <>
       <Card>
-        <div className="flex items-center gap-2">
+        <div className="flex items-start gap-2">
           <Plant stage={even ? 'lush' : 'steady'} />
-          <p className="min-w-0 font-display text-3xl font-semibold leading-tight text-primary">{sentence}</p>
+          <div className="min-w-0 flex-1">
+            <SettlementCopy phrases={phrases} />
+          </div>
         </div>
-        {loanNote ? <LoanNet note={loanNote} /> : null}
       </Card>
       <div className="mb-3 grid grid-cols-2 gap-3">
         <section className="rounded-3xl bg-card p-4 shadow-card">
@@ -259,28 +253,106 @@ function AccountingShared({
   names,
   categories,
   split,
-  sentence,
+  phrases,
   settlement,
-  loanNote,
 }: {
   shared: ExpenseItem[]
   names: Record<string, string>
   categories: { id: string; icon: string }[]
   split: ReturnType<typeof monthSplit>
-  sentence: string
+  phrases: SettlementPhrases
   settlement: { amount: number } | null
-  loanNote: { pendingLine: string; netLine: string } | null
 }) {
   return (
     <>
-      <Card className="overflow-x-auto">
-        <table className="w-full border-collapse text-left text-sm">
+      <SharedExpenseList shared={shared} names={names} categories={categories} total={split.total} />
+      <Card>
+        <h2 className="font-display text-xl font-semibold">Paso 1. Cuánto pagó cada una</h2>
+        <p className="mt-1 text-base font-semibold text-muted">Suma de los gastos compartidos del mes que pagó cada una.</p>
+        <div className="mt-2">
+          {split.rows.map((row) => (
+            <MoneyLine key={row.id} label={`${row.name} pagó`} amount={formatMoney(row.paid)} />
+          ))}
+          <MoneyLine label="Total" amount={formatMoney(split.total)} strong />
+        </div>
+      </Card>
+      <Card>
+        <h2 className="font-display text-xl font-semibold">Paso 2. Cuánto le toca a cada una</h2>
+        <p className="mt-1 text-base font-semibold text-muted">{shareExplanation(split)}</p>
+        <div className="mt-2">
+          {split.rows.map((row) => (
+            <MoneyLine
+              key={row.id}
+              label={`${row.name} (${row.percent}%) le toca`}
+              amount={formatMoney(row.share)}
+            />
+          ))}
+        </div>
+      </Card>
+      <Card>
+        <h2 className="font-display text-xl font-semibold">Paso 3. Quién le debe a quién</h2>
+        <div className="mt-2">
+          <SettlementCopy phrases={phrases} />
+        </div>
+        {settlement ? (
+          <p className="mt-3 text-base font-bold text-good">Mes saldado por {formatMoney(settlement.amount)}.</p>
+        ) : null}
+      </Card>
+    </>
+  )
+}
+
+function SharedExpenseList({
+  shared,
+  names,
+  categories,
+  total,
+}: {
+  shared: ExpenseItem[]
+  names: Record<string, string>
+  categories: { id: string; icon: string }[]
+  total: number
+}) {
+  return (
+    <>
+      <div className="sm:hidden">
+        {shared.length === 0 ? (
+          <p className="mb-3 text-base font-semibold text-muted">Este mes no hay gastos compartidos.</p>
+        ) : (
+          shared.map((expense) => {
+            const category = categories.find((item) => item.id === expense.categoryId)
+            const payer = names[expense.payerId] ?? 'Sin nombre'
+            return (
+              <div key={expense.id} className="mb-3 rounded-3xl bg-card p-4 shadow-card">
+                <div className="flex min-h-11 items-center justify-between gap-3">
+                  <span className="inline-flex min-w-0 items-center gap-2 text-base font-semibold">
+                    <AppIcon name={category?.icon || DEFAULT_ICON} className="shrink-0 text-primary" />
+                    <span className="min-w-0">{expense.title}</span>
+                  </span>
+                  <span className="shrink-0 whitespace-nowrap font-display text-base font-bold">{formatMoney(expense.amount)}</span>
+                </div>
+                <p className="mt-1 flex min-h-11 flex-wrap items-center gap-x-2 text-base font-semibold text-muted">
+                  <span>{shortDate(expense.spentOn)}</span>
+                  <span>Pagó {payer}</span>
+                  <PeriodTag expense={expense} readable />
+                </p>
+              </div>
+            )
+          })
+        )}
+        <SharedTotal total={total} />
+      </div>
+      <Card className="hidden overflow-x-auto sm:block">
+        {shared.length === 0 ? (
+          <p className="mb-2 text-base font-semibold text-muted">Este mes no hay gastos compartidos.</p>
+        ) : null}
+        <table className="w-full border-collapse text-left text-base">
           <thead>
             <tr className="text-muted">
-              <th className="py-1.5 font-bold">Fecha</th>
-              <th className="font-bold">Gasto</th>
-              <th className="font-bold">Pagó</th>
-              <th className="text-right font-bold">Monto</th>
+              <th className="py-3 pr-3 font-bold">Fecha</th>
+              <th className="px-3 py-3 font-bold">Gasto</th>
+              <th className="px-3 py-3 font-bold">Pagó</th>
+              <th className="py-3 pl-3 text-right font-bold">Monto</th>
             </tr>
           </thead>
           <tbody>
@@ -288,68 +360,73 @@ function AccountingShared({
               const category = categories.find((item) => item.id === expense.categoryId)
               return (
                 <tr key={expense.id} className="border-t border-line">
-                  <td className="py-1.5">{shortDate(expense.spentOn)}</td>
-                  <td>
-                    <span className="inline-flex items-center gap-1">
-                      <AppIcon name={category?.icon || DEFAULT_ICON} /> {expense.title}
-                      <PeriodTag expense={expense} />
+                  <td className="min-h-11 py-3 pr-3 whitespace-nowrap">{shortDate(expense.spentOn)}</td>
+                  <td className="min-h-11 px-3 py-3">
+                    <span className="inline-flex items-center gap-2">
+                      <AppIcon name={category?.icon || DEFAULT_ICON} className="text-primary" />
+                      {expense.title}
+                      <PeriodTag expense={expense} readable />
                     </span>
                   </td>
-                  <td>{names[expense.payerId]}</td>
-                  <td className="text-right">{formatMoney(expense.amount)}</td>
+                  <td className="min-h-11 px-3 py-3 whitespace-nowrap">{names[expense.payerId]}</td>
+                  <td className="min-h-11 py-3 pl-3 text-right font-bold whitespace-nowrap">{formatMoney(expense.amount)}</td>
                 </tr>
               )
             })}
-            <tr className="border-t border-line font-extrabold">
-              <td className="py-1.5" colSpan={3}>
-                Total
-              </td>
-              <td className="text-right">{formatMoney(split.total)}</td>
-            </tr>
           </tbody>
         </table>
-      </Card>
-      <Card>
-        <b className="text-sm">Reparto por sueldo base</b>
-        <p className="text-xs text-muted">Los extras no entran en este porcentaje.</p>
-        {split.usedEvenSplit ? (
-          <p className="text-xs font-bold text-alert-ink">Falta algún sueldo base: por ahora partimos en partes iguales.</p>
-        ) : null}
-        <table className="mt-2 w-full border-collapse text-left text-sm">
-          <thead>
-            <tr className="text-muted">
-              <th className="py-1 font-bold" />
-              <th className="font-bold">%</th>
-              <th className="font-bold">Le toca</th>
-              <th className="text-right font-bold">Pagó</th>
-            </tr>
-          </thead>
-          <tbody>
-            {split.rows.map((row) => (
-              <tr key={row.id} className="border-t border-line">
-                <td className="py-1.5">{row.name}</td>
-                <td>{row.percent}%</td>
-                <td>{formatMoney(row.share)}</td>
-                <td className="text-right">{formatMoney(row.paid)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <p className="mt-2 font-display text-lg font-semibold text-primary">Saldo: {sentence}</p>
-        {loanNote ? <LoanNet note={loanNote} /> : null}
-        {settlement ? (
-          <p className="mt-1 text-sm font-bold text-good">Mes saldado por {formatMoney(settlement.amount)}.</p>
-        ) : null}
+        <SharedTotal total={total} bordered />
       </Card>
     </>
   )
 }
 
-function LoanNet({ note }: { note: { pendingLine: string; netLine: string } }) {
+function SharedTotal({ total, bordered = false }: { total: number; bordered?: boolean }) {
   return (
-    <div className="mt-3 border-t border-dashed border-line pt-3">
-      <p className="text-sm font-semibold text-muted">{note.pendingLine}</p>
-      <p className="mt-1 font-display text-lg font-semibold text-primary">Neto: {note.netLine}</p>
+    <div
+      className={`flex min-h-11 items-center justify-between gap-3 text-base font-bold ${
+        bordered ? 'border-t border-line py-3' : 'mb-3'
+      }`}
+    >
+      <span>Total de gastos compartidos del mes</span>
+      <span className="shrink-0 whitespace-nowrap">{formatMoney(total)}</span>
     </div>
+  )
+}
+
+function MoneyLine({ label, amount, strong = false }: { label: string; amount: string; strong?: boolean }) {
+  return (
+    <div className={`flex min-h-11 items-center justify-between gap-3 text-base ${strong ? 'font-bold' : 'font-semibold'}`}>
+      <span className="min-w-0">{label}</span>
+      <span className="shrink-0 whitespace-nowrap font-display font-bold">{amount}</span>
+    </div>
+  )
+}
+
+function shareExplanation(split: ReturnType<typeof monthSplit>): string {
+  if (split.usedEvenSplit) {
+    return 'Falta algún sueldo base: por ahora partimos en partes iguales. Los extras no entran en este porcentaje.'
+  }
+  const parts = split.rows.map((row) => `${row.name} ${row.percent}%`)
+  const who = parts.length === 2 ? `${parts[0]} y ${parts[1]}` : parts.join(', ')
+  if (!who) return 'Los extras no entran en este porcentaje.'
+  return `Los gastos se reparten según el sueldo base de cada una: ${who}. Los extras no entran en este porcentaje.`
+}
+
+function SettlementCopy({ phrases }: { phrases: SettlementPhrases }) {
+  return (
+    <>
+      <p className="text-base font-bold">Por gastos</p>
+      <p className="text-base font-semibold">{phrases.expenseLine}</p>
+      {phrases.loanLine ? (
+        <>
+          <p className="mt-3 text-base font-bold">Por préstamos</p>
+          <p className="text-base font-semibold">{phrases.loanLine}</p>
+        </>
+      ) : null}
+      <p className="mt-3 text-base font-bold text-muted">Total a saldar</p>
+      <p className="font-display text-3xl font-semibold leading-tight text-primary">{phrases.totalLine}</p>
+      {phrases.breakdown ? <p className="mt-1 text-base font-semibold text-muted">{phrases.breakdown}</p> : null}
+    </>
   )
 }
