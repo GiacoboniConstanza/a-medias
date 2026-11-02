@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { AppIcon } from '../components/AppIcon.tsx'
+import { ConfirmSheet } from '../components/ConfirmSheet.tsx'
 import { ExpenseEditor } from '../components/ExpenseEditor.tsx'
 import { ExpenseLine } from '../components/ExpenseLine.tsx'
 import { HelpSheet, type HelpBlock } from '../components/HelpSheet.tsx'
 import { MonthSwitcher } from '../components/MonthSwitcher.tsx'
+import { NotificationBell } from '../components/NotificationBell.tsx'
+import { SectionHeader } from '../components/SectionHeader.tsx'
 import { Sheet } from '../components/Sheet.tsx'
-import { ViewToggle } from '../components/ViewToggle.tsx'
+import { ViewOptions } from '../components/ViewOptions.tsx'
 import { Button, Card, ErrorText, FilterBar, Toast } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
@@ -28,7 +30,6 @@ import type { SplitResult, SplitRow } from '../lib/split.ts'
 import type { ViewMode } from '../types/database.ts'
 
 export function SharedScreen() {
-  const navigate = useNavigate()
   const { profile, refreshProfile } = useAuth()
   const { month } = useMonth()
   const { data, loading, error, refresh } = useFinance()
@@ -135,7 +136,7 @@ export function SharedScreen() {
   }
 
   async function confirmUndo() {
-    if (!data?.settlement) return
+    if (!data?.settlement) return false
     setSaving(true)
     setMessage('')
     try {
@@ -143,8 +144,10 @@ export function SharedScreen() {
       setConfirm(null)
       setSettledNote(false)
       await refresh()
+      return true
     } catch (caught) {
       setMessage(caught instanceof Error ? caught.message : 'No pude deshacer el saldo.')
+      return false
     } finally {
       setSaving(false)
     }
@@ -165,30 +168,16 @@ export function SharedScreen() {
 
   return (
     <>
-      <header className="mb-4 flex items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          aria-label="Volver"
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-card text-title shadow-soft"
-        >
-          <AppIcon name="chevron-left" />
-        </button>
-        <h1 className="inline-flex min-w-0 items-center gap-1.5 text-base font-semibold text-title">
-          <AppIcon name="user-group" className="text-alert-ink" />
-          Compartidos
-        </h1>
-        <button
-          type="button"
-          onClick={() => setHelp(true)}
-          aria-label="Cómo leer Compartidos"
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-card text-alert-ink shadow-soft"
-        >
-          <AppIcon name="circle-question" />
-        </button>
-      </header>
+      <SectionHeader
+        lead="crumb"
+        aside={
+          <>
+            <NotificationBell />
+            <ViewOptions mode={profile.viewMode} onChange={(mode) => void changeMode(mode)} onHelp={() => setHelp(true)} />
+          </>
+        }
+      />
       <MonthSwitcher heading />
-      <ViewToggle mode={profile.viewMode} onChange={(mode) => void changeMode(mode)} className="mb-3" />
 
       <Card>
         <div className="flex items-start justify-between gap-3">
@@ -276,19 +265,15 @@ export function SharedScreen() {
       </Button>
       <ErrorText>{message}</ErrorText>
 
-      {settledNote ? (
-        <div
-          role="status"
-          className="fixed bottom-28 left-1/2 z-50 flex w-[min(20rem,calc(100vw-2.5rem))] -translate-x-1/2 flex-col gap-2 rounded-2xl bg-primary px-4 py-3 text-on-primary shadow-fab"
-        >
-          <p className="text-center text-sm font-semibold">Mes saldado. Si te equivocaste, lo podés deshacer.</p>
-          <button type="button" className="min-h-11 rounded-2xl bg-on-primary font-semibold text-primary" onClick={() => setConfirm('undo')}>
-            Deshacer
-          </button>
-        </div>
-      ) : (
-        <Toast>{notice}</Toast>
-      )}
+      <Toast
+        onUndo={settledNote ? () => confirmUndo() : undefined}
+        onDone={() => {
+          setSettledNote(false)
+          setNotice('')
+        }}
+      >
+        {settledNote ? 'Mes saldado. Si te equivocaste, lo podés deshacer.' : notice}
+      </Toast>
 
       <HelpSheet
         open={help}
@@ -297,20 +282,14 @@ export function SharedScreen() {
         intro="Primero el resultado, después la cuenta y al final el detalle."
         blocks={helpBlocks(split, people, monthName(month))}
       />
-      <Sheet
+      <ConfirmSheet
         open={confirm === 'settle'}
-        title="Saldar mes"
+        title={`¿Saldar ${monthName(month)}?`}
         onClose={() => setConfirm(null)}
-        footer={
-          <div className="space-y-2">
-            <Button type="button" onClick={() => void confirmSettle()} disabled={saving || !plan.canSettle}>
-              Sí, saldar mes
-            </Button>
-            <Button type="button" variant="alt" onClick={() => setConfirm(null)} disabled={saving}>
-              Cancelar
-            </Button>
-          </div>
-        }
+        confirmLabel="Sí, saldar mes"
+        onConfirm={() => void confirmSettle()}
+        disabled={saving || !plan.canSettle}
+        note="Lo podés deshacer desde el aviso de abajo."
       >
         {partner && plan.amount > 0 ? (
           <>
@@ -324,7 +303,7 @@ export function SharedScreen() {
             </p>
           </>
         ) : null}
-      </Sheet>
+      </ConfirmSheet>
       <Sheet
         open={confirm === 'undo'}
         title="Deshacer saldo"

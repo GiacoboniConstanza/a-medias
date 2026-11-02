@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import { useEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode } from 'react'
 import { AppIcon } from './AppIcon.tsx'
 
 export const inputClass =
@@ -157,12 +157,77 @@ export function Toggle({
   )
 }
 
-export function Toast({ children }: { children: string }) {
-  if (!children) return null
+export function Toast({
+  children,
+  onUndo,
+  onDone,
+  aboveFab = false,
+}: {
+  children: string
+  onUndo?: () => void | boolean | Promise<void | boolean>
+  onDone?: () => void
+  aboveFab?: boolean
+}) {
+  const [followup, setFollowup] = useState('')
+  const [hidden, setHidden] = useState(false)
+  const [paused, setPaused] = useState(false)
+  const onDoneRef = useRef(onDone)
+  const onUndoRef = useRef(onUndo)
+  const left = useRef(6000)
+  const started = useRef(0)
+  onDoneRef.current = onDone
+  onUndoRef.current = onUndo
+  const shown = hidden ? '' : followup || children
+
+  useEffect(() => {
+    if (followup) return
+    setHidden(false)
+  }, [children, followup])
+
+  useEffect(() => {
+    left.current = 6000
+  }, [shown])
+
+  useEffect(() => {
+    if (!shown || paused) return
+    started.current = Date.now()
+    const timeout = window.setTimeout(() => {
+      setFollowup('')
+      setHidden(true)
+      onDoneRef.current?.()
+    }, left.current)
+    return () => {
+      left.current = Math.max(0, left.current - (Date.now() - started.current))
+      window.clearTimeout(timeout)
+    }
+  }, [shown, paused])
+
+  if (!shown) return null
+
+  async function undo() {
+    const result = await onUndoRef.current?.()
+    if (result !== false) setFollowup('Listo, lo deshicimos')
+  }
+
   return (
-    <p role="status" className="fixed bottom-28 left-1/2 z-50 max-w-[20rem] -translate-x-1/2 rounded-2xl bg-primary px-4 py-3 text-center text-sm font-semibold text-on-primary shadow-fab">
-      {children}
-    </p>
+    <div
+      role="status"
+      aria-live="polite"
+      tabIndex={-1}
+      onFocus={() => setPaused(true)}
+      onBlur={() => setPaused(false)}
+      className={`fixed left-1/2 z-50 flex w-[min(398px,calc(100%-2rem))] -translate-x-1/2 items-center gap-2 rounded-2xl bg-title py-1 pl-4 pr-1.5 text-card shadow-toast ${
+        aboveFab ? 'bottom-40' : 'bottom-[86px]'
+      }`}
+    >
+      <AppIcon name="circle-check" className="shrink-0" />
+      <p className="min-w-0 flex-1 text-base font-semibold">{shown}</p>
+      {onUndo && !followup ? (
+        <button type="button" className="min-h-11 shrink-0 px-2 text-base font-bold text-sage-soft" onClick={() => void undo()}>
+          Deshacer
+        </button>
+      ) : null}
+    </div>
   )
 }
 

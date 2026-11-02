@@ -1,13 +1,14 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { AppIcon } from '../components/AppIcon.tsx'
+import { SectionHeader } from '../components/SectionHeader.tsx'
+import { ViewOptions } from '../components/ViewOptions.tsx'
 import { DonutBreakdown } from '../components/DonutBreakdown.tsx'
 import { IncomeChart } from '../components/IncomeChart.tsx'
 import { Sheet } from '../components/Sheet.tsx'
 import { ExpenseEditor } from '../components/ExpenseEditor.tsx'
 import { ExpenseLine } from '../components/ExpenseLine.tsx'
 import { Button, Card, Toast } from '../components/ui.tsx'
-import { ViewToggle } from '../components/ViewToggle.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { loadCategoryYearExpenses, loadYearBalance, saveViewMode, type ExpenseItem } from '../lib/api.ts'
 import { formatMoney } from '../lib/format.ts'
@@ -46,12 +47,6 @@ export function YearScreen() {
   const [reload, setReload] = useState(0)
   const today = new Date()
   useEffect(() => {
-    if (!toast) return
-    const timeout = window.setTimeout(() => setToast(''), 3200)
-    return () => window.clearTimeout(timeout)
-  }, [toast])
-
-  useEffect(() => {
     let cancelled = false
     setLoading(true)
     setError('')
@@ -86,18 +81,19 @@ export function YearScreen() {
 
   return (
     <>
-      <Link to="/" className="mb-2 inline-flex min-h-11 items-center gap-1 font-semibold text-title">
-        <AppIcon name="chevron-left" /> Volver
-      </Link>
-      <header className="mb-1 flex items-center justify-between gap-3">
-        <h1 className="inline-flex items-center gap-1.5 font-display text-base font-semibold text-primary">
-          <AppIcon name="chart-pie" /> Mi año
-        </h1>
-        <span className="inline-flex min-h-7 items-center gap-1.5 rounded-2xl bg-sage-light px-2.5 py-1 text-sm font-extrabold text-primary">
-          <AppIcon name="lock" /> Solo vos
-        </span>
-      </header>
-      <ViewToggle mode={me.viewMode} onChange={(mode) => void changeMode(mode)} className="mb-3" />
+      <SectionHeader
+        lead="back"
+        icon="chart-pie"
+        title="Mi año"
+        aside={
+          <>
+            <span className="mr-1 inline-flex min-h-7 items-center gap-1.5 rounded-2xl bg-sage-light px-2.5 py-1 text-sm font-bold text-primary">
+              <AppIcon name="lock" /> Solo vos
+            </span>
+            <ViewOptions mode={me.viewMode} onChange={(mode) => void changeMode(mode)} />
+          </>
+        }
+      />
       <div className="mb-3 flex items-center justify-between gap-3">
         <button type="button" className={ARROW} aria-label="Año anterior" disabled={year <= 2000} onClick={() => setYear((value) => value - 1)}>
           <AppIcon name="chevron-left" />
@@ -133,7 +129,7 @@ export function YearScreen() {
           <CategoryDetail category={category} year={report.year} today={today} reload={reload} onOpen={setEditing} />
         ) : null}
       </Sheet>
-      <Toast>{toast}</Toast>
+      <Toast onDone={() => setToast('')}>{toast}</Toast>
       {editing ? (
         <ExpenseEditor
           presentation="sheet"

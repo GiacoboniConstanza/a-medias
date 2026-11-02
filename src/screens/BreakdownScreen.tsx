@@ -4,8 +4,9 @@ import { Bubbles } from '../components/Bubbles.tsx'
 import { FilterSheet, PERIODS, type ExpenseFilters } from '../components/FilterSheet.tsx'
 import { ScopeChips } from '../components/ScopeChips.tsx'
 import { MonthSwitcher } from '../components/MonthSwitcher.tsx'
+import { NotificationBell } from '../components/NotificationBell.tsx'
 import { SectionHeader } from '../components/SectionHeader.tsx'
-import { ViewToggle } from '../components/ViewToggle.tsx'
+import { ViewOptions } from '../components/ViewOptions.tsx'
 import { ExpenseEditor } from '../components/ExpenseEditor.tsx'
 import { ExpenseLine } from '../components/ExpenseLine.tsx'
 import { Card, Toast } from '../components/ui.tsx'
@@ -71,12 +72,6 @@ export function BreakdownScreen() {
       cancelled = true
     }
   }, [profile?.id, span, month, reload])
-
-  useEffect(() => {
-    if (!toast) return
-    const timeout = window.setTimeout(() => setToast(''), 3200)
-    return () => window.clearTimeout(timeout)
-  }, [toast])
 
   if (!profile) return null
   const me = profile
@@ -151,10 +146,17 @@ export function BreakdownScreen() {
 
   return (
     <>
-      <SectionHeader icon="receipt" title="Gastos" />
+      <SectionHeader
+        lead="crumb"
+        aside={
+          <>
+            <NotificationBell />
+            <ViewOptions mode={me.viewMode} onChange={(mode) => void changeMode(mode)} />
+          </>
+        }
+      />
       <MonthSwitcher heading />
-      <div className="mb-3 flex items-center gap-2">
-        <ViewToggle mode={me.viewMode} onChange={(mode) => void changeMode(mode)} className="min-w-0 flex-1" />
+      <div className="mb-3 flex items-center justify-end gap-2">
         <button
           type="button"
           onClick={() => setSheetOpen(true)}
@@ -292,7 +294,7 @@ export function BreakdownScreen() {
         onClose={() => setSheetOpen(false)}
         onApply={applyFilters}
       />
-      <Toast>{toast}</Toast>
+      <Toast onDone={() => setToast('')}>{toast}</Toast>
       {editing ? (
         <ExpenseEditor
           presentation="sheet"

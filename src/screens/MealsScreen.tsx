@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { AppIcon } from '../components/AppIcon.tsx'
+import { ModuleTitle } from '../components/ModulePill.tsx'
 import { ModuleSwitch } from '../components/ModuleSwitch.tsx'
 import { Sprout } from '../components/Sprout.tsx'
 import { Sheet } from '../components/Sheet.tsx'
@@ -143,9 +144,7 @@ export function MealsScreen() {
   return (
     <>
       <header className="mb-4 flex min-h-11 flex-wrap items-center justify-between gap-2">
-        <p className="text-[15px] font-semibold text-muted">
-          <AppIcon name="bowl-food" className="mr-1.5" /> Comidas
-        </p>
+        <ModuleTitle module="comidas" />
         <div className="flex items-center gap-2">
           <button
             type="button"

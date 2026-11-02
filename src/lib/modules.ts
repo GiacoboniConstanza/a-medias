@@ -13,22 +13,37 @@ export type NavItem = {
   end?: boolean
 }
 
-export const MODULE_META: Record<ModuleId, { label: string; detail: string; icon: string; to: string }> = {
-  finanzas: { label: 'Finanzas', detail: 'Gastos y ahorros', icon: 'wallet', to: '/finanzas' },
-  habitos: { label: 'Hábitos', detail: 'Lo que querés hacer cada día', icon: 'seedling', to: '/habitos' },
-  comidas: { label: 'Comidas', detail: 'Proteína y lo que comés', icon: 'bowl-food', to: '/comidas' },
-  memos: { label: 'Memos', detail: 'Notas y cosas para acordarte', icon: 'note-sticky', to: '/memos' },
+export const MODULE_META: Record<ModuleId, { label: string; detail: string; icon: string; to: string; tone: string; ink: string }> = {
+  finanzas: { label: 'Finanzas', detail: 'Gastos y ahorros', icon: 'wallet', to: '/finanzas', tone: 'bg-gold-soft', ink: 'text-alert-ink' },
+  habitos: { label: 'Hábitos', detail: 'Lo que querés hacer cada día', icon: 'seedling', to: '/habitos', tone: 'bg-sage-soft', ink: 'text-primary' },
+  comidas: { label: 'Comidas', detail: 'Proteína y lo que comés', icon: 'bowl-food', to: '/comidas', tone: 'bg-copper-soft', ink: 'text-alert-ink' },
+  memos: { label: 'Memos', detail: 'Notas y cosas para acordarte', icon: 'note-sticky', to: '/memos', tone: 'bg-lavender-soft', ink: 'text-lavender-ink' },
 }
 
-const FINANCE_NAV: readonly NavItem[] = [
-  { to: '/', label: 'Inicio', icon: 'house', end: true },
-  { to: '/se-me-fue', label: 'Gastos', icon: 'receipt' },
-  { to: '/prestamos', label: 'Préstamos', icon: 'hand-holding-dollar' },
-  { to: '/ahorros', label: 'Ahorros', icon: 'piggy-bank' },
-  { to: '/recordatorios', label: 'Avisos', icon: 'bell' },
+export const FINANCE_ROUTES = {
+  resumen: '/finanzas',
+  gastos: '/se-me-fue',
+  compartidos: '/compartidos',
+  prestamos: '/prestamos',
+  ahorros: '/ahorros',
+  avisos: '/recordatorios',
+  anio: '/mi-anio',
+  sueldo: '/sueldo',
+  compartir: '/compartir',
+  cargar: '/cargar',
+  modulos: '/modulos',
+} as const
+
+/** Pestañas de Finanzas. Sin hub, Resumen apunta a `/` (navFor). */
+export const FINANCE_TABS: readonly NavItem[] = [
+  { to: FINANCE_ROUTES.resumen, label: 'Resumen', icon: 'wallet', end: true },
+  { to: FINANCE_ROUTES.gastos, label: 'Gastos', icon: 'receipt' },
+  { to: FINANCE_ROUTES.compartidos, label: 'Compartidos', icon: 'user-group' },
+  { to: FINANCE_ROUTES.prestamos, label: 'Préstamos', icon: 'hand-holding-dollar' },
+  { to: FINANCE_ROUTES.ahorros, label: 'Ahorros', icon: 'piggy-bank' },
 ]
 
-export const FINANCE_SECTION_LINKS: readonly NavItem[] = FINANCE_NAV.filter((item) => item.to !== '/')
+const RESUMEN_ALIASES = new Set<string>([FINANCE_ROUTES.avisos, FINANCE_ROUTES.anio, FINANCE_ROUTES.sueldo, FINANCE_ROUTES.compartir])
 
 export function isComingSoon(module: ModuleId): boolean {
   return COMING_SOON.includes(module)
@@ -49,18 +64,48 @@ export function isHubHome(enabled: readonly ModuleId[]): boolean {
   return enabled.some((id) => id !== 'finanzas')
 }
 
-/** Con solo Finanzas se conserva el menú de hoy. Si hay otro módulo, Inicio más los activos. */
+/** Menú general: Inicio y los módulos activos, en el orden fijo. */
 export function navForModules(enabled: readonly ModuleId[]): NavItem[] {
   const active = MODULES.filter((id) => enabled.includes(id))
-  if (!active.some((id) => id !== 'finanzas')) return FINANCE_NAV.map((item) => ({ ...item }))
+  const ids = active.length > 0 ? active : (['finanzas'] as const)
   return [
     { to: '/', label: 'Inicio', icon: 'house', end: true },
-    ...active.map((id) => ({
+    ...ids.map((id) => ({
       to: MODULE_META[id].to,
       label: MODULE_META[id].label,
       icon: MODULE_META[id].icon,
     })),
   ]
+}
+
+export type NavMatch = { items: NavItem[]; activeTo: string }
+
+function financeMenu(hub: boolean): NavItem[] {
+  return FINANCE_TABS.map((item, index) => (index === 0 ? { ...item, to: hub ? item.to : '/' } : { ...item }))
+}
+
+/** Menú de Finanzas en Finanzas y el general en el resto. `from` es la pestaña que abrió Cargar. */
+export function navFor(pathname: string, enabled: readonly ModuleId[], from?: string | null): NavMatch {
+  const hub = isHubHome(enabled)
+  const tabs = financeMenu(hub)
+  const resumen = tabs[0]?.to ?? '/'
+  const general = navForModules(enabled)
+  if (pathname === FINANCE_ROUTES.modulos) return { items: general, activeTo: '/' }
+  const onFinance =
+    pathname === FINANCE_ROUTES.resumen ||
+    tabs.some((item) => item.to === pathname) ||
+    RESUMEN_ALIASES.has(pathname) ||
+    pathname === FINANCE_ROUTES.cargar
+  if (!onFinance) {
+    const active = general.find((item) => item.to === pathname)?.to ?? '/'
+    return { items: general, activeTo: active }
+  }
+  if (pathname === FINANCE_ROUTES.cargar) {
+    const origin = from && tabs.some((item) => item.to === from) ? from : resumen
+    return { items: tabs, activeTo: origin }
+  }
+  if (RESUMEN_ALIASES.has(pathname)) return { items: tabs, activeTo: resumen }
+  return { items: tabs, activeTo: tabs.find((item) => item.to === pathname)?.to ?? resumen }
 }
 
 export function moduleSwitchLocked(enabled: readonly ModuleId[], module: ModuleId): boolean {

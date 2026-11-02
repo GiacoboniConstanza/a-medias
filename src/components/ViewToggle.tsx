@@ -11,29 +11,36 @@ export function ViewToggle({
   className?: string
 }) {
   return (
-    <div className={`flex rounded-full bg-sand p-1 ${className}`} role="group" aria-label="Vista">
-      <ToggleButton active={mode === 'friendly'} onClick={() => onChange('friendly')}>
-        Amigable
-      </ToggleButton>
-      <ToggleButton active={mode === 'accounting'} onClick={() => onChange('accounting')}>
-        Contable
-      </ToggleButton>
+    <div className={`flex rounded-full bg-sand p-[3px] ${className}`} role="radiogroup" aria-label="Ver como">
+      <ToggleButton active={mode === 'friendly'} icon="seedling" label="Amigable" onClick={() => onChange('friendly')} />
+      <ToggleButton active={mode === 'accounting'} icon="table-list" label="Contable" onClick={() => onChange('accounting')} />
     </div>
   )
 }
 
-function ToggleButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: string }) {
+function ToggleButton({
+  active,
+  icon,
+  label,
+  onClick,
+}: {
+  active: boolean
+  icon: string
+  label: string
+  onClick: () => void
+}) {
   return (
     <button
       type="button"
+      role="radio"
+      aria-checked={active}
       onClick={onClick}
-      aria-pressed={active}
-      className={`inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-full px-3 text-sm font-extrabold ${
+      className={`inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-full px-3 text-base font-bold ${
         active ? 'bg-primary text-on-primary' : 'text-muted'
       }`}
     >
-      {active ? <AppIcon name="check" /> : null}
-      {children}
+      <AppIcon name={icon} className="text-sm" />
+      {label}
     </button>
   )
 }

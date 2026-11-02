@@ -42,6 +42,8 @@ const config: Config = {
       boxShadow: {
         card: '0 4px 14px #c4866d18',
         fab: '0 8px 18px #4f6b5766',
+        'fab-lite': '0 3px 8px rgb(79 107 87 / 25%)',
+        toast: '0 2px 8px rgb(47 74 56 / 14%)',
         soft: '0 3px 8px #c4866d22',
       },
     },

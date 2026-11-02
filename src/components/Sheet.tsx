@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type PointerEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { AppIcon } from './AppIcon.tsx'
 
 export function Sheet({
   open,
@@ -155,9 +156,14 @@ export function Sheet({
         >
           <span className="h-1.5 w-12 rounded-full bg-line" aria-hidden="true" />
         </div>
-        <h2 id={titleId} className="px-5 pb-2 font-display text-xl font-semibold">
-          {title}
-        </h2>
+        <div className="flex items-center justify-between gap-2 px-5 pb-2">
+          <h2 id={titleId} className="min-w-0 font-display text-xl font-medium">
+            {title}
+          </h2>
+          <button type="button" aria-label="Cerrar" onClick={onClose} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-sand text-alert-ink">
+            <AppIcon name="xmark" />
+          </button>
+        </div>
         <div className={`overflow-y-auto px-5 ${footer ? 'pb-3' : 'pb-6'}`}>{children}</div>
         {footer ? <div className="mt-auto border-t border-line px-5 pb-6 pt-3">{footer}</div> : null}
       </div>

@@ -1,36 +1,32 @@
-import { NavLink, useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useModules } from '../context/ModulesProvider.tsx'
-import { isHubHome, navForModules } from '../lib/modules.ts'
+import { navFor } from '../lib/modules.ts'
 import { AppIcon } from './AppIcon.tsx'
 
 export function BottomNav() {
-  const { pathname } = useLocation()
+  const location = useLocation()
   const { enabled, ready } = useModules()
-  const links = navForModules(ready ? enabled : ['finanzas'])
-  const financeHome = !isHubHome(ready ? enabled : ['finanzas'])
+  const from = (location.state as { from?: string } | null)?.from ?? null
+  const { items, activeTo } = navFor(location.pathname, ready ? enabled : ['finanzas'], from)
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-20 mx-auto flex h-[74px] max-w-[430px] items-center justify-around overflow-x-auto border-t border-line bg-card px-1 pb-1.5">
-      {links.map((link) => {
-        const active =
-          link.to === '/'
-            ? financeHome
-              ? pathname === '/' || pathname === '/mi-anio'
-              : pathname === '/'
-            : pathname === link.to
+    <nav aria-label="Secciones" className="fixed inset-x-0 bottom-0 z-20 mx-auto flex h-[74px] max-w-[430px] items-center justify-around border-t border-line bg-card px-1 pb-1.5">
+      {items.map((link) => {
+        const active = link.to === activeTo
         return (
-          <NavLink
+          <Link
             key={link.to}
             to={link.to}
-            end={link.end ?? link.to === '/'}
-            className={`flex min-h-11 min-w-11 shrink-0 flex-col items-center justify-center gap-0.5 whitespace-nowrap rounded-2xl px-1.5 text-[14px] font-semibold leading-none ${
-              active ? 'bg-sage-light text-primary' : 'text-muted'
+            aria-current={active ? 'page' : undefined}
+            aria-label={link.label}
+            className={`flex min-h-14 min-w-12 shrink-0 flex-col items-center justify-center gap-0.5 whitespace-nowrap rounded-2xl px-1 text-sm font-bold leading-none ${
+              active ? 'text-primary' : 'text-muted'
             }`}
           >
-            <span className="text-base leading-none">
-              <AppIcon name={link.icon} />
+            <span className={`grid h-[30px] min-w-12 place-items-center rounded-full ${active ? 'bg-sage-light' : ''}`}>
+              <AppIcon name={link.icon} className="text-lg" />
             </span>
-            {link.label}
-          </NavLink>
+            <span className="max-[359px]:sr-only">{link.label}</span>
+          </Link>
         )
       })}
     </nav>

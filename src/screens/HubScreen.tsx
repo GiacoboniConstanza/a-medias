@@ -177,15 +177,11 @@ export function HubScreen() {
 
   return (
     <>
-      <header className="mb-4 flex min-h-11 items-center justify-between gap-3">
-        <p className="text-[15px] font-semibold text-muted">
-          <AppIcon name="seedling" className="mr-1.5" /> Hola, {profile.displayName}
+      <header className="mb-4 flex items-center justify-between gap-1">
+        <p className="min-w-0 font-display text-xl font-medium text-title">
+          <AppIcon name="seedling" className="mr-1.5 text-primary" /> Hola, {profile.displayName}
         </p>
-        <Link
-          to="/modulos"
-          aria-label="Mis módulos"
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-card text-primary shadow-soft"
-        >
+        <Link to="/modulos" aria-label="Mis módulos" className="grid h-11 w-11 shrink-0 place-items-center text-primary">
           <AppIcon name="sliders" />
         </Link>
       </header>

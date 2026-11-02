@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { checkedThisWeek, groupMemos, memoCounts, partnerPendingMemos, plantLine, type MemoItem } from './memos.ts'
-import { enabledFromRows, moduleSwitchLocked, navForModules, toggleAllowed } from './modules.ts'
+import { enabledFromRows, moduleSwitchLocked, navFor, navForModules, toggleAllowed } from './modules.ts'
 
 const memo = (patch: Partial<MemoItem> & Pick<MemoItem, 'id' | 'ownerId'>): MemoItem => ({
   text: 'Anotar',
@@ -11,15 +11,9 @@ const memo = (patch: Partial<MemoItem> & Pick<MemoItem, 'id' | 'ownerId'>): Memo
 })
 
 describe('filtro del menú', () => {
-  it('con solo Finanzas mantiene el menú de hoy', () => {
-    expect(navForModules(['finanzas']).map((item) => item.label)).toEqual(['Inicio', 'Gastos', 'Préstamos', 'Ahorros', 'Avisos'])
-    expect(navForModules(enabledFromRows([])).map((item) => item.label)).toEqual([
-      'Inicio',
-      'Gastos',
-      'Préstamos',
-      'Ahorros',
-      'Avisos',
-    ])
+  it('con solo Finanzas el menú general es Inicio y Finanzas', () => {
+    expect(navForModules(['finanzas']).map((item) => item.label)).toEqual(['Inicio', 'Finanzas'])
+    expect(navForModules(enabledFromRows([])).map((item) => item.label)).toEqual(['Inicio', 'Finanzas'])
   })
 
   it('muestra Inicio y solo los módulos activos, en orden fijo', () => {
@@ -32,6 +26,47 @@ describe('filtro del menú', () => {
 
   it('con Finanzas y Memos el menú queda en Inicio, Finanzas y Memos', () => {
     expect(navForModules(['finanzas', 'memos']).map((item) => item.to)).toEqual(['/', '/finanzas', '/memos'])
+  })
+})
+
+describe('menú según la pantalla', () => {
+  it('sin hub muestra Finanzas y Resumen es /', () => {
+    const nav = navFor('/', ['finanzas'])
+    expect(nav.items.map((item) => item.label)).toEqual(['Resumen', 'Gastos', 'Compartidos', 'Préstamos', 'Ahorros'])
+    expect(nav.items[0]?.to).toBe('/')
+    expect(nav.activeTo).toBe('/')
+    expect(navFor('/finanzas', ['finanzas']).activeTo).toBe('/')
+  })
+
+  it('con hub el inicio es general y Resumen vive en /finanzas', () => {
+    expect(navFor('/', ['finanzas', 'habitos']).items.map((item) => item.label)).toEqual(['Inicio', 'Finanzas', 'Hábitos'])
+    const finance = navFor('/se-me-fue', ['finanzas', 'memos'])
+    expect(finance.items[0]?.to).toBe('/finanzas')
+    expect(finance.activeTo).toBe('/se-me-fue')
+  })
+
+  it('Avisos, Mi año, Mi sueldo y Compartir marcan Resumen', () => {
+    for (const path of ['/recordatorios', '/mi-anio', '/sueldo', '/compartir']) {
+      expect(navFor(path, ['finanzas', 'memos']).activeTo).toBe('/finanzas')
+    }
+  })
+
+  it('Cargar marca la pestaña de origen, o Resumen', () => {
+    expect(navFor('/cargar', ['finanzas'], '/se-me-fue').activeTo).toBe('/se-me-fue')
+    expect(navFor('/cargar', ['finanzas']).activeTo).toBe('/')
+    expect(navFor('/cargar', ['finanzas', 'memos']).activeTo).toBe('/finanzas')
+  })
+
+  it('Mis módulos usa el menú general con Inicio marcado', () => {
+    const nav = navFor('/modulos', ['finanzas', 'comidas'])
+    expect(nav.activeTo).toBe('/')
+    expect(nav.items.map((item) => item.label)).toEqual(['Inicio', 'Finanzas', 'Comidas'])
+  })
+
+  it('Hábitos marca su módulo en el menú general', () => {
+    const nav = navFor('/habitos', ['finanzas', 'habitos'])
+    expect(nav.activeTo).toBe('/habitos')
+    expect(nav.items[0]?.label).toBe('Inicio')
   })
 })
 

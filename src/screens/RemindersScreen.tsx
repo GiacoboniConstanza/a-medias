@@ -38,6 +38,7 @@ import {
   loggingStreak,
   nextAskAt,
   shiftDay,
+  isOpenFixed,
   shouldAskToday,
   streakCopy,
   type DailyKind,
@@ -372,7 +373,7 @@ export function RemindersScreen() {
       matchesScope(item.isShared, scope) &&
       matchesCategories(item.categoryId, categoryIds),
   )
-  const openItems = dues.filter((item) => !item.payment)
+  const openItems = dues.filter((item) => isOpenFixed(item))
   const paidItems = dues.filter((item) => item.payment)
   const reminderFilters: ExpenseFilters = { preset, customFrom, customTo, categoryIds }
   const activeCount = (preset === 'month' ? 0 : 1) + categoryIds.length

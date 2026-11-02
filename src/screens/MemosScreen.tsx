@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { AppIcon } from '../components/AppIcon.tsx'
+import { ModuleTitle } from '../components/ModulePill.tsx'
 import { ModuleSwitch } from '../components/ModuleSwitch.tsx'
 import { Sprout } from '../components/Sprout.tsx'
 import { Sheet } from '../components/Sheet.tsx'
@@ -85,9 +86,7 @@ export function MemosScreen() {
   return (
     <>
       <header className="mb-4 flex min-h-11 items-center">
-        <p className="text-[15px] font-semibold text-muted">
-          <AppIcon name="note-sticky" className="mr-1.5" /> Memos
-        </p>
+        <ModuleTitle module="memos" />
       </header>
       <h1 className="font-display text-[1.8rem] font-bold leading-tight">Mis memos</h1>
       <div className="mb-1 mt-2 flex items-center gap-2 text-sm font-bold text-title">

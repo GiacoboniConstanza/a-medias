@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { AppIcon } from '../components/AppIcon.tsx'
+import { ModuleTitle } from '../components/ModulePill.tsx'
 import { IconPicker } from '../components/IconPicker.tsx'
 import { DaySprout } from '../components/Sprout.tsx'
 import { Sheet } from '../components/Sheet.tsx'
@@ -139,10 +140,8 @@ export function HabitsScreen() {
 
   return (
     <>
-      <header className="mb-4 flex min-h-11 items-center justify-between gap-3">
-        <p className="text-[15px] font-semibold text-muted">
-          <AppIcon name="seedling" className="mr-1.5" /> Hábitos
-        </p>
+      <header className="mb-4 flex min-h-11 items-center justify-between gap-1">
+        <ModuleTitle module="habitos" />
         <span className="inline-flex items-center gap-1 rounded-2xl bg-sage-light px-3 py-1.5 text-sm font-extrabold text-primary">
           <AppIcon name="lock" /> Solo vos
         </span>

@@ -2,13 +2,12 @@ import { useEffect, useState } from 'react'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { MoneyField } from '../components/MoneyField.tsx'
 import { Plant } from '../components/Plant.tsx'
+import { NotificationBell } from '../components/NotificationBell.tsx'
 import { SectionHeader } from '../components/SectionHeader.tsx'
 import { Sheet } from '../components/Sheet.tsx'
-import { ViewToggle } from '../components/ViewToggle.tsx'
 import { Button, Card, Chip, ErrorText, FilterBar, Progress } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
-import { saveViewMode } from '../lib/api.ts'
 import { partnerId } from '../lib/derive.ts'
 import { clampNotes, formatMoney, moneyDraftFromAmount, parseMoney } from '../lib/format.ts'
 import {
@@ -28,8 +27,6 @@ import {
 } from '../lib/loans.ts'
 import { monthKey, monthTitle, shiftMonth, shortDate, todayISO } from '../lib/month.ts'
 import { periodFromDate } from '../lib/period.ts'
-import type { ViewMode } from '../types/database.ts'
-
 const FILTERS: { id: LoanFilter; label: string }[] = [
   { id: 'all', label: 'Todos' },
   { id: 'open', label: 'Pendientes' },
@@ -37,7 +34,7 @@ const FILTERS: { id: LoanFilter; label: string }[] = [
 ]
 
 export function LoansScreen() {
-  const { profile, refreshProfile } = useAuth()
+  const { profile } = useAuth()
   const { data, loading } = useFinance()
   const [loans, setLoans] = useState<Loan[]>([])
   const [ready, setReady] = useState(false)
@@ -78,16 +75,11 @@ export function LoansScreen() {
   if (!profile) return null
   if ((loading && !data) || !ready) return <p className="py-16 text-center font-bold text-muted">Cargando…</p>
 
-  const friendly = profile.viewMode === 'friendly'
+  const friendly = true // S11: siempre Amigable, aunque el modo guardado sea Contable.
   const userId = profile.id
   const signed = signedLoanBalance(userId, loans)
   const visible = loans.filter((loan) => matchesLoanFilter(loan.status, filter))
   const openLoan = editing ?? (creating ? null : undefined)
-
-  async function changeMode(mode: ViewMode) {
-    await saveViewMode(userId, mode)
-    await refreshProfile()
-  }
 
   async function refresh() {
     const rows = await loadLoanBalances()
@@ -97,8 +89,7 @@ export function LoansScreen() {
 
   return (
     <>
-      <SectionHeader icon="hand-holding-dollar" title="Préstamos" />
-      <ViewToggle mode={profile.viewMode} onChange={(mode) => void changeMode(mode)} className="mb-3" />
+      <SectionHeader lead="crumb" aside={<NotificationBell />} />
       <FilterBar label="Préstamos" options={FILTERS} value={filter} onChange={(id) => setFilter(id as LoanFilter)} />
       {friendly ? (
         <Card>

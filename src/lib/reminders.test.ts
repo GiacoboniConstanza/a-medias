@@ -6,12 +6,56 @@ import {
   nextAskAt,
   nextTimeSlot,
   reminderFootnote,
+  pendingCount,
   shouldAskToday,
   streakCopy,
   timesValid,
 } from './reminders.ts'
 
 const prefs = { ...DEFAULT_REMINDER_PREFS, times: [...DEFAULT_REMINDER_PREFS.times] }
+
+const openFixed = (count: number) =>
+  Array.from({ length: count }, () => ({ applies: true, pausedAt: null, payment: null }))
+
+describe('pendientes de la campana', () => {
+  const afternoon = new Date(2026, 9, 20, 18, 0)
+  const day = { logged: false, clear: false }
+
+  it('en cero no cuenta fijos cerrados ni el recordatorio apagado', () => {
+    expect(pendingCount(afternoon, { ...prefs, enabled: false }, day, [])).toBe(0)
+    expect(
+      pendingCount(afternoon, { ...prefs, enabled: false }, day, [
+        { applies: false, pausedAt: null, payment: null },
+        { applies: true, pausedAt: '2026-10-01', payment: null },
+        { applies: true, pausedAt: null, payment: { id: 'pago' } },
+      ]),
+    ).toBe(0)
+  })
+
+  it('cuenta de 1 a 9 y desde 10 sigue el número entero', () => {
+    expect(pendingCount(afternoon, { ...prefs, enabled: false }, day, openFixed(4))).toBe(4)
+    expect(pendingCount(afternoon, { ...prefs, enabled: false }, day, openFixed(9))).toBe(9)
+    expect(pendingCount(afternoon, { ...prefs, enabled: false }, day, openFixed(12))).toBe(12)
+  })
+
+  it('no suma el recordatorio si está apagado o todavía no es la hora', () => {
+    expect(pendingCount(afternoon, { ...prefs, enabled: false }, day, openFixed(2))).toBe(2)
+    expect(pendingCount(new Date(2026, 9, 20, 13, 59), prefs, day, [])).toBe(0)
+  })
+
+  it('no suma el día si ya hay gasto, un clear o reviewedOn de hoy', () => {
+    expect(pendingCount(afternoon, prefs, { logged: true, clear: false }, [])).toBe(0)
+    expect(pendingCount(afternoon, prefs, { logged: false, clear: true }, [])).toBe(0)
+    expect(pendingCount(afternoon, { ...prefs, reviewedOn: '2026-10-20' }, day, [])).toBe(0)
+  })
+
+  it('cerrarlo hoy lo saca hasta mañana, y un cierre de ayer no', () => {
+    const closedToday = { ...prefs, hiddenUntil: new Date(2026, 9, 20, 21, 30).toISOString() }
+    expect(pendingCount(new Date(2026, 9, 20, 21, 30), closedToday, day, [])).toBe(0)
+    const closedYesterday = { ...prefs, hiddenUntil: new Date(2026, 9, 20, 14, 0).toISOString() }
+    expect(pendingCount(afternoon, closedYesterday, day, [])).toBe(1)
+  })
+})
 
 describe('aviso diario', () => {
   it('no aparece antes del primer horario', () => {

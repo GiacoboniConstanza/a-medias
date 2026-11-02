@@ -101,6 +101,33 @@ export function nextAskAt(now: Date, times: string[]): Date {
   return atClock(tomorrow, first)
 }
 
+type OpenFixed = { applies: boolean; pausedAt: string | null; payment: unknown }
+
+export function isOpenFixed(item: OpenFixed): boolean {
+  return item.applies && item.pausedAt == null && item.payment == null
+}
+
+/** Fijos del mes sin pagar, más 1 si el recordatorio de hoy sigue pendiente para la campana. */
+export function pendingCount(now: Date, prefs: ReminderPrefs, day: DayAsk | undefined, fixed: readonly OpenFixed[]): number {
+  const open = fixed.reduce((sum, item) => sum + (isOpenFixed(item) ? 1 : 0), 0)
+  return open + (dailyStillPending(now, prefs, day) ? 1 : 0)
+}
+
+function dailyStillPending(now: Date, prefs: ReminderPrefs, day?: DayAsk): boolean {
+  if (!prefs.enabled) return false
+  if (day?.logged || day?.clear) return false
+  const first = sortedTimes(prefs.times)[0]
+  if (!first) return false
+  if (prefs.reviewedOn === todayISO(now)) return false
+  const firstAt = atClock(now, first)
+  if (now.getTime() < firstAt.getTime()) return false
+  if (prefs.hiddenUntil) {
+    const until = new Date(prefs.hiddenUntil)
+    if (!Number.isNaN(until.getTime()) && until.getTime() > firstAt.getTime()) return false
+  }
+  return true
+}
+
 export function shouldAskToday(now: Date, prefs: ReminderPrefs, day?: DayAsk): boolean {
   if (!prefs.enabled) return false
   if (day?.logged || day?.clear) return false

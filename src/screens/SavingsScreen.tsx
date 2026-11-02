@@ -7,14 +7,14 @@ import { amountFromDigits } from '../components/Keypad.tsx'
 import { MoneyField } from '../components/MoneyField.tsx'
 import { PotPlant } from '../components/Plant.tsx'
 import { ScopeChips } from '../components/ScopeChips.tsx'
+import { NotificationBell } from '../components/NotificationBell.tsx'
 import { SectionHeader } from '../components/SectionHeader.tsx'
 import { Sheet } from '../components/Sheet.tsx'
-import { ViewToggle } from '../components/ViewToggle.tsx'
 import { Button, Card, Chip, Toast, inputClass } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
 import { useMonth } from '../context/MonthProvider.tsx'
-import { contributeToGoal, createFund, createGoal, saveViewMode, type FundItem } from '../lib/api.ts'
+import { contributeToGoal, createFund, createGoal, type FundItem } from '../lib/api.ts'
 import { monthSplit, partnerId } from '../lib/derive.ts'
 import { formatMoney, normalizeMoney } from '../lib/format.ts'
 import { contributionInMonth, evenMonthlyShare, goalPaceLine, goalPhrase, monthsUntil, salaryShare } from '../lib/goal.ts'
@@ -29,7 +29,6 @@ import {
   scopeFromSearch,
 } from '../lib/savings.ts'
 import type { ScopeFilter } from '../lib/finance-filters.ts'
-import type { ViewMode } from '../types/database.ts'
 import { ContributeSheet } from './GoalScreen.tsx'
 
 type MoveMode = 'to_fund' | 'to_gustos' | 'use'
@@ -38,7 +37,7 @@ const primaryButton = 'block min-h-[52px] w-full rounded-2xl bg-primary text-bas
 const quietButton = 'mt-2 block min-h-[52px] w-full rounded-2xl border-2 border-primary bg-card text-base font-semibold text-primary'
 
 export function SavingsScreen() {
-  const { profile, refreshProfile } = useAuth()
+  const { profile } = useAuth()
   const { month } = useMonth()
   const { data, loading, error, refresh } = useFinance()
   const [params, setParams] = useSearchParams()
@@ -67,12 +66,6 @@ export function SavingsScreen() {
       // Si el navegador no guarda, el filtro queda en esta visita.
     }
   }, [scope])
-
-  useEffect(() => {
-    if (!toast) return
-    const timeout = window.setTimeout(() => setToast(''), 3200)
-    return () => window.clearTimeout(timeout)
-  }, [toast])
 
   if (!profile?.householdId) return null
   if (loading && !data) return <p className="py-16 text-center text-base font-semibold text-muted">Cargando…</p>
@@ -103,17 +96,12 @@ export function SavingsScreen() {
     void refresh()
   }
 
-  async function changeMode(mode: ViewMode) {
-    await saveViewMode(userId, mode)
-    await refreshProfile()
-  }
-
   function openMove(mode: MoveMode, fund: FundItem | null) {
     setMoveFund(fund)
     setMoveMode(mode)
   }
 
-  const friendly = profile.viewMode === 'friendly'
+  const friendly = true // S11: siempre Amigable, aunque el modo guardado sea Contable.
   const emptyCopy =
     scope === 'shared'
       ? 'Todavía no hay ahorros compartidos.'
@@ -123,8 +111,7 @@ export function SavingsScreen() {
 
   return (
     <>
-      <SectionHeader icon="piggy-bank" title="Ahorros" />
-      <ViewToggle mode={profile.viewMode} onChange={(mode) => void changeMode(mode)} className="mb-3" />
+      <SectionHeader lead="crumb" aside={<NotificationBell />} />
       <ScopeChips value={scope} onChange={setScope} />
 
       {rows.length === 0 ? <p className="mb-3 text-base font-semibold text-muted">{emptyCopy}</p> : null}
@@ -243,7 +230,7 @@ export function SavingsScreen() {
         </div>
       ) : null}
 
-      <Toast>{toast}</Toast>
+      <Toast onDone={() => setToast('')}>{toast}</Toast>
       <NewSavingSheet
         open={creating}
         goalExists={Boolean(goal)}

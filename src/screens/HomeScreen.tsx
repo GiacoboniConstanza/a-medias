@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Link, useLocation, useMatch, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { AppIcon } from '../components/AppIcon.tsx'
+import { Fab } from '../components/Fab.tsx'
 import { MonthSwitcher } from '../components/MonthSwitcher.tsx'
+import { NotificationBell } from '../components/NotificationBell.tsx'
 import { PartnerMemos } from '../components/PartnerMemos.tsx'
-import { ViewToggle } from '../components/ViewToggle.tsx'
+import { SectionHeader } from '../components/SectionHeader.tsx'
+import { ViewOptions } from '../components/ViewOptions.tsx'
 import { SplitNotice } from '../components/SplitNotice.tsx'
 import { Card, Toast } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
@@ -16,14 +19,19 @@ import { homeAccountingCard, type HomeCardLine } from '../lib/home-card.ts'
 import { formatMoney } from '../lib/format.ts'
 import { jarStatus } from '../lib/jar.ts'
 import { loanMonthEffect, loadLoanMovements, sharedSignedBalance, type PeriodLoan, type PeriodRepayment } from '../lib/loans.ts'
-import { FINANCE_SECTION_LINKS, isHubHome } from '../lib/modules.ts'
+import { isHubHome } from '../lib/modules.ts'
 import type { ViewMode } from '../types/database.ts'
 
-const SECTION_TONE: Record<string, string> = {
-  '/se-me-fue': 'text-alert-ink',
-  '/prestamos': 'text-lavender-ink',
-  '/ahorros': 'text-primary',
-  '/recordatorios': 'text-warn-ink',
+function yearBannerKey(userId: string, year: number) {
+  return `a-medias.balance-anio.${userId}.${year}`
+}
+
+function yearBannerClosed(key: string) {
+  try {
+    return localStorage.getItem(key) === '1'
+  } catch {
+    return false
+  }
 }
 
 export function HomeScreen() {
@@ -33,6 +41,7 @@ export function HomeScreen() {
   const location = useLocation()
   const navigate = useNavigate()
   const [toast, setToast] = useState('')
+  const [closedBanner, setClosedBanner] = useState<string | null>(null)
   const [loanMoves, setLoanMoves] = useState<{ loans: PeriodLoan[]; repayments: PeriodRepayment[] }>({
     loans: [],
     repayments: [],
@@ -44,11 +53,6 @@ export function HomeScreen() {
     setToast(notice)
     navigate(location.pathname, { replace: true, state: null })
   }, [location.pathname, location.state, navigate])
-  useEffect(() => {
-    if (!toast) return
-    const timeout = window.setTimeout(() => setToast(''), 3200)
-    return () => window.clearTimeout(timeout)
-  }, [toast])
   useEffect(() => {
     if (!profile) return
     let active = true
@@ -63,9 +67,11 @@ export function HomeScreen() {
       active = false
     }
   }, [profile])
-  const financeRoute = useMatch('/finanzas')
   const hub = modules.ready && isHubHome(modules.enabled)
   if (!profile) return null
+  const year = new Date().getFullYear()
+  const bannerKey = yearBannerKey(profile.id, year)
+  const showBanner = closedBanner !== bannerKey && !yearBannerClosed(bannerKey)
   if (loading && !data) return <p className="py-16 text-center font-semibold text-primary">Cargando tu mes…</p>
   if (!data) return <p className="py-16 text-center font-semibold text-alert-ink">{error}</p>
 
@@ -100,52 +106,34 @@ export function HomeScreen() {
     await refreshProfile()
   }
 
+  function closeBanner() {
+    try {
+      localStorage.setItem(bannerKey, '1')
+    } catch {
+      // Si el navegador no guarda, el aviso vuelve en la próxima visita.
+    }
+    setClosedBanner(bannerKey)
+  }
+
   return (
     <>
-      <header className="mb-4 flex min-h-11 items-center justify-between gap-3">
-        <p className="text-sm font-semibold text-primary">
-          <AppIcon name="house" className="mr-1.5 text-alert" /> Hola, {profile.displayName}
-        </p>
-        <Link
-          to="/modulos"
-          aria-label="Mis módulos"
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-card text-primary shadow-soft"
-        >
-          <AppIcon name="sliders" />
-        </Link>
-      </header>
-      {hub && financeRoute ? (
-        <nav aria-label="Secciones de finanzas" className="mb-3 grid grid-cols-4 overflow-hidden rounded-3xl bg-card shadow-card">
-          {FINANCE_SECTION_LINKS.map((item, index) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className={`flex min-h-11 flex-col items-center justify-center gap-1 px-0.5 py-2.5 text-center text-[14px] font-semibold leading-none ${SECTION_TONE[item.to] ?? 'text-primary'} ${
-                index > 0 ? 'border-l border-line' : ''
-              }`}
-            >
-              <AppIcon name={item.icon} className="text-base" />
-              <span className="whitespace-nowrap">{item.label}</span>
-            </Link>
-          ))}
-        </nav>
-      ) : null}
+      <SectionHeader
+        lead={hub ? 'crumb' : 'greeting'}
+        name={profile.displayName}
+        aside={
+          <>
+            <NotificationBell />
+            {hub ? null : (
+              <Link to="/modulos" aria-label="Mis módulos" className="grid h-11 w-11 place-items-center text-primary">
+                <AppIcon name="sliders" />
+              </Link>
+            )}
+            <ViewOptions mode={profile.viewMode} onChange={(mode) => void changeMode(mode)} />
+          </>
+        }
+      />
       <MonthSwitcher heading tone="home" />
-      <ViewToggle mode={profile.viewMode} onChange={(mode) => void changeMode(mode)} className="mb-3" />
       <SplitNotice notice={data.splitNotice} />
-      <Link
-        to="/mi-anio"
-        className="mb-3 flex min-h-11 items-center gap-3 rounded-3xl bg-primary px-4 py-3.5 text-on-primary shadow-fab"
-      >
-        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-sage-light text-primary">
-          <AppIcon name="chart-pie" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block font-display text-base font-semibold">Tu balance {new Date().getFullYear()} está listo</span>
-          <span className="block text-sm font-semibold text-on-primary">Mirá cómo te fue en el año</span>
-        </span>
-        <AppIcon name="arrow-right" />
-      </Link>
 
       <Card>
         {friendly ? (
@@ -197,10 +185,6 @@ export function HomeScreen() {
             ) : null}
           </>
         )}
-        <Link to="/se-me-fue" className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-base font-semibold text-primary">
-          Ver gastos
-          <AppIcon name="arrow-right" />
-        </Link>
       </Card>
 
       {hub ? null : <PartnerMemos />}
@@ -218,6 +202,19 @@ export function HomeScreen() {
           <AppIcon name="arrow-right" className="text-alert" />
         </Card>
       </Link>
+
+      {showBanner ? (
+        <div className="mb-3 flex h-14 items-center gap-1 rounded-2xl border border-line bg-sand-soft pl-3 pr-1">
+          <AppIcon name="chart-pie" className="shrink-0 text-primary" />
+          <p className="min-w-0 flex-1 font-display text-base font-medium text-title">Tu balance {year} está listo</p>
+          <Link to="/mi-anio" className="grid h-12 w-12 place-items-center text-base font-bold text-primary">
+            Ver
+          </Link>
+          <button type="button" aria-label="Cerrar aviso" onClick={closeBanner} className="grid h-12 w-12 place-items-center text-title">
+            <AppIcon name="xmark" />
+          </button>
+        </div>
+      ) : null}
 
       {!otherId ? (
         <Card>
@@ -239,14 +236,10 @@ export function HomeScreen() {
 
       {error ? <p className="text-center text-sm font-semibold text-alert-ink">{error}</p> : null}
 
-      <Link
-        to="/cargar"
-        className="fixed bottom-24 right-[max(1.25rem,calc(50vw-190px))] z-30 grid h-[58px] w-[58px] place-items-center rounded-full bg-primary text-2xl text-on-primary shadow-fab"
-        aria-label="Cargar gasto"
-      >
-        <AppIcon name="plus" />
-      </Link>
-      <Toast>{toast}</Toast>
+      <Fab to="/cargar" label="Nuevo gasto" state={{ from: hub ? '/finanzas' : '/' }} />
+      <Toast aboveFab onDone={() => setToast('')}>
+        {toast}
+      </Toast>
     </>
   )
 }
