@@ -17,7 +17,10 @@ const config: Config = {
         // #C4866D sobre card queda en 2.9:1. Este cobre llega a 6.3:1 para texto.
         'alert-ink': '#85503C',
         blush: '#F7B7C4',
+        'blush-soft': '#FDEEF3',
         lavender: '#A79BCB',
+        'lavender-ink': '#5C5180',
+        'gold-ink': '#8A6B12',
         text: '#202808',
         // Secundario del boceto, 5.5:1 sobre card y 5.2:1 sobre el fondo.
         muted: '#6B6656',

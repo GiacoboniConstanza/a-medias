@@ -22,11 +22,11 @@ export function BottomNav() {
             key={link.to}
             to={link.to}
             end={link.end ?? link.to === '/'}
-            className={`flex min-h-11 min-w-11 shrink-0 flex-col items-center justify-center gap-0.5 whitespace-nowrap px-1 text-[10px] font-bold ${
-              active ? 'text-primary' : 'text-muted'
+            className={`flex min-h-11 min-w-11 shrink-0 flex-col items-center justify-center gap-0.5 whitespace-nowrap rounded-2xl px-1.5 text-[14px] font-semibold leading-none ${
+              active ? 'bg-sage-light text-primary' : 'text-muted'
             }`}
           >
-            <span className={`text-lg leading-none ${active ? 'rounded-2xl bg-sage-light px-3.5 py-1.5' : ''}`}>
+            <span className="text-base leading-none">
               <AppIcon name={link.icon} />
             </span>
             {link.label}
