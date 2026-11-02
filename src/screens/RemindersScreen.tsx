@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { AppIcon } from '../components/AppIcon.tsx'
+import { Fab } from '../components/Fab.tsx'
 import { FilterSheet, PERIODS, type ExpenseFilters } from '../components/FilterSheet.tsx'
 import { FixedExpenseSheet, type FixedDraft } from '../components/FixedExpenseSheet.tsx'
 import { MonthSwitcher } from '../components/MonthSwitcher.tsx'
 import { ReminderSettingsSheet } from '../components/ReminderSettingsSheet.tsx'
-import { ScopeChips, PaidChips } from '../components/ScopeChips.tsx'
+import { ScopeChips } from '../components/ScopeChips.tsx'
 import { SectionHeader } from '../components/SectionHeader.tsx'
-import { ErrorText } from '../components/ui.tsx'
+import { ErrorText, Toast } from '../components/ui.tsx'
+import { useModules } from '../context/ModulesProvider.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
 import { useMonth } from '../context/MonthProvider.tsx'
@@ -29,6 +31,7 @@ import { expenseSpan } from '../lib/expense-range.ts'
 import { filterReminders, matchesCategories, matchesScope, type PaidFilter, type ScopeFilter } from '../lib/finance-filters.ts'
 import { dayDiff, dueBucket, dueLabel, dueTone, scheduleAmount, showPayLink, type DueBucket } from '../lib/fixed.ts'
 import { formatMoney } from '../lib/format.ts'
+import { isHubHome } from '../lib/modules.ts'
 import { iconSurface } from '../lib/icons.ts'
 import { isCurrentMonth, monthEnd, monthKey, shiftMonth, shortDate, todayISO } from '../lib/month.ts'
 import { pushIsConfigured, subscribeToPush } from '../lib/push/permissions.ts'
@@ -59,6 +62,7 @@ const toneClass = {
 
 export function RemindersScreen() {
   const { profile } = useAuth()
+  const { enabled } = useModules()
   const { month } = useMonth()
   const { data, loading, error, refresh } = useFinance()
   const [now, setNow] = useState(() => new Date())
@@ -88,12 +92,6 @@ export function RemindersScreen() {
     const timer = window.setInterval(() => setNow(new Date()), 30_000)
     return () => window.clearInterval(timer)
   }, [])
-
-  useEffect(() => {
-    if (!toast) return
-    const timeout = window.setTimeout(() => setToast(''), 3200)
-    return () => window.clearTimeout(timeout)
-  }, [toast])
 
   useEffect(() => {
     if (!profile) return
@@ -375,13 +373,15 @@ export function RemindersScreen() {
   )
   const openItems = dues.filter((item) => isOpenFixed(item))
   const paidItems = dues.filter((item) => item.payment)
-  const reminderFilters: ExpenseFilters = { preset, customFrom, customTo, categoryIds }
-  const activeCount = (preset === 'month' ? 0 : 1) + categoryIds.length
+  const reminderFilters: ExpenseFilters = { preset, customFrom, customTo, categoryIds, paid: paidFilter }
+  const activeCount = (preset === 'month' ? 0 : 1) + categoryIds.length + (paidFilter === 'all' ? 0 : 1) + (scope === 'all' ? 0 : 1)
   const summaryParts: string[] = []
   if (preset !== 'month') {
     const label = PERIODS.find((period) => period.id === preset)?.label ?? 'Período'
     summaryParts.push(preset === 'custom' ? `${shortDate(customFrom || month)} – ${shortDate(customTo || end)}` : label)
   }
+  if (scope !== 'all') summaryParts.push(scope === 'shared' ? 'Compartidos' : 'Privados')
+  if (paidFilter !== 'all') summaryParts.push(paidFilter === 'pending' ? 'Pendiente' : 'Pagado')
   summaryParts.push(...categories.filter((category) => categoryIds.includes(category.id)).map((category) => category.name))
   const grouped = GROUPS.map((group) => ({
     ...group,
@@ -393,12 +393,14 @@ export function RemindersScreen() {
   return (
     <>
       <SectionHeader
+        lead="back"
+        backTo={isHubHome(enabled) ? '/finanzas' : '/'}
         icon="bell"
         title="Avisos"
         aside={
           <button
             type="button"
-            className="grid h-11 w-11 place-items-center rounded-full bg-card text-primary shadow-soft"
+            className="grid h-11 w-11 place-items-center text-title"
             aria-label="Mis recordatorios"
             onClick={() => {
               setCreating(false)
@@ -406,14 +408,13 @@ export function RemindersScreen() {
               setSettingsOpen(true)
             }}
           >
-            <AppIcon name="sliders" />
+            <AppIcon name="gear" />
           </button>
         }
       />
+      <MonthSwitcher heading />
       <div className="mb-3 flex items-center gap-2">
-        <div className="min-w-0 flex-1">
-          <MonthSwitcher />
-        </div>
+        <ScopeChips fill value={scope} onChange={setScope} />
         <button
           type="button"
           onClick={() => setSheetOpen(true)}
@@ -426,14 +427,12 @@ export function RemindersScreen() {
         >
           <AppIcon name="sliders" />
           {activeCount > 0 ? (
-            <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-card px-1 text-sm font-extrabold text-primary ring-2 ring-primary">
+            <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-card px-1 text-sm font-bold text-primary ring-2 ring-primary">
               {activeCount}
             </span>
           ) : null}
         </button>
       </div>
-      <ScopeChips value={scope} onChange={setScope} />
-      <PaidChips value={paidFilter} onChange={setPaidFilter} />
       {activeCount > 0 ? (
         <p className="mb-3 text-base font-semibold leading-6 text-muted">
           Mostrando: {summaryParts.join(' · ')}{' '}
@@ -442,8 +441,10 @@ export function RemindersScreen() {
             onClick={() => {
               setPreset('month')
               setCategoryIds([])
+              setScope('all')
+              setPaidFilter('all')
             }}
-            className="ml-1 inline-flex min-h-11 items-center font-extrabold text-primary"
+            className="ml-1 inline-flex min-h-11 items-center font-bold text-primary"
           >
             Limpiar
           </button>
@@ -454,7 +455,7 @@ export function RemindersScreen() {
           <button
             type="button"
             aria-label="Cerrar hasta el próximo horario"
-            className="absolute right-1 top-1 grid h-11 w-11 place-items-center text-muted"
+            className="absolute right-1 top-1 grid h-12 w-12 place-items-center text-muted"
             onClick={askLater}
           >
             <AppIcon name="xmark" />
@@ -466,11 +467,11 @@ export function RemindersScreen() {
           <div className="mt-3.5 flex items-center gap-3">
             <Link
               to="/cargar"
-              className="inline-flex min-h-11 items-center gap-1.5 rounded-[18px] bg-primary px-5 text-sm font-extrabold text-on-primary"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-[18px] bg-primary px-5 text-sm font-bold text-on-primary"
             >
               <AppIcon name="pen" /> Anotar
             </Link>
-            <button type="button" className="min-h-11 px-1 text-sm font-extrabold text-primary" onClick={() => void markReviewed()}>
+            <button type="button" className="min-h-11 px-1 text-sm font-bold text-primary" onClick={() => void markReviewed()}>
               No gasté nada
             </button>
           </div>
@@ -485,10 +486,11 @@ export function RemindersScreen() {
       {grouped.map((group) => (
         <section key={group.id} className="mt-5">
           <h2 className="mb-2 px-1 text-sm font-semibold text-muted">{group.title}</h2>
-          <div className="space-y-2.5">
+          <div className="overflow-hidden rounded-3xl bg-card">
             {group.items.map((item) => (
               <SwipeDue
                 key={item.id}
+                grouped
                 item={item}
                 month={month}
                 now={now}
@@ -514,7 +516,7 @@ export function RemindersScreen() {
               <AppIcon name="check" />
             </span>
             <span className="flex-1 text-left text-sm font-bold text-title">Ya pagados</span>
-            <span className="rounded-full bg-sage-light px-2.5 py-1 text-sm font-extrabold text-primary">{paidItems.length}</span>
+            <span className="rounded-full bg-card px-2.5 py-1 text-sm font-bold text-title">{paidItems.length}</span>
             <AppIcon
               name="chevron-down"
               className={`text-primary transition-transform motion-reduce:transition-none ${paidOpen ? 'rotate-180' : ''}`}
@@ -526,7 +528,7 @@ export function RemindersScreen() {
                 <li key={item.id} className="flex items-center gap-3.5 rounded-3xl bg-card px-4 py-3 shadow-card">
                   <button type="button" className="flex min-h-11 min-w-0 flex-1 items-center gap-3.5 text-left" onClick={() => openEditor(item)}>
                     <IconBubble icon={item.icon} />
-                    <span className="min-w-0 flex-1 truncate text-[15px] font-bold">
+                    <span className="min-w-0 flex-1 truncate text-base font-bold">
                       {item.title}
                       {item.notes ? <AppIcon name="note-sticky" className="ml-1.5 text-sm text-muted" /> : null}
                     </span>
@@ -535,7 +537,7 @@ export function RemindersScreen() {
                     <p className="font-display text-base font-bold">{formatMoney(item.amount)}</p>
                     <button
                       type="button"
-                      className="min-h-11 text-sm font-extrabold text-primary disabled:opacity-50"
+                      className="min-h-11 text-sm font-bold text-primary disabled:opacity-50"
                       onClick={() => void undo(item.id)}
                       disabled={saving}
                     >
@@ -558,7 +560,7 @@ export function RemindersScreen() {
             onClick={() => setPausedOpen((current) => !current)}
           >
             <span className="flex-1 text-left text-sm font-bold text-title">En pausa</span>
-            <span className="rounded-full bg-card px-2.5 py-1 text-sm font-extrabold text-muted">{paused.length}</span>
+            <span className="rounded-full bg-card px-2.5 py-1 text-sm font-bold text-muted">{paused.length}</span>
             <AppIcon
               name="chevron-down"
               className={`text-muted transition-transform motion-reduce:transition-none ${pausedOpen ? 'rotate-180' : ''}`}
@@ -574,7 +576,7 @@ export function RemindersScreen() {
                     onClick={() => openEditor(item)}
                   >
                     <IconBubble icon={item.icon} />
-                    <span className="min-w-0 flex-1 truncate text-[15px] font-bold">
+                    <span className="min-w-0 flex-1 truncate text-base font-bold">
                       {item.title}
                       {item.notes ? <AppIcon name="note-sticky" className="ml-1.5 text-sm text-muted" /> : null}
                     </span>
@@ -589,29 +591,16 @@ export function RemindersScreen() {
 
       <div className="h-24" aria-hidden="true" />
       <ErrorText>{message}</ErrorText>
-      {toast ? (
-        <p
-          role="status"
-          className="fixed bottom-28 left-1/2 z-50 max-w-[20rem] -translate-x-1/2 rounded-2xl bg-primary px-4 py-3 text-center text-sm font-semibold text-on-primary shadow-fab"
-        >
-          {toast}
-        </p>
-      ) : null}
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-30 mx-auto max-w-[430px]">
-        <button
-          type="button"
-          className="pointer-events-auto absolute bottom-28 right-5 grid h-[60px] w-[60px] place-items-center rounded-full bg-primary text-2xl text-on-primary shadow-fab"
-          aria-label="Nuevo gasto fijo"
-          onClick={() => {
-            setEditing(null)
-            setSettingsOpen(false)
-            setSheetError('')
-            setCreating(true)
-          }}
-        >
-          <AppIcon name="plus" />
-        </button>
-      </div>
+      <Toast onDone={() => setToast('')}>{toast}</Toast>
+      <Fab
+        label="Nuevo gasto fijo"
+        onClick={() => {
+          setEditing(null)
+          setSettingsOpen(false)
+          setSheetError('')
+          setCreating(true)
+        }}
+      />
       <FixedExpenseSheet
         open={creating || liveEditing !== null}
         expense={creating ? null : liveEditing}
@@ -649,11 +638,13 @@ export function RemindersScreen() {
         title="Filtrar avisos"
         applyLabel="Ver avisos"
         onClose={() => setSheetOpen(false)}
+        showPaid
         onApply={(next) => {
           setPreset(next.preset)
           setCustomFrom(next.customFrom)
           setCustomTo(next.customTo)
           setCategoryIds(next.categoryIds)
+          if (next.paid) setPaidFilter(next.paid)
           setSheetOpen(false)
         }}
       />
@@ -707,6 +698,7 @@ function SwipeDue({
   now,
   partnerName,
   saving,
+  grouped = false,
   onEdit,
   onPay,
 }: {
@@ -715,6 +707,7 @@ function SwipeDue({
   now: Date
   partnerName: string
   saving: boolean
+  grouped?: boolean
   onEdit: () => void
   onPay: () => void
 }) {
@@ -777,7 +770,7 @@ function SwipeDue({
   }
 
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-sage-soft">
+    <div className={`relative overflow-hidden bg-sage-soft ${grouped ? 'border-b border-line last:border-0' : 'rounded-3xl'}`}>
       <button
         type="button"
         data-pay="true"
@@ -786,7 +779,7 @@ function SwipeDue({
         tabIndex={reveal >= 36 ? 0 : -1}
         disabled={saving}
         onClick={onPay}
-        className="absolute inset-y-0 right-0 flex w-[72px] flex-col items-center justify-center gap-1 text-sm font-extrabold text-primary disabled:opacity-50"
+        className="absolute inset-y-0 right-0 flex w-[72px] flex-col items-center justify-center gap-1 text-sm font-bold text-primary disabled:opacity-50"
       >
         <span className="grid h-9 w-9 place-items-center rounded-full bg-sage-light">
           <AppIcon name="check" />
@@ -794,7 +787,7 @@ function SwipeDue({
         Pagué
       </button>
       <div
-        className={`swipe-motion relative z-10 touch-pan-y rounded-3xl bg-card shadow-card ${dragging ? '' : 'transition-[margin] duration-200 ease-out'}`}
+        className={`swipe-motion relative z-10 touch-pan-y bg-card ${grouped ? '' : 'rounded-3xl shadow-card'} ${dragging ? '' : 'transition-[margin] duration-200 ease-out'}`}
         style={{ marginRight: reveal }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -806,7 +799,7 @@ function SwipeDue({
             <IconBubble icon={item.icon} />
             <span className="min-w-0 flex-1">
               <span className="flex min-w-0 items-baseline gap-1.5">
-                <span className="truncate text-[15.5px] font-bold">
+                <span className="truncate text-base font-bold">
                   {item.title}
                   {item.notes ? <AppIcon name="note-sticky" className="ml-1.5 text-sm text-muted" /> : null}
                 </span>
@@ -821,11 +814,11 @@ function SwipeDue({
               <button
                 type="button"
                 data-pay="true"
-                className="inline-flex min-h-11 items-center gap-1 text-sm font-extrabold text-primary disabled:opacity-50"
+                className="inline-flex min-h-11 items-center gap-1 text-sm font-bold text-primary disabled:opacity-50"
                 onClick={onPay}
                 disabled={saving}
               >
-                <AppIcon name="check" className="text-[10px]" /> Pagué
+                <AppIcon name="check" className="text-sm" /> Pagué
               </button>
             ) : null}
           </div>

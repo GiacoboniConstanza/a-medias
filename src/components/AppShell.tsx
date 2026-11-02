@@ -7,12 +7,14 @@ import { shareReturnPath } from '../lib/shareInbox.ts'
 import { supabaseConfigError } from '../lib/supabase.ts'
 
 export function AppShell() {
+  const { pathname } = useLocation()
+  const hideNav = pathname === '/cargar'
   return (
     <div className="min-h-dvh bg-shell text-title">
-      <div className="mx-auto min-h-dvh max-w-[430px] bg-bg px-5 pb-44 pt-6">
+      <div className={`mx-auto min-h-dvh max-w-[430px] bg-bg px-5 pt-6 ${hideNav ? 'pb-6' : 'pb-44'}`}>
         <Outlet />
       </div>
-      <BottomNav />
+      {hideNav ? null : <BottomNav />}
     </div>
   )
 }

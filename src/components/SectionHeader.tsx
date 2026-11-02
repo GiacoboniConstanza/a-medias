@@ -13,6 +13,7 @@ export function SectionHeader({
   name,
   backTo = '/',
   module = 'finanzas',
+  screenTitle = false,
 }: {
   icon?: string
   title?: string
@@ -22,6 +23,7 @@ export function SectionHeader({
   name?: string
   backTo?: string
   module?: ModuleId
+  screenTitle?: boolean
 }) {
   if (!lead) {
     return (
@@ -51,7 +53,9 @@ export function SectionHeader({
         <Link to={backTo} aria-label="Volver" className="grid h-11 w-11 shrink-0 place-items-center text-alert-ink">
           <AppIcon name="chevron-left" className="text-base" />
         </Link>
-        {icon && title ? (
+        {screenTitle && title ? (
+          <h1 className="min-w-0 truncate font-display text-[26px] font-semibold leading-tight text-title">{title}</h1>
+        ) : icon && title ? (
           <h1 className="inline-flex min-w-0 items-center gap-1.5 font-display text-xl font-medium text-title">
             <AppIcon name={icon} />
             {title}

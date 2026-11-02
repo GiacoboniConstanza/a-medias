@@ -10,17 +10,20 @@ export function Card({ children, className = '' }: { children: ReactNode; classN
 
 export function Button({
   variant = 'primary',
+  tall = false,
   className = '',
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'alt' | 'pink' }) {
+}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'alt' | 'pink' | 'danger'; tall?: boolean }) {
   const tone = {
     primary: 'bg-primary text-on-primary',
     alt: 'bg-sand text-primary',
     pink: 'bg-primary text-on-primary',
+    danger: 'border border-alert-ink bg-card text-alert-ink',
   }[variant]
+  const height = tall ? 'min-h-[52px]' : 'min-h-11'
   return (
     <button
-      className={`block min-h-11 w-full rounded-2xl px-4 py-3 text-center text-base font-semibold disabled:opacity-50 ${tone} ${className}`}
+      className={`block w-full rounded-2xl px-4 py-3 text-center text-base font-semibold disabled:opacity-50 ${height} ${tone} ${className}`}
       {...props}
     />
   )

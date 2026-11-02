@@ -1,5 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { monthSharedTotal, movementInMonth, periodFollowsDate, periodFromDate, shortPeriodLabel } from './period.ts'
+import { catamarcaToday, isAfterDay } from './month.ts'
+import {
+  deleteExpenseConfirm,
+  expenseIsReadOnly,
+  monthSharedTotal,
+  movementInMonth,
+  ownerCanMakePrivate,
+  periodFollowsDate,
+  periodFromDate,
+  sharedMonthSettled,
+  shortPeriodLabel,
+  sumPaidBy,
+} from './period.ts'
 
 describe('período por defecto', () => {
   it('toma el día 1 del mes de la fecha', () => {
@@ -51,5 +63,56 @@ describe('totales del mes', () => {
         '2026-11-01',
       ),
     ).toBe(true)
+  })
+})
+
+describe('fecha de Catamarca', () => {
+  it('a la 1 UTC del 3 de noviembre sigue siendo 2 de noviembre', () => {
+    expect(catamarcaToday(new Date('2026-11-03T01:00:00.000Z'))).toBe('2026-11-02')
+  })
+
+  it('hoy pasa y mañana no', () => {
+    expect(isAfterDay('2026-11-02', '2026-11-02')).toBe(false)
+    expect(isAfterDay('2026-11-03', '2026-11-02')).toBe(true)
+  })
+})
+
+describe('permisos de un gasto', () => {
+  const settled = ['2026-10-01']
+  const shared = { isShared: true, ownerId: 'coty', period: '2026-10-01' }
+  const ownPrivate = { isShared: false, ownerId: 'coty', period: '2026-10-01' }
+
+  it('la otra persona edita un compartido abierto y no lo pasa a privado', () => {
+    expect(expenseIsReadOnly({ ...shared, period: '2026-11-01' }, 'maru', settled)).toBe(false)
+    expect(ownerCanMakePrivate('coty', 'maru')).toBe(false)
+    expect(ownerCanMakePrivate('coty', 'coty')).toBe(true)
+  })
+
+  it('un privado ajeno no se edita', () => {
+    expect(expenseIsReadOnly(ownPrivate, 'maru', [])).toBe(true)
+  })
+
+  it('un compartido saldado queda cerrado y el privado del mismo mes no', () => {
+    expect(expenseIsReadOnly(shared, 'coty', settled)).toBe(true)
+    expect(expenseIsReadOnly(ownPrivate, 'coty', settled)).toBe(false)
+    expect(sharedMonthSettled(true, '2026-10-01', settled)).toBe(true)
+    expect(sharedMonthSettled(false, '2026-10-01', settled)).toBe(false)
+    expect(sharedMonthSettled(true, '2026-11-01', settled)).toBe(false)
+  })
+
+  it('suma solo lo que pagó esa persona', () => {
+    expect(
+      sumPaidBy(
+        [
+          { payerId: 'coty', amount: 100 },
+          { payerId: 'maru', amount: 40 },
+        ],
+        'coty',
+      ),
+    ).toBe(100)
+  })
+
+  it('mantiene el texto de confirmar el borrado', () => {
+    expect(deleteExpenseConfirm).toBe('¿Eliminar este gasto? No se puede deshacer.')
   })
 })

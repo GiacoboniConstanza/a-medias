@@ -13,13 +13,14 @@ import { Card, Toast } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
 import { useMonth } from '../context/MonthProvider.tsx'
-import { loadPayerExpenses, saveViewMode, type ExpenseItem } from '../lib/api.ts'
+import { loadVisibleExpenses, saveViewMode, type ExpenseItem } from '../lib/api.ts'
 import { monthSplit } from '../lib/derive.ts'
 import { expenseSpan } from '../lib/expense-range.ts'
 import { filterByScopeAndCategory, type ScopeFilter } from '../lib/finance-filters.ts'
 import { formatMoney } from '../lib/format.ts'
 import { DEFAULT_ICON } from '../lib/icons.ts'
-import { monthEnd, shortDate } from '../lib/month.ts'
+import { monthEnd, monthName, shortDate } from '../lib/month.ts'
+import { sumPaidBy } from '../lib/period.ts'
 import type { ViewMode } from '../types/database.ts'
 
 export function BreakdownScreen() {
@@ -50,11 +51,10 @@ export function BreakdownScreen() {
   }, [month, end, preset])
 
   useEffect(() => {
-    const payerId = profile?.id
-    if (!payerId) return
+    if (!profile?.id) return
     let cancelled = false
     setListLoading(true)
-    loadPayerExpenses(payerId, span, month)
+    loadVisibleExpenses(span, month)
       .then((rows) => {
         if (cancelled) return
         setExpenses(rows)
@@ -84,7 +84,8 @@ export function BreakdownScreen() {
   const friendly = me.viewMode === 'friendly'
   const source = listLoading ? [] : expenses
   const visible = filterByScopeAndCategory(source, { scope, categoryIds: friendly ? [] : categoryIds })
-  const bubbles = [...visible.reduce((map, expense) => {
+  const paidByMe = visible.filter((expense) => expense.payerId === me.id)
+  const bubbles = [...paidByMe.reduce((map, expense) => {
     const category = data.categories.find((item) => item.id === expense.categoryId)
     const current = map.get(expense.categoryId) ?? {
       icon: category?.icon || DEFAULT_ICON,
@@ -95,17 +96,26 @@ export function BreakdownScreen() {
     map.set(expense.categoryId, current)
     return map
   }, new Map<string, { icon: string; label: string; amount: number }>()).entries()].map(([id, item]) => ({ id, ...item }))
-  const shared = visible.filter((expense) => expense.isShared).reduce((sum, expense) => sum + expense.amount, 0)
-  const privateSpent = visible.filter((expense) => !expense.isShared).reduce((sum, expense) => sum + expense.amount, 0)
+  const shared = sumPaidBy(
+    visible.filter((expense) => expense.isShared),
+    me.id,
+  )
+  const privateSpent = sumPaidBy(
+    visible.filter((expense) => !expense.isShared),
+    me.id,
+  )
   const total = shared + privateSpent
   const sharedWidth = total > 0 ? (shared / total) * 100 : 0
   const privateWidth = total > 0 ? (privateSpent / total) * 100 : 0
-  const periodTotal = visible.reduce((sum, expense) => sum + expense.amount, 0)
-  const periodShared = visible.filter((expense) => expense.isShared).reduce((sum, expense) => sum + expense.amount, 0)
+  const periodTotal = sumPaidBy(visible, me.id)
+  const periodShared = sumPaidBy(
+    visible.filter((expense) => expense.isShared),
+    me.id,
+  )
   const periodPrivate = periodTotal - periodShared
   const periodSharedWidth = periodTotal > 0 ? (periodShared / periodTotal) * 100 : 0
   const periodPrivateWidth = periodTotal > 0 ? (periodPrivate / periodTotal) * 100 : 0
-  const top = [...visible.reduce((map, expense) => {
+  const top = [...paidByMe.reduce((map, expense) => {
     const category = data.categories.find((item) => item.id === expense.categoryId)
     const current = map.get(expense.categoryId) ?? { label: category?.name ?? 'Otros', amount: 0 }
     current.amount += expense.amount
@@ -156,7 +166,8 @@ export function BreakdownScreen() {
         }
       />
       <MonthSwitcher heading />
-      <div className="mb-3 flex items-center justify-end gap-2">
+      <div className="mb-3 flex items-center gap-2">
+        <ScopeChips fill value={scope} onChange={setScope} />
         <button
           type="button"
           onClick={() => setSheetOpen(true)}
@@ -169,50 +180,49 @@ export function BreakdownScreen() {
         >
           <AppIcon name="sliders" />
           {activeCount > 0 ? (
-            <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-card px-1 text-sm font-extrabold text-primary ring-2 ring-primary">
+            <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-card px-1 text-sm font-bold text-primary ring-2 ring-primary">
               {activeCount}
             </span>
           ) : null}
         </button>
       </div>
-      <ScopeChips value={scope} onChange={setScope} />
 
       {activeCount > 0 ? (
         <p className="mb-3 text-sm font-semibold leading-6 text-muted">
           Mostrando: {summaryParts.join(' · ')}{' '}
-          <button type="button" onClick={clearFilters} className="ml-1 inline-flex min-h-11 items-center font-extrabold text-primary">
+          <button type="button" onClick={clearFilters} className="ml-1 inline-flex min-h-11 items-center font-bold text-primary">
             Limpiar
           </button>
         </p>
       ) : null}
 
-      <p className="mb-3 text-sm font-semibold text-title">{shareLine}</p>
-
       {listError ? <p className="mb-3 text-center text-sm font-bold text-alert-ink">{listError}</p> : null}
 
       {!friendly ? (
-        <Card>
-          <h2 className="font-display text-sm font-semibold text-muted">Gastaste</h2>
+        <div className="mb-3">
+          <h2 className="font-display text-sm font-semibold text-muted">Gastaste en {monthName(month)}</h2>
           {listLoading ? (
             <p className="mt-2 font-bold text-muted">Cargando…</p>
           ) : (
             <>
-              <p className="mt-1 font-display text-3xl font-bold leading-none">{formatMoney(total)}</p>
-              <div className="my-2 flex h-2.5 overflow-hidden rounded-full bg-sand" aria-hidden="true">
-                <i className="h-full bg-lavender" style={{ width: `${sharedWidth}%` }} />
-                <i className="h-full bg-alert" style={{ width: `${privateWidth}%` }} />
+              <p className="mt-1 font-display text-[38px] font-semibold leading-none text-title">{formatMoney(total)}</p>
+              <div className="my-2 flex h-3.5 overflow-hidden rounded-full bg-sand" aria-hidden="true">
+                <i className="h-full bg-good" style={{ width: `${sharedWidth}%` }} />
+                <i className="h-full bg-warn-soft" style={{ width: `${privateWidth}%` }} />
               </div>
               <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 text-sm font-semibold text-muted">
                 <span className="inline-flex items-center gap-1">
-                  <AppIcon name="circle" className="text-[8px] text-lavender" /> Compartidos {formatMoney(shared)}
+                  <AppIcon name="circle" className="text-sm text-good" /> Compartidos {formatMoney(shared)}
                 </span>
                 <span className="inline-flex items-center gap-1">
-                  <AppIcon name="circle" className="text-[8px] text-alert" /> Privados {formatMoney(privateSpent)}
+                  <AppIcon name="circle" className="text-sm text-warn-soft" /> Privados {formatMoney(privateSpent)}
                 </span>
               </div>
+              <p className="mt-1 text-sm font-semibold text-muted">Suma solo lo que pagaste vos.</p>
+              <p className="text-sm font-semibold text-title">{shareLine}</p>
             </>
           )}
-        </Card>
+        </div>
       ) : null}
 
       {friendly && listLoading ? <p className="py-10 text-center font-bold text-muted">Cargando…</p> : null}
@@ -240,12 +250,18 @@ export function BreakdownScreen() {
           <div className="mb-4 mt-2">
             <p className="text-sm font-semibold text-muted">Gastaste {formatMoney(periodTotal)} este mes</p>
             <div className="mt-1.5 flex h-1 overflow-hidden rounded-full bg-sand" aria-hidden="true">
-              <i className="h-full bg-lavender" style={{ width: `${periodSharedWidth}%` }} />
-              <i className="h-full bg-alert" style={{ width: `${periodPrivateWidth}%` }} />
+              <i className="h-full bg-good" style={{ width: `${periodSharedWidth}%` }} />
+              <i className="h-full bg-warn-soft" style={{ width: `${periodPrivateWidth}%` }} />
             </div>
           </div>
           <BagPaidList expenses={visible.filter((expense) => expense.paidFromBag)} onOpen={setEditing} />
-          <ExpenseRows expenses={highlightId ? visible.filter((expense) => expense.categoryId === highlightId) : visible} categories={data.categories} onOpen={setEditing} />
+          <ExpenseRows
+            expenses={highlightId ? visible.filter((expense) => expense.categoryId === highlightId) : visible}
+            categories={data.categories}
+            names={data.names}
+            meId={me.id}
+            onOpen={setEditing}
+          />
         </>
       ) : null}
 
@@ -255,33 +271,27 @@ export function BreakdownScreen() {
             {visible.map((expense) => {
               const category = data.categories.find((item) => item.id === expense.categoryId)
               return (
-                <li key={expense.id} className="border-b border-dashed border-line last:border-0">
+                <li key={expense.id} className="border-b border-line last:border-0">
                   <ExpenseLine
                     expense={expense}
                     categoryName={category?.name ?? 'Otros'}
                     categoryIcon={category?.icon || DEFAULT_ICON}
+                    partnerPaid={expense.isShared && expense.payerId !== me.id ? data.names[expense.payerId] : undefined}
+                    showPrivate
                     onOpen={() => setEditing(expense)}
                   />
                 </li>
               )
             })}
           </ul>
-          <div className="mt-1 flex justify-between border-t border-line pt-3 text-base font-extrabold">
-            <span>Total</span>
-            <span>{formatMoney(total)}</span>
-          </div>
         </Card>
       ) : null}
 
       {top ? (
-        <Card className="bg-warn/25">
-          <div className="flex items-start gap-2">
-            <AppIcon name="lightbulb" className="mt-0.5 shrink-0 text-alert-ink" />
-            <p className="text-sm font-semibold leading-snug">
-              <b>Este mes:</b> {top.label.toLowerCase()} fue tu gasto más grande.
-            </p>
-          </div>
-        </Card>
+        <p className="mb-3 flex items-start gap-2 text-sm font-semibold text-title">
+          <AppIcon name="lightbulb" className="mt-0.5 shrink-0 text-warn-ink" />
+          Este mes: {top.label.toLowerCase()} fue tu gasto más grande.
+        </p>
       ) : null}
 
       <FilterSheet
@@ -323,7 +333,7 @@ function BagPaidList({ expenses, onOpen }: { expenses: ExpenseItem[]; onOpen: (e
               {expense.title}
               <span className="text-muted"> · privado, pagado con la bolsa</span>
             </span>
-            <span className="shrink-0 font-extrabold">{formatMoney(expense.amount)}</span>
+            <span className="shrink-0 whitespace-nowrap font-display font-medium">{formatMoney(expense.amount)}</span>
           </button>
         </li>
       ))}
@@ -334,23 +344,29 @@ function BagPaidList({ expenses, onOpen }: { expenses: ExpenseItem[]; onOpen: (e
 function ExpenseRows({
   expenses,
   categories,
+  names,
+  meId,
   onOpen,
 }: {
   expenses: ExpenseItem[]
   categories: { id: string; name: string; icon: string }[]
+  names: Record<string, string>
+  meId: string
   onOpen: (expense: ExpenseItem) => void
 }) {
   if (expenses.length === 0) return null
   return (
-    <ul className="mb-4">
+    <ul className="mb-4 overflow-hidden rounded-3xl bg-card px-4">
       {expenses.map((expense) => {
         const category = categories.find((item) => item.id === expense.categoryId)
         return (
-          <li key={expense.id} className="border-b border-dashed border-line last:border-0">
+          <li key={expense.id} className="border-b border-line last:border-0">
             <ExpenseLine
               expense={expense}
               categoryName={category?.name ?? 'Otros'}
               categoryIcon={category?.icon || DEFAULT_ICON}
+              partnerPaid={expense.isShared && expense.payerId !== meId ? names[expense.payerId] : undefined}
+              showPrivate
               onOpen={() => onOpen(expense)}
             />
           </li>

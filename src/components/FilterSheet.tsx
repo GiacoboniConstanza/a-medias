@@ -1,8 +1,10 @@
 import { useEffect, useId, useRef, useState, type PointerEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { AppIcon } from './AppIcon.tsx'
-import { inputClass } from './ui.tsx'
+import { Button, inputClass } from './ui.tsx'
+import { PaidChips } from './ScopeChips.tsx'
 import type { DatePreset } from '../lib/expense-range.ts'
+import type { PaidFilter } from '../lib/finance-filters.ts'
 
 export const PERIODS: { id: DatePreset; label: string }[] = [
   { id: 'month', label: 'Todo el mes' },
@@ -21,6 +23,7 @@ export type ExpenseFilters = {
   customFrom: string
   customTo: string
   categoryIds: string[]
+  paid?: PaidFilter
 }
 
 export function FilterSheet({
@@ -34,6 +37,7 @@ export function FilterSheet({
   onApply,
   title = 'Filtrar gastos',
   applyLabel = 'Ver gastos',
+  showPaid = false,
 }: {
   open: boolean
   friendly: boolean
@@ -45,6 +49,7 @@ export function FilterSheet({
   onApply: (filters: ExpenseFilters) => void
   title?: string
   applyLabel?: string
+  showPaid?: boolean
 }) {
   const titleId = useId()
   const dialogRef = useRef<HTMLDivElement>(null)
@@ -62,6 +67,7 @@ export function FilterSheet({
   const [customFrom, setCustomFrom] = useState(initial.customFrom)
   const [customTo, setCustomTo] = useState(initial.customTo)
   const [categoryIds, setCategoryIds] = useState(initial.categoryIds)
+  const [paid, setPaid] = useState<PaidFilter>(initial.paid ?? 'all')
   const [seenOpen, setSeenOpen] = useState(open)
   if (open !== seenOpen) {
     setSeenOpen(open)
@@ -71,6 +77,7 @@ export function FilterSheet({
       setCustomFrom(current.customFrom)
       setCustomTo(current.customTo)
       setCategoryIds(current.categoryIds)
+      setPaid(current.paid ?? 'all')
     }
   }
 
@@ -150,6 +157,7 @@ export function FilterSheet({
     setCustomFrom(month)
     setCustomTo(end)
     setCategoryIds([])
+    setPaid('all')
   }
 
   function onPointerDown(event: PointerEvent<HTMLDivElement>) {
@@ -205,7 +213,7 @@ export function FilterSheet({
           <h2 id={titleId} className="font-display text-xl font-semibold">
             {title}
           </h2>
-          <button type="button" onClick={clearDraft} className="inline-flex min-h-11 items-center text-sm font-extrabold text-primary">
+          <button type="button" onClick={clearDraft} className="inline-flex min-h-11 items-center text-sm font-bold text-primary">
             Limpiar filtros
           </button>
         </div>
@@ -252,6 +260,12 @@ export function FilterSheet({
               </label>
             </div>
           ) : null}
+          {showPaid ? (
+            <>
+              <p className="mb-2 mt-5 font-display text-base font-semibold">Estado</p>
+              <PaidChips value={paid} onChange={setPaid} />
+            </>
+          ) : null}
           {friendly ? null : (
             <>
               <p className="mb-2 mt-5 font-display text-base font-semibold">Categoría</p>
@@ -273,13 +287,21 @@ export function FilterSheet({
           )}
         </div>
         <div className="mt-auto border-t border-line px-5 pb-6 pt-3">
-          <button
+          <Button
             type="button"
-            onClick={() => onApply({ preset, customFrom, customTo, categoryIds: friendly ? [] : categoryIds })}
-            className="block min-h-[52px] w-full rounded-2xl bg-primary text-base font-semibold text-on-primary"
+            tall
+            onClick={() =>
+              onApply({
+                preset,
+                customFrom,
+                customTo,
+                categoryIds: friendly ? [] : categoryIds,
+                ...(showPaid ? { paid } : {}),
+              })
+            }
           >
             {applyLabel}
-          </button>
+          </Button>
           <button
             type="button"
             onClick={onClose}

@@ -1,3 +1,17 @@
+/** Día civil en Catamarca, aunque el reloj del dispositivo esté en UTC. */
+export function catamarcaToday(now = new Date()): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Catamarca',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(now)
+}
+
+export function isAfterDay(iso: string, today: string): boolean {
+  return iso > today
+}
+
 export function todayISO(date = new Date()): string {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')

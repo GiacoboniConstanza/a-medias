@@ -1,7 +1,7 @@
 # Guía de diseño de A Medias
 
 > Esta es la fuente de verdad visual de la app. Va en `docs/diseno.md`, y las imágenes de referencia van en `docs/diseno/`.
-> Base: rama `develop`, commit `1caab7c` (1/11/2026, 21:34, hora de Catamarca), más los bocetos aprobados de Inicio de Finanzas (opción B y Amigable), Compartidos (v2 y Amigable) y la navegación por módulo, la paleta unificada del 2/11/2026 y las respuestas de Coty del 2/11/2026 (cuatro tandas, la última con la simplificación aprobada).
+> Base: rama `develop`, commit `1caab7c` (1/11/2026, 21:34, hora de Catamarca), más los bocetos aprobados de Inicio de Finanzas (opción B y Amigable), Compartidos (v2 y Amigable) y la navegación por módulo, la paleta unificada del 2/11/2026 y las respuestas de Coty del 2/11/2026 (cuatro tandas, la última con la simplificación aprobada), y las decisiones de la corrida 1 (commit `7b6a19f`, informadas el 2/11/2026 a las 12:31, hora de Catamarca; N21 a N27). Versión 10.
 > Lo marcado **"Decisión de diseño (Art Attack)"** es firme: Coty delegó las decisiones de diseño y se implementa igual que lo aprobado. La sección 10 (simplificación, aprobada por Coty) es la regla vigente del encabezado y de la densidad: si algo de las secciones 4 y 5 choca con la 10, gana la 10. No quedan dudas de negocio abiertas (8.2).
 > Si algo de esta guía choca con el código, gana la guía. Si algo no está acá, preguntale a Coty antes de inventarlo (ver la sección 8).
 
@@ -177,7 +177,7 @@ Cuando se pasen los bocetos a código, sus tamaños sueltos se redondean así: 1
 ### 3.1 Estilo
 
 - **Font Awesome Solid** (`@fortawesome/free-solid-svg-icons`), siempre a través de `AppIcon` (`src/components/AppIcon.tsx`). No se usan Brands ni emojis como ícono.
-- **Única excepción, aprobada por Coty:** el "?" de ayuda usa `circle-question` **Regular** (con contorno, `@fortawesome/free-regular-svg-icons`), como en el boceto. Ningún otro ícono va en Regular.
+- **El "?" de ayuda también va en Solid** (aprobado por Coty en la corrida 1, N22): `circle-question` de `@fortawesome/free-solid-svg-icons`, porque no se instala el paquete Regular. No hay excepciones a Solid.
 - Un ícono va con texto al lado o con un `aria-label`. Si es decorativo, `aria-hidden`.
 - Tamaños: 14 px junto a un texto `secundario`, 16 px junto al cuerpo, 18 px dentro de un círculo de 36 a 40 px, 20 px en los botones redondos de 44 a 48 px y 24 px en el FAB.
 
@@ -214,7 +214,7 @@ Superficie y tinta (vienen de `src/lib/icons.ts:194–198`, ya con la paleta nue
 | Hábitos | `seedling` | `good` sobre `sage-soft` | `title` | `MODULE_META`; color aprobado por Coty |
 | Comidas | `bowl-food` | `alert-ink` sobre `copper-soft` | `title` | `MODULE_META`; color aprobado por Coty |
 | Memos | `note-sticky` | `lavender-ink` sobre `lavender-soft` | `title` | `MODULE_META`; color aprobado por Coty |
-| Ayuda | `circle-question` **Regular** (única excepción a Solid) | `primary` sobre `card` | — | boceto; aprobado por Coty |
+| Ayuda | `circle-question` Solid (N22) | `primary` sobre `card` | — | boceto; aprobado por Coty |
 | Ajustes de Avisos ("Mis recordatorios") | `gear` | `primary` | — | Aprobado por Coty (P13) |
 | Resumen de Finanzas (primera pestaña del menú de Finanzas) | `wallet` | `primary` si está activo, `muted` si no | — | Nombre aprobado por Coty (sección 9) |
 | Filtros | `sliders` | `primary` | — | Gastos y Avisos |
@@ -365,7 +365,7 @@ Estados que tienen que estar contemplados en cada componente: vacío, cargando, 
 ### 4.13 HelpSheet ("?") · Crear · `src/components/HelpSheet.tsx`
 
 - **Dónde va (aprobado por Coty):** en **todas** las pantallas: hub, Inicio de Finanzas, Gastos, Compartidos, Préstamos, Ahorros, Avisos, Mi año, Hábitos, Comidas, Memos y Mis módulos.
-- **Disparador (sección 10):** en las pantallas con modo (las de 4.2), la fila **"Cómo se lee esta pantalla"** de la hoja Opciones (4.26) abre la `HelpSheet` (aprobado por Coty). En las pantallas sin modo (hub, Avisos, Préstamos, Ahorros, Hábitos, Comidas, Memos, Mis módulos, Mi sueldo, Compartir y formularios), el "?" sigue en el encabezado, como ícono suelto de 44 × 44 sin círculo, `circle-question` **Regular** (la única excepción a Solid, 3.1) en `primary` y `aria-label="Ayuda: <pantalla>"`. **Decisión de diseño (Art Attack)** (N10).
+- **Disparador (sección 10):** en las pantallas con modo (las de 4.2), la fila **"Cómo se lee esta pantalla"** de la hoja Opciones (4.26) abre la `HelpSheet` (aprobado por Coty). En las pantallas sin modo (hub, Avisos, Préstamos, Ahorros, Hábitos, Comidas, Memos, Mis módulos, Mi sueldo, Compartir y formularios), el "?" sigue en el encabezado, como ícono suelto de 44 × 44 sin círculo, `circle-question` Solid (N22, 3.1) en `primary` y `aria-label="Ayuda: <pantalla>"`. **Decisión de diseño (Art Attack)** (N10).
 - **Anatomía** (boceto `compartidos-v2-ayuda.png`):
   1. Un `Sheet` con el título "¿Cómo se lee <pantalla>?" y una bajada en `muted`.
   2. Paneles, uno por cada tarjeta de la pantalla: círculo de 40 px con el ícono de la tarjeta, el **subtítulo en el color propio del panel** y 1 a 3 oraciones en `title` de 16 px. Opcional: una caja `sand-soft` de definiciones.
@@ -380,7 +380,7 @@ Estados que tienen que estar contemplados en cada componente: vacío, cargando, 
 | dorado | `gold-soft` / `warn-ink` | `warn-ink` |
 | azul | `blue-soft` / `blue-ink` | `blue-ink` |
 
-- El texto de cada panel describe lo que está en el código y no agrega reglas nuevas. Los textos de Compartidos son los del boceto. **Los del resto de las pantallas los escribe Jinx y los aprueba Coty** antes de entrar al código. Mientras no estén aprobados, Cursor deja el "?" con los paneles vacíos detrás de un TODO, no inventa los textos.
+- El texto de cada panel describe lo que está en el código y no agrega reglas nuevas. Los textos de Compartidos son los del boceto. **Los del resto de las pantallas los escribe Jinx y los aprueba Coty** antes de entrar al código. **Mientras una pantalla no tenga su texto aprobado, el "?" y la fila "Cómo se lee esta pantalla" de Opciones no se muestran** (aprobado por Coty en la corrida 1, N26). Cursor no inventa los textos ni deja paneles vacíos a la vista.
 
 ### 4.14 Hoja de confirmación · Crear · `src/components/ConfirmSheet.tsx`
 
@@ -396,7 +396,7 @@ Estados que tienen que estar contemplados en cada componente: vacío, cargando, 
 
 **Decisión de diseño (Art Attack), N20.** Todos los avisos temporales con "Deshacer" usan este mismo estilo: saldar mes, archivar y restaurar un ahorro y cualquier otro que se sume.
 
-- **Anatomía:** caja con fondo `title` **#2F4A38**, ícono `circle-check` y mensaje en `card` **#FFFAF4** (Nunito 600 de 16 px; 14 px como mínimo si hace falta), y el botón "Deshacer" en `sage-soft` **#E3EED4**, Nunito 700 de 16 px (800 no se usa, 2.3), sin relleno ni subrayado, con área táctil de 44 × 44 como mínimo. El mensaje puede pasar a dos renglones; "Deshacer" no se corta.
+- **Anatomía:** caja con fondo `title` **#2F4A38**, ícono `circle-check` y mensaje en `card` **#FFFAF4** (Nunito 600 de 16 px; 14 px como mínimo si hace falta), y el botón "Deshacer" en `sage-soft` **#E3EED4**, Nunito 700 de 16 px (`font-bold`; 800 no se usa, 2.3; confirmado por Coty en la corrida 1, N25), sin relleno ni subrayado, con área táctil de 44 × 44 como mínimo. El mensaje puede pasar a dos renglones; "Deshacer" no se corta.
 - **Forma:** `rounded-2xl` (16 px), padding 4 px 6 px 4 px 16 px, sombra suave (`0 2px 8px rgba(47,74,56,.14)`), sin sombra fuerte.
 - **Contraste:** mensaje `card` sobre #2F4A38, **9,38:1**; "Deshacer" `sage-soft` sobre #2F4A38, **8,09:1**. Los dos pasan AA (y AAA).
 - **Posición:** `fixed`, 12 px arriba de la barra inferior y, si hay FAB, 12 px arriba del FAB; nunca los tapa. Centrado, con 16 px a los costados y un ancho máximo de 398 px. Usa `role="status"` y `aria-live="polite"`.
@@ -482,13 +482,13 @@ Estados que tienen que estar contemplados en cada componente: vacío, cargando, 
   - Pastilla: círculo de 26 px con el color del módulo (3.3), el nombre en Fredoka 500 de 16 px (`title`) y `chevron-down` en `muted`. Mide 181 px con Inicio a 390 px. De 360 a 389 px esconde el círculo (N8); por debajo de 360, el nombre (N7). `aria-label="Estás en <módulo>. Cambiar de módulo"`, `aria-haspopup="dialog"`.
 - **Hoja "Ir a"** (`Sheet` con X): los módulos activos en filas de 62 px (círculo de 42 px, el nombre en Fredoka 18 px y el detalle de `MODULE_META` a 14 px en `muted`); el actual en `sage-soft` con `check` y `aria-current="page"`; al pie, "Mis módulos" (`sliders`). Se cierra con la X, el scrim o Esc sin moverte.
 - **Dónde va:** solo en las pestañas de Finanzas con el hub activo. Sin hub no hay Inicio al que volver: se ve el saludo.
-- **Título de módulo** (Hábitos, Comidas, Memos): el mismo círculo de 30 px y el nombre en Fredoka 500 de 21 px, **sin botón y sin chevron**. En esas pantallas el menú de abajo es el general, que ya tiene Inicio y todos los módulos: una pastilla o un botón Inicio arriba serían accesos duplicados. Aprobado por Coty (N4).
+- **Título de módulo** (Hábitos, Comidas, Memos): el mismo círculo de 30 px y el nombre en Fredoka 500 de **20 px** (aprobado por Coty en la corrida 1, N24), **sin botón y sin chevron**. En esas pantallas el menú de abajo es el general, que ya tiene Inicio y todos los módulos: una pastilla o un botón Inicio arriba serían accesos duplicados. Aprobado por Coty (N4).
 
 ### 4.25 Campana de Avisos con número · Crear
 
 El número de pendientes, el tope "9+" y qué se cuenta están aprobados por Coty. El tamaño, el color, el estado en cero y el `aria-label` son **Decisión de diseño (Art Attack).*** (N3).
 
-- **Botón (sección 10):** ícono suelto de 44 × 44, **sin círculo ni sombra**, `bell` de 19 px en `warn-ink` (6.1:1 sobre `bg`; `warn-strong` solo da 2.5:1). Lleva a Avisos (`/recordatorios`).
+- **Botón (sección 10):** ícono suelto de 44 × 44, **sin círculo ni sombra**, `bell` de **18 px** (aprobado por Coty en la corrida 1, N23) en `warn-ink` (6.1:1 sobre `bg`; `warn-strong` solo da 2.5:1). Lleva a Avisos (`/recordatorios`).
 - **Número:** círculo de 24 px de alto (`min-w-6`, `px-1.5`, `rounded-full`), fondo `alert-ink` y número en `on-primary`, 14 px Nunito 700 (6.54:1). Borde de 2 px en `bg` (el color de atrás) para separarlo de la campana. Va arriba a la derecha del área táctil (`top-0`, `-right-0.5`).
   - `alert-ink` y no `primary`: el badge de filtros (4.6) ya es `primary` y significa "filtros activos"; acá significa "algo para atender".
   - `alert-ink` y no `warn-ink`: sobre la campana `warn-ink` el número se perdería; el cobre oscuro se distingue y sigue en la paleta sin rosa.
@@ -515,7 +515,7 @@ El botón y su hoja reemplazan al toggle en pantalla (R19) y al "?" (R20) en las
 - **Hoja "Opciones de vista"** (`Sheet` con X, boceto `opciones-hoja-390.png`):
   1. Título "Opciones de vista" (`encabezado`).
   2. "Ver como": el selector Amigable / Contable (4.2).
-  3. La fila **"Cómo se lee esta pantalla"** (56 px, `sand-soft`, `circle-question` Regular en `primary`, `chevron-right`), que abre la `HelpSheet` de la pantalla (4.13).
+  3. La fila **"Cómo se lee esta pantalla"** (56 px, `sand-soft`, `circle-question` Solid en `primary`, `chevron-right`), que abre la `HelpSheet` de la pantalla (4.13). Se oculta mientras la pantalla no tenga texto de ayuda aprobado (N26).
 - **Dónde va:** en el encabezado de las pantallas con modo (4.2: Resumen, Gastos, Compartidos y Mi año), a la derecha de la campana. Donde no hay modo va el "?" (N10). **Préstamos y Ahorros no lo llevan** (S11): en su lugar va el "?" de 44 que abre directamente "Cómo se lee esta pantalla" (N11).
 - **Por qué así:** el modo es una preferencia que casi no se cambia, pero hay que verlo (Nielsen: visibilidad del estado). En el botón se ve sin sumar una fila: el toggle ocupaba 56 px y el "?" un botón más.
 
@@ -560,7 +560,7 @@ Sin toggle (no muestra cuentas). Panel de ayuda: uno por cada tarjeta de módulo
      4. **Barra de gastos** (4.8): "Gastos del mes" y el total en `alert-ink`; la barra compartidos (`good`) / privados (`warn-soft`) y la leyenda "Mi parte compartidos" y "Privados" con sus montos (`pocket.sharedShare`, `pocket.privateSpent`, `pocket.spent`, que ya existen). **Es nueva:** el Amigable de `develop` no la muestra.
      5. **Sin link "Ver gastos"** (R29, sección 10). El separador punteado entre la frase y la barra se mantiene.
 7. Tarjeta "Saldo compartidos" (en Amigable, "Gastos compartidos", `HomeScreen.tsx:211`): fondo `card`, ícono `handshake` en un círculo `copper-soft` y la frase "Maru te debe $ …" en `titulo-tarjeta` `alert-ink` (o `primary` si te deben a vos y es a tu favor). Lleva a Compartidos.
-8. El aviso **"Tu balance <año> está listo"**, debajo del Saldo: fila de 56 px en `sand-soft` con borde `line`, `chart-pie` en `primary`, el texto en Fredoka 500 de 16 px, "Ver" (48 × 48, `primary`, lleva a Mi año) y una X de 48 × 48 (`aria-label="Cerrar aviso"`). Aparece en los mismos casos que hoy en `develop` y la X lo oculta hasta el año siguiente (sección 10).
+8. El aviso **"Tu balance <año> está listo"**, debajo del Saldo: fila de 56 px en `sand-soft` con borde `line`, `chart-pie` en `primary`, el texto en Fredoka 500 de 16 px, "Ver" (48 × 48, `primary`, lleva a Mi año) y una X de 48 × 48 (`aria-label="Cerrar aviso"`). Aparece en los mismos casos que hoy en `develop` y la X lo oculta hasta el año siguiente (sección 10). El cierre se recuerda **en el dispositivo, con `localStorage`** (aprobado por Coty en la corrida 1, N27): en otro dispositivo o navegador el aviso vuelve a aparecer.
 9. Lo condicional que ya existe en `develop`, debajo y sin cambiar las reglas:
    - `SplitNotice`.
    - `PartnerMemos`, solo si no está el hub (Amigable).
@@ -766,17 +766,17 @@ Cada regla se puede comprobar en el código o en una captura a 360 y 390 px.
 
 **Patrones**
 - R19. **El modo no va como toggle en pantalla.** Toda pantalla de Finanzas con montos (4.2) lleva en el encabezado el botón Opciones con el ícono y el nombre del modo activo (4.26); "Ver como" está en su hoja. Avisos no lo lleva. **Préstamos y Ahorros tampoco:** quedan solo en Amigable y llevan el "?" de 44 en su lugar (S11, N11). Aprobado por Coty (S1, S11).
-- R20. **Todas** las pantallas tienen ayuda (`HelpSheet`, cada panel con su color de subtítulo): en las que tienen modo, desde "Cómo se lee esta pantalla" en la hoja Opciones (S1); en las que no, con el "?" del encabezado (N10). Los textos los escribe Jinx y los aprueba Coty.
+- R20. **Todas** las pantallas tienen ayuda (`HelpSheet`, cada panel con su color de subtítulo): en las que tienen modo, desde "Cómo se lee esta pantalla" en la hoja Opciones (S1); en las que no, con el "?" del encabezado (N10). Los textos los escribe Jinx y los aprueba Coty. Mientras una pantalla no tenga su texto aprobado, el "?" y la fila no se muestran (N26).
 - R21. Todas las hojas usan `Sheet`, con un botón X visible.
 - R22. Las acciones que mueven plata o borran datos de las dos llevan `ConfirmSheet` y después el aviso con deshacer (4.15). Las que borran algo propio llevan, como mínimo, el aviso con deshacer. **Excepción (N19):** eliminar un gasto mantiene la confirmación de hoy ("¿Eliminar este gasto? No se puede deshacer."), sin aviso con deshacer.
 - R23. Hay un solo FAB: `Fab`, `primary`, de 52 px, con el "+" blanco.
-- R24. Los íconos son de Font Awesome Solid, a través de `AppIcon`, y no se usan emojis. Única excepción: el "?" va en `circle-question` Regular.
+- R24. Los íconos son de Font Awesome Solid, a través de `AppIcon`, y no se usan emojis. Sin excepciones: el "?" también va en `circle-question` Solid (N22).
 - R25. Las ilustraciones son planas: solo `fill`, sin `stroke` de contorno, sin punteados y sin degradados.
 - R26. No hay mensajes que narren lo que ya se ve: el dato se muestra (barra, chip o color) y el texto acompaña.
 - R27. Toda la interfaz está en castellano rioplatense con voseo, sin emojis y con tildes y ¿¡.
 
 **Navegación** (aprobada por Coty; sección 9)
-- R28. El menú de abajo tiene de 3 a 5 ítems, etiquetas de 14 px en un renglón, y entra a 360 px sin scroll.
+- R28. El menú de abajo tiene de 3 a 5 ítems, etiquetas de 14 px en un renglón, y entra a 360 px sin scroll. **Excepción (N21, aprobada por Coty):** con un solo módulo activo, el menú general de "Mis módulos" tiene dos ítems, Inicio y Finanzas.
 - R29. Ningún destino aparece dos veces en la misma pantalla (menú de abajo, encabezado y hoja "Ir a").
 - R30. En las pestañas de Finanzas, el Inicio y el cambio de módulo están arriba a la izquierda (botón Inicio y pastilla). En Hábitos, Comidas y Memos están en el menú general de abajo.
 - R31. La campana muestra el número de pendientes (1 a 9, después "9+") y no muestra nada si no hay. El número no es la única señal: el `aria-label` lo dice. Cuenta los fijos del mes sin pagar y el recordatorio diario activo y sin resolver; cerrarlo sin responder lo resuelve para la campana ese día (S3, 4.25).
@@ -928,7 +928,7 @@ Lo que no está ni en el código ni en los bocetos no se inventa. Hasta que haya
 | # | Respuesta | Dónde quedó |
 |---|---|---|
 | P1 | Todas las pantallas tienen ayuda. Los textos los escribe Jinx y los aprueba Coty. *(El lugar del "?" lo reemplaza S1: en pantallas con modo, la ayuda está en Opciones.)* | 4.13, R20 |
-| P2 | El "?" puede ir en Regular (con contorno), como única excepción a Solid | 3.1, 3.3, R24 |
+| P2 | El "?" puede ir en Regular (con contorno), como única excepción a Solid (**reemplazada por N22**: va en Solid) | 3.1, 3.3, R24 |
 | P3 | ~~Préstamos y Ahorros tienen las dos vistas.~~ Avisos no. *("Justo debajo del encabezado" lo reemplaza S1; las dos vistas en Préstamos y Ahorros las reemplaza S11.)* | 4.2, 5.5, 5.6, 5.7, R19 |
 | P4 | Aprobado el boceto Amigable de Inicio de Finanzas, con la barra de gastos | 5.2 |
 | P5 | Aprobado el boceto Amigable de Compartidos, con "Saldar mes" adentro de "Total a saldar" y la misma confirmación | 5.4 |
@@ -1006,6 +1006,13 @@ Lo que no está ni en el código ni en los bocetos no se inventa. Hasta que haya
 | N18 | Decisión de diseño (Art Attack). En un gasto compartido, los meses saldados aparecen deshabilitados en "Corresponde a" con candado y la etiqueta "Saldado", en `muted` #6B6656 (5,53:1 sobre `card`; la etiqueta "Saldado" sobre `sand`, 4,62:1), nunca en gris claro; debajo del campo, "Los meses saldados están cerrados. Para cargar ahí, deshacé el saldo en Compartidos.". En un privado, todos los meses habilitados | Prevenir el error en lugar de rechazarlo al guardar (Nielsen 5) y decir cómo destrabarlo | 5.8, 11.1 |
 | N19 | Decisión de diseño (Art Attack). M20 queda descartada: borrar un gasto mantiene la confirmación de hoy ("¿Eliminar este gasto? No se puede deshacer."), sin aviso con deshacer | Ya funciona y es claro; es la excepción a R22 | R22, 4.14, 11.1 |
 | N20 | Decisión de diseño (Art Attack). Un solo estilo para todos los avisos temporales con "Deshacer": fondo #2F4A38, texto `card` (9,38:1), "Deshacer" en `sage-soft` bold (8,09:1) con 44 px de toque, `rounded-2xl`, sombra suave, separado del menú inferior y del FAB | Coty no quería el aviso `primary` de Ahorros; uno solo evita dos estilos para lo mismo (ver 4.15) | 4.15 |
+| N21 | Aprobado por Coty (corrida 1, 2/11/2026, 12:31). Excepción a R28: con un solo módulo activo, el menú general de "Mis módulos" tiene dos ítems, Inicio y Finanzas | Con un solo módulo no hay un tercer destino real; inventarlo para llegar a 3 sería relleno | R28, 9 |
+| N22 | Aprobado por Coty (corrida 1). El "?" de ayuda usa `circle-question` Solid; reemplaza la excepción Regular | No se instala el paquete Regular; todo queda en Solid | 3.1, 4.13, 4.26, R24 |
+| N23 | Aprobado por Coty (corrida 1). La campana (`bell`) mide 18 px (antes 19) | Medida implementada y revisada | 4.25, 9 |
+| N24 | Aprobado por Coty (corrida 1). El nombre del título de módulo mide 20 px (antes 21) | Medida implementada y revisada | 4.24 |
+| N25 | Aprobado por Coty (corrida 1). "Deshacer" del aviso va en `font-bold` (700), como ya dice 4.15 | Confirma N20; 800 no se usa (2.3) | 4.15 |
+| N26 | Aprobado por Coty (corrida 1). El "?" y la fila "Cómo se lee esta pantalla" se ocultan mientras la pantalla no tenga texto de ayuda aprobado | No mostrar una ayuda vacía; reemplaza el "?" con paneles vacíos y TODO | 4.13, 4.26, R20 |
+| N27 | Aprobado por Coty (corrida 1). El cierre del aviso "Tu balance <año> está listo" se recuerda en el dispositivo, con `localStorage` | No hace falta guardarlo en la base | 5.3 |
 
 ### 8.2 Todavía abiertas
 
@@ -1053,12 +1060,12 @@ Pantallas de Finanzas que no están en el menú: Avisos (`/recordatorios`), Mi a
 
 ### 9.4 Medidas (medidas en los bocetos)
 
-- **Menú:** 3 a 5 ítems, etiquetas de 14 px Nunito 700 en un renglón, sin `overflow-x-auto` (4.19). Ancho según contenido: a 360 px, Resumen 64, Gastos 52, Compartidos 88, Préstamos 73 y Ahorros 56 px, con 4 px entre ítems; a 390 px quedan 10 px. Todos los destinos miden ≥ 48 × 56. Por debajo de 360 px: solo íconos de 19 px en destinos de ≥ 48 × 56, con `aria-label` (R32).
+- **Menú:** 3 a 5 ítems (excepción N21: con un solo módulo activo, el menú general tiene dos, Inicio y Finanzas), etiquetas de 14 px Nunito 700 en un renglón, sin `overflow-x-auto` (4.19). Ancho según contenido: a 360 px, Resumen 64, Gastos 52, Compartidos 88, Préstamos 73 y Ahorros 56 px, con 4 px entre ítems; a 390 px quedan 10 px. Todos los destinos miden ≥ 48 × 56. Por debajo de 360 px: solo íconos de 19 px en destinos de ≥ 48 × 56, con `aria-label` (R32).
 - **Migas** (N1, sección 10): 181 × 46 px con "Finanzas" a 390; 153 a 360 (sin círculo, N8); 116 por debajo de 360 (N7). Botón Inicio de 44 × 44 en `alert-ink`; pastilla con círculo `gold-soft` (N2) y `wallet` en `alert-ink`. Sin sombra, borde 1 px `line`.
 - **Hoja "Ir a":** ver 4.24.
-- **Campana:** 44 × 44 sin círculo, `bell` de 19 px en `warn-ink`; número de 24 × 24 en `alert-ink`/`on-primary` (N3, 4.25).
+- **Campana:** 44 × 44 sin círculo, `bell` de 18 px en `warn-ink` (N23); número de 24 × 24 en `alert-ink`/`on-primary` (N3, 4.25).
 - **Opciones:** 117 × 44 (Amigable) o 113 × 44 (Contable); 50 × 44 por debajo de 360 (4.26).
-- **Título de módulo** (N4): círculo de 30 px y nombre en Fredoka 500 de 21 px.
+- **Título de módulo** (N4): círculo de 30 px y nombre en Fredoka 500 de 20 px (N24).
 
 ### 9.5 Qué cambia en el código (para Cursor)
 

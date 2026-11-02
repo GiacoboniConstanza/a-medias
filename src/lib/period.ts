@@ -27,6 +27,35 @@ export function shortPeriodLabel(period: string): string {
   return SHORT_MONTHS[month - 1] ?? ''
 }
 
+export const deleteExpenseConfirm = '¿Eliminar este gasto? No se puede deshacer.'
+
+export const settledExpenseError = 'Ese mes ya está saldado. Deshacé el saldo en Compartidos para cambiar este gasto.'
+
+export const privateSwitchError = 'Solo quien lo cargó puede pasarlo a privado.'
+
+export function sharedMonthSettled(isShared: boolean, period: string, settledMonths: readonly string[]): boolean {
+  const month = period.slice(0, 10)
+  return isShared && settledMonths.some((settled) => settled.slice(0, 10) === month)
+}
+
+export function expenseIsReadOnly(
+  expense: { isShared: boolean; ownerId: string; period: string } | null | undefined,
+  meId: string,
+  settledMonths: readonly string[],
+): boolean {
+  if (!expense) return false
+  if (sharedMonthSettled(expense.isShared, expense.period, settledMonths)) return true
+  return !expense.isShared && expense.ownerId !== meId
+}
+
+export function ownerCanMakePrivate(ownerId: string, meId: string): boolean {
+  return ownerId === meId
+}
+
+export function sumPaidBy(expenses: readonly { payerId: string; amount: number }[], payerId: string): number {
+  return expenses.filter((expense) => expense.payerId === payerId).reduce((sum, expense) => sum + expense.amount, 0)
+}
+
 export function monthSharedTotal(
   expenses: readonly { period: string; amount: number; isShared: boolean }[],
   month: string,

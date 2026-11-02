@@ -3,14 +3,10 @@ import { IconPicker } from './IconPicker.tsx'
 import { amountFromDigits } from './Keypad.tsx'
 import { MoneyField } from './MoneyField.tsx'
 import { Sheet } from './Sheet.tsx'
-import { Chip, ErrorText, NotesField, inputClass, Toggle } from './ui.tsx'
+import { Button, Chip, ErrorText, NotesField, inputClass, Toggle } from './ui.tsx'
 import type { FixedItem } from '../lib/api.ts'
 import { editedCaption, remindSwitchLabel, shareSentence } from '../lib/fixed.ts'
 import { clampNotes, formatMoney, moneyDraftFromAmount, normalizeMoney } from '../lib/format.ts'
-
-const primaryButton = 'block min-h-11 w-full rounded-2xl bg-primary text-base font-bold text-on-primary disabled:opacity-50'
-const quietButton = 'block min-h-11 w-full rounded-2xl text-base font-bold text-primary disabled:opacity-50'
-const dangerButton = 'block min-h-11 w-full rounded-2xl text-base font-bold text-alert-ink disabled:opacity-50'
 
 export type FixedDraft = {
   title: string
@@ -183,12 +179,12 @@ function FixedExpenseForm({
       <div>
         <p className="font-display text-xl font-semibold">¿Eliminar {expense.title}?</p>
         <p className="mt-2 text-sm font-semibold text-title">Se borra el recordatorio. Los gastos ya anotados quedan.</p>
-        <button type="button" className={`mt-4 ${primaryButton} bg-alert-ink`} onClick={onDelete} disabled={saving}>
+        <Button type="button" variant="danger" className="mt-4" onClick={onDelete} disabled={saving}>
           Eliminar
-        </button>
-        <button type="button" className={`mt-2 ${quietButton}`} onClick={() => onConfirming(false)} disabled={saving}>
+        </Button>
+        <Button type="button" variant="alt" className="mt-2" onClick={() => onConfirming(false)} disabled={saving}>
           Volver
-        </button>
+        </Button>
       </div>
     )
   }
@@ -220,7 +216,7 @@ function FixedExpenseForm({
           type="button"
           aria-pressed={shared}
           onClick={() => setShared(true)}
-          className={`min-h-11 rounded-[15px] text-sm font-extrabold ${shared ? 'bg-primary text-on-primary' : 'text-muted'}`}
+          className={`min-h-[52px] rounded-[15px] text-sm font-bold ${shared ? 'bg-primary text-on-primary' : 'text-muted'}`}
         >
           Compartido
         </button>
@@ -228,7 +224,7 @@ function FixedExpenseForm({
           type="button"
           aria-pressed={!shared}
           onClick={() => setShared(false)}
-          className={`min-h-11 rounded-[15px] text-sm font-extrabold ${shared ? 'text-muted' : 'bg-primary text-on-primary'}`}
+          className={`min-h-[52px] rounded-[15px] text-sm font-bold ${shared ? 'text-muted' : 'bg-primary text-on-primary'}`}
         >
           Privado
         </button>
@@ -263,29 +259,29 @@ function FixedExpenseForm({
       ) : null}
       <NotesField value={notes} onChange={setNotes} />
       {expense && !paid ? (
-        <button type="button" className={quietButton} onClick={onPay} disabled={saving}>
+        <Button type="button" variant="alt" onClick={onPay} disabled={saving}>
           Marcar como pagado
-        </button>
+        </Button>
       ) : null}
       {expense && paid ? (
-        <button type="button" className={quietButton} onClick={onUndo} disabled={saving}>
+        <Button type="button" variant="alt" onClick={onUndo} disabled={saving}>
           Deshacer
-        </button>
+        </Button>
       ) : null}
-      <button type="button" className={`mt-3 ${primaryButton}`} onClick={submit} disabled={saving}>
+      <Button type="button" className="mt-3" onClick={submit} disabled={saving}>
         Guardar
-      </button>
-      <button type="button" className={`mt-2 ${quietButton}`} onClick={onClose} disabled={saving}>
+      </Button>
+      <Button type="button" variant="alt" className="mt-2" onClick={onClose} disabled={saving}>
         Cancelar
-      </button>
+      </Button>
       {expense ? (
         <div className="mt-4">
-          <button type="button" className={quietButton} onClick={() => onPause(!expense.pausedAt)} disabled={saving}>
+          <Button type="button" variant="alt" onClick={() => onPause(!expense.pausedAt)} disabled={saving}>
             {expense.pausedAt ? 'Reactivar' : 'Pausar'}
-          </button>
-          <button type="button" className={dangerButton} onClick={() => onConfirming(true)} disabled={saving}>
+          </Button>
+          <Button type="button" variant="danger" onClick={() => onConfirming(true)} disabled={saving}>
             Eliminar
-          </button>
+          </Button>
         </div>
       ) : null}
       {caption ? <p className="mt-3 text-center text-sm font-semibold text-muted">{caption}</p> : null}

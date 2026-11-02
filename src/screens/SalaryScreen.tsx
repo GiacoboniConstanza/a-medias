@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { amountFromDigits } from '../components/Keypad.tsx'
 import { MoneyField } from '../components/MoneyField.tsx'
+import { SectionHeader } from '../components/SectionHeader.tsx'
 import { Sheet } from '../components/Sheet.tsx'
-import { Button, Card, Chip, FieldError } from '../components/ui.tsx'
+import { Button, Card, Chip, FieldError, Toast } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
+import { useModules } from '../context/ModulesProvider.tsx'
 import {
   deleteSalaryRevision,
   previewSalarySplit,
@@ -15,12 +16,14 @@ import {
 } from '../lib/api.ts'
 import { formatMoney, moneyDraftFromAmount, normalizeMoney } from '../lib/format.ts'
 import { monthKey, shiftMonth } from '../lib/month.ts'
+import { isHubHome } from '../lib/modules.ts'
 import { effectiveSalary, latestSalary, pocketDelta, salaryMonthError, sinceLabel, type SalaryPoint } from '../lib/salary.ts'
 
 type WhenChoice = 'this' | 'next' | 'pick'
 
 export function SalaryScreen() {
   const { profile, signOut } = useAuth()
+  const { enabled } = useModules()
   const { data, refresh } = useFinance()
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState<SalaryPoint | null>(null)
@@ -44,12 +47,6 @@ export function SalaryScreen() {
   const targetId = editing?.id ?? (latest && latest.effectiveFrom === effectiveFrom ? latest.id : null)
   const replacing = targetId !== null
   const amount = normalizeMoney(amountFromDigits(digits))
-
-  useEffect(() => {
-    if (!toast) return
-    const timeout = window.setTimeout(() => setToast(''), 3200)
-    return () => window.clearTimeout(timeout)
-  }, [toast])
 
   useEffect(() => {
     if (!open || amount <= 0 || !effectiveFrom || salaryMonthError(history, effectiveFrom, editing?.id ?? null)) {
@@ -174,13 +171,7 @@ export function SalaryScreen() {
 
   return (
     <>
-      <header className="mb-3 flex items-center justify-between">
-        <Link to="/" className="inline-flex min-h-11 items-center gap-1 font-semibold text-title">
-          <AppIcon name="chevron-left" /> Inicio
-        </Link>
-        <span className="font-display font-semibold text-primary">A Medias</span>
-      </header>
-      <h1 className="mb-3 font-display text-[22px] font-semibold">Mi sueldo</h1>
+      <SectionHeader lead="back" backTo={isHubHome(enabled) ? '/finanzas' : '/'} title="Mi sueldo" screenTitle />
       <Card>
         <p className="text-sm font-semibold text-muted">Sueldo vigente</p>
         <p className="font-display text-3xl font-bold">{formatMoney(current)}</p>
@@ -189,13 +180,9 @@ export function SalaryScreen() {
         ) : (
           <p className="mt-1 text-sm font-semibold text-muted">Todavía no cargaste un sueldo.</p>
         )}
-        <button
-          type="button"
-          onClick={openCreate}
-          className="mt-3 block min-h-[52px] w-full rounded-2xl bg-primary text-base font-semibold text-on-primary"
-        >
+        <Button type="button" tall className="mt-3" onClick={openCreate}>
           Registrar aumento
-        </button>
+        </Button>
       </Card>
 
       <section className="mb-3">
@@ -236,21 +223,12 @@ export function SalaryScreen() {
                       <div className="mt-2 rounded-2xl bg-sand p-3">
                         <p className="text-sm font-semibold text-title">¿Sacar este sueldo? Vuelve a valer el anterior.</p>
                         <div className="mt-2 flex gap-2">
-                          <button
-                            type="button"
-                            className="min-h-11 flex-1 rounded-2xl bg-primary text-sm font-semibold text-on-primary disabled:opacity-50"
-                            disabled={saving}
-                            onClick={() => void remove(row.id)}
-                          >
+                          <Button type="button" className="flex-1" disabled={saving} onClick={() => void remove(row.id)}>
                             Eliminar
-                          </button>
-                          <button
-                            type="button"
-                            className="min-h-11 flex-1 rounded-2xl bg-card text-sm font-semibold text-primary"
-                            onClick={() => setConfirmId(null)}
-                          >
+                          </Button>
+                          <Button type="button" variant="alt" className="flex-1" onClick={() => setConfirmId(null)}>
                             Cancelar
-                          </button>
+                          </Button>
                         </div>
                       </div>
                     ) : null}
@@ -263,7 +241,7 @@ export function SalaryScreen() {
         ) : null}
       </section>
 
-      <button type="button" className="mt-8 w-full text-center text-sm font-extrabold text-muted" onClick={() => void signOut()}>
+      <button type="button" className="mt-8 w-full text-center text-sm font-bold text-muted" onClick={() => void signOut()}>
         Cerrar sesión
       </button>
 
@@ -351,14 +329,7 @@ export function SalaryScreen() {
         <FieldError>{previewError || formError}</FieldError>
       </Sheet>
 
-      {toast ? (
-        <p
-          role="status"
-          className="fixed bottom-28 left-1/2 z-50 max-w-[20rem] -translate-x-1/2 rounded-2xl bg-primary px-4 py-3 text-center text-sm font-semibold text-on-primary shadow-fab"
-        >
-          {toast}
-        </p>
-      ) : null}
+      <Toast onDone={() => setToast('')}>{toast}</Toast>
     </>
   )
 }

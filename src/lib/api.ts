@@ -498,6 +498,35 @@ function mapExpense(expense: {
   }
 }
 
+/** Gastos visibles del mes de `period`, propios y compartidos que pagó la otra persona. */
+export async function loadVisibleExpenses(span: ExpenseSpan, period: string): Promise<ExpenseItem[]> {
+  if (span.kind === 'dates' && span.dates.length === 0) return []
+
+  const ranked = supabase
+    .from('expenses')
+    .select(EXPENSE_COLUMNS)
+    .eq('period', period)
+    .order('spent_on', { ascending: true })
+    .order('created_at', { ascending: true })
+
+  const fullMonth = span.kind === 'range' && span.from === period && span.to === monthEnd(period)
+  const filtered = fullMonth
+    ? ranked
+    : span.kind === 'dates'
+      ? ranked.in('spent_on', span.dates)
+      : ranked.gte('spent_on', span.from).lte('spent_on', span.to)
+
+  const { data, error } = await filtered
+  fail(error)
+  return (data ?? []).map(mapExpense)
+}
+
+export async function loadSettledMonths(): Promise<string[]> {
+  const { data, error } = await supabase.from('settlements').select('month')
+  fail(error)
+  return (data ?? []).map((row) => String(row.month).slice(0, 10))
+}
+
 /** Gastos que pagó esta persona en el mes de `period`. Un recorte de días usa la fecha real. */
 export async function loadPayerExpenses(payerId: string, span: ExpenseSpan, period: string): Promise<ExpenseItem[]> {
   if (span.kind === 'dates' && span.dates.length === 0) return []
@@ -1059,9 +1088,10 @@ export async function loadYearBalance(year: number): Promise<YearReport> {
 }
 
 export async function undoFixedPayment(payment: FixedPayment): Promise<void> {
+  if (payment.expenseId) {
+    const removed = await supabase.from('expenses').delete().eq('id', payment.expenseId)
+    fail(removed.error)
+  }
   const { error } = await supabase.from('fixed_payments').delete().eq('id', payment.id)
   fail(error)
-  if (!payment.expenseId) return
-  const removed = await supabase.from('expenses').delete().eq('id', payment.expenseId)
-  fail(removed.error)
 }

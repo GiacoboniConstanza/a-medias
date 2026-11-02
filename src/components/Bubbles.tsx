@@ -108,7 +108,7 @@ export function Bubbles({
                 <AppIcon name={item.icon} />
               </span>
               <span className="mt-1 line-clamp-2 text-sm leading-tight">{item.label}</span>
-              <span className={picked ? 'text-base font-extrabold leading-tight' : 'text-sm font-semibold'}>
+              <span className={picked ? 'text-base font-bold leading-tight' : 'text-sm font-semibold'}>
                 {formatMoney(item.amount)}
               </span>
             </button>
