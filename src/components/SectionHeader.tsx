@@ -14,8 +14,8 @@ export function SectionHeader({
 }) {
   return (
     <header className={`mb-4 flex items-center justify-between gap-3 ${className}`}>
-      <h1 className="inline-flex items-center gap-1.5 text-[15px] font-semibold text-muted">
-        <AppIcon name={icon} className="text-[13px]" />
+      <h1 className="inline-flex items-center gap-1.5 text-base font-semibold text-muted">
+        <AppIcon name={icon} className="text-base" />
         {title}
       </h1>
       {aside}

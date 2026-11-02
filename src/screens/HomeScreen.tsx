@@ -116,12 +116,12 @@ export function HomeScreen() {
         </Link>
       </header>
       {hub && financeRoute ? (
-        <div className="mb-3 grid grid-cols-4 gap-2">
+        <div className="mb-3 flex gap-2 overflow-x-auto">
           {FINANCE_SECTION_LINKS.map((item) => (
             <Link
               key={item.to}
               to={item.to}
-              className="flex min-h-11 flex-col items-center justify-center gap-1 rounded-2xl bg-card text-[11px] font-extrabold text-primary shadow-card"
+              className="flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-2xl bg-card px-3 text-base font-semibold text-primary shadow-card"
             >
               <AppIcon name={item.icon} />
               {item.label}

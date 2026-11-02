@@ -12,13 +12,12 @@ const memo = (patch: Partial<MemoItem> & Pick<MemoItem, 'id' | 'ownerId'>): Memo
 
 describe('filtro del menú', () => {
   it('con solo Finanzas mantiene el menú de hoy', () => {
-    expect(navForModules(['finanzas']).map((item) => item.label)).toEqual(['Inicio', 'Gastos', 'Préstamos', 'Bolsa', 'Meta', 'Avisos'])
+    expect(navForModules(['finanzas']).map((item) => item.label)).toEqual(['Inicio', 'Gastos', 'Préstamos', 'Ahorros', 'Avisos'])
     expect(navForModules(enabledFromRows([])).map((item) => item.label)).toEqual([
       'Inicio',
       'Gastos',
       'Préstamos',
-      'Bolsa',
-      'Meta',
+      'Ahorros',
       'Avisos',
     ])
   })

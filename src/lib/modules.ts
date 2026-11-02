@@ -14,7 +14,7 @@ export type NavItem = {
 }
 
 export const MODULE_META: Record<ModuleId, { label: string; detail: string; icon: string; to: string }> = {
-  finanzas: { label: 'Finanzas', detail: 'Gastos, bolsa y la meta', icon: 'wallet', to: '/finanzas' },
+  finanzas: { label: 'Finanzas', detail: 'Gastos y ahorros', icon: 'wallet', to: '/finanzas' },
   habitos: { label: 'Hábitos', detail: 'Lo que querés hacer cada día', icon: 'seedling', to: '/habitos' },
   comidas: { label: 'Comidas', detail: 'Proteína y lo que comés', icon: 'bowl-food', to: '/comidas' },
   memos: { label: 'Memos', detail: 'Notas y cosas para acordarte', icon: 'note-sticky', to: '/memos' },
@@ -24,8 +24,7 @@ const FINANCE_NAV: readonly NavItem[] = [
   { to: '/', label: 'Inicio', icon: 'house', end: true },
   { to: '/se-me-fue', label: 'Gastos', icon: 'receipt' },
   { to: '/prestamos', label: 'Préstamos', icon: 'hand-holding-dollar' },
-  { to: '/bolsa', label: 'Bolsa', icon: 'bag-shopping' },
-  { to: '/meta', label: 'Meta', icon: 'umbrella-beach' },
+  { to: '/ahorros', label: 'Ahorros', icon: 'piggy-bank' },
   { to: '/recordatorios', label: 'Avisos', icon: 'bell' },
 ]
 

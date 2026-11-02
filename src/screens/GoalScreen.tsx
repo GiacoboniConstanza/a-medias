@@ -326,7 +326,7 @@ function PersonSheet({
   )
 }
 
-function ContributeSheet({
+export function ContributeSheet({
   open,
   suggested,
   onClose,

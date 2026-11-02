@@ -7,8 +7,8 @@ import { isHubHome } from './lib/modules.ts'
 import { HouseholdScreen, LoginScreen, RegisterScreen } from './screens/AuthScreens.tsx'
 import { BreakdownScreen } from './screens/BreakdownScreen.tsx'
 import { ExpenseScreen } from './screens/ExpenseScreen.tsx'
-import { ExtrasScreen } from './screens/ExtrasScreen.tsx'
-import { GoalScreen } from './screens/GoalScreen.tsx'
+import { legacySavingsLocation } from './lib/savings.ts'
+import { SavingsScreen } from './screens/SavingsScreen.tsx'
 import { HomeScreen } from './screens/HomeScreen.tsx'
 import { HabitsScreen } from './screens/HabitsScreen.tsx'
 import { HubScreen } from './screens/HubScreen.tsx'
@@ -55,8 +55,9 @@ export function App() {
               <Route path="cargar" element={<ExpenseScreen />} />
               <Route path="compartir" element={<ShareScreen />} />
               <Route path="se-me-fue" element={<BreakdownScreen />} />
-              <Route path="bolsa" element={<ExtrasScreen />} />
-              <Route path="meta" element={<GoalScreen />} />
+              <Route path="ahorros" element={<SavingsScreen />} />
+              <Route path="bolsa" element={<Navigate to={legacySavingsLocation('/bolsa') ?? '/ahorros'} replace />} />
+              <Route path="meta" element={<Navigate to={legacySavingsLocation('/meta') ?? '/ahorros'} replace />} />
               <Route path="compartidos" element={<SharedScreen />} />
               <Route path="prestamos" element={<LoansScreen />} />
               <Route path="recordatorios" element={<RemindersScreen />} />
