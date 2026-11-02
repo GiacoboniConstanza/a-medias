@@ -126,36 +126,50 @@ export function LoansScreen() {
           />
         ))
       ) : (
-        <Card className="overflow-x-auto">
-          <table className="w-full border-collapse text-left text-sm">
-            <thead>
-              <tr className="text-muted">
-                <th className="py-1.5 font-bold">Fecha</th>
-                <th className="font-bold">Prestó</th>
-                <th className="font-bold">Recibió</th>
-                <th className="text-right font-bold">Monto</th>
-                <th className="text-right font-bold">Devuelto</th>
-                <th className="text-right font-bold">Pendiente</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visible.map((loan) => (
-                <tr key={loan.id} className="border-t border-line">
-                  <td className="py-1.5">
-                    <button type="button" className="min-h-11 font-semibold text-primary" onClick={() => setDetail(loan)}>
-                      {shortDate(loan.lentOn)}
-                    </button>
-                  </td>
-                  <td>{data?.names[loan.lenderId] ?? '—'}</td>
-                  <td>{data?.names[loan.borrowerId] ?? '—'}</td>
-                  <td className="text-right">{formatMoney(loan.amount)}</td>
-                  <td className="text-right">{formatMoney(loan.repaid)}</td>
-                  <td className="text-right">{formatMoney(loan.pending)}</td>
+        <>
+          <div className="sm:hidden">
+            {visible.map((loan) => (
+              <LoanAccountRow
+                key={loan.id}
+                loan={loan}
+                lender={data?.names[loan.lenderId] ?? 'Alguien'}
+                borrower={data?.names[loan.borrowerId] ?? 'alguien'}
+                mine={loan.lenderId === profile.id}
+                onOpen={() => setDetail(loan)}
+              />
+            ))}
+          </div>
+          <Card className="hidden sm:block">
+            <table className="w-full border-collapse text-left text-base">
+              <thead>
+                <tr className="text-muted">
+                  <th className="py-3 pr-4 font-bold">Fecha</th>
+                  <th className="px-3 py-3 font-bold">Prestó</th>
+                  <th className="px-3 py-3 font-bold">Recibió</th>
+                  <th className="px-3 py-3 text-right font-bold">Monto</th>
+                  <th className="px-3 py-3 text-right font-bold">Devuelto</th>
+                  <th className="py-3 pl-4 text-right font-bold">Pendiente</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
+              </thead>
+              <tbody>
+                {visible.map((loan) => (
+                  <tr key={loan.id} className="border-t border-line">
+                    <td className="py-3 pr-4">
+                      <button type="button" className="min-h-11 font-semibold text-primary" onClick={() => setDetail(loan)}>
+                        {shortDate(loan.lentOn)}
+                      </button>
+                    </td>
+                    <td className="px-3 py-3">{data?.names[loan.lenderId] ?? '—'}</td>
+                    <td className="px-3 py-3">{data?.names[loan.borrowerId] ?? '—'}</td>
+                    <td className="px-3 py-3 text-right">{formatMoney(loan.amount)}</td>
+                    <td className="px-3 py-3 text-right">{formatMoney(loan.repaid)}</td>
+                    <td className="py-3 pl-4 text-right">{formatMoney(loan.pending)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+        </>
       )}
       <Button type="button" onClick={() => setCreating(true)} disabled={!otherId}>
         Nuevo préstamo
@@ -264,6 +278,77 @@ function LoanCard({
       ) : (
         <p className="mt-3 text-sm font-bold text-good">Saldado</p>
       )}
+    </article>
+  )
+}
+
+const LOAN_STATUS: Record<Loan['status'], { label: string; className: string }> = {
+  pendiente: { label: 'Pendiente', className: 'bg-warn-soft text-text' },
+  parcial: { label: 'Parcial', className: 'bg-debt text-alert-ink' },
+  saldado: { label: 'Saldado', className: 'bg-sage-light text-primary' },
+}
+
+function LoanAccountRow({
+  loan,
+  lender,
+  borrower,
+  mine,
+  onOpen,
+}: {
+  loan: Loan
+  lender: string
+  borrower: string
+  mine: boolean
+  onOpen: () => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [rows, setRows] = useState<LoanRepayment[] | null>(null)
+  const [error, setError] = useState('')
+  const status = LOAN_STATUS[loan.status]
+  const who = mine ? `Prestaste a ${borrower}` : `${lender} → ${borrower}`
+
+  function toggle() {
+    const next = !open
+    setOpen(next)
+    if (!next || rows) return
+    loadRepayments(loan.id)
+      .then(setRows)
+      .catch((caught) => {
+        setError(caught instanceof Error ? caught.message : 'No pude cargar las devoluciones.')
+      })
+  }
+
+  return (
+    <article className="mb-3 rounded-3xl bg-card p-4 shadow-card">
+      <button type="button" onClick={toggle} className="flex min-h-11 w-full items-start justify-between gap-3 text-left">
+        <span className="min-w-0">
+          <span className="block text-base font-bold">{who}</span>
+          <span className="mt-1 block text-base font-semibold text-muted">
+            {shortDate(loan.lentOn)} · {formatMoney(loan.amount)} · devuelto {formatMoney(loan.repaid)}
+          </span>
+        </span>
+        <span className="shrink-0 text-right">
+          <span className="block font-display text-2xl font-bold leading-none">{formatMoney(loan.pending)}</span>
+          <span className={`mt-2 inline-flex min-h-11 items-center rounded-full px-3 text-base font-bold ${status.className}`}>{status.label}</span>
+        </span>
+      </button>
+      {open ? (
+        <div className="mt-3 border-t border-dashed border-line pt-2">
+          {error ? <p className="text-base font-semibold text-alert-ink">{error}</p> : null}
+          {rows && rows.length === 0 ? <p className="text-base font-semibold text-muted">Todavía no hay devoluciones.</p> : null}
+          <ul>
+            {(rows ?? []).map((repayment) => (
+              <li key={repayment.id} className="flex min-h-11 items-center justify-between gap-3 text-base font-semibold">
+                <span>{shortDate(repayment.paidOn)}</span>
+                <span>{formatMoney(repayment.amount)}</span>
+              </li>
+            ))}
+          </ul>
+          <button type="button" onClick={onOpen} className="mt-1 min-h-11 font-semibold text-primary">
+            Ver el préstamo
+          </button>
+        </div>
+      ) : null}
     </article>
   )
 }

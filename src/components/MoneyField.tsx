@@ -1,5 +1,6 @@
+import { MoneyInput } from './MoneyInput.tsx'
 import { Keypad } from './Keypad.tsx'
-import { applyMoneyKey, sanitizeMoneyDraft } from '../lib/format.ts'
+import { applyMoneyKey } from '../lib/format.ts'
 
 export function MoneyField({
   draft,
@@ -20,18 +21,13 @@ export function MoneyField({
   return (
     <div className="mb-3 text-center">
       <p className="text-base font-bold text-muted">{label}</p>
-      <div className="mt-1 flex items-center justify-center gap-1">
-        <span className={`font-display font-bold ${type}`}>$</span>
-        <input
-          inputMode="decimal"
-          enterKeyHint="done"
-          autoComplete="off"
+      <div className={`mt-1 flex items-center justify-center font-display font-bold ${type}`}>
+        <MoneyInput
+          draft={draft}
+          onDraft={onDraft}
           readOnly={readOnly}
-          value={draft}
-          onChange={(event) => onDraft(sanitizeMoneyDraft(event.target.value))}
-          placeholder="0,00"
-          aria-label={label}
-          className={`min-h-11 w-full max-w-[16rem] bg-transparent text-center font-display font-bold outline-none ${type}`}
+          label={label}
+          className="min-h-11 w-full max-w-[16rem] bg-transparent text-center font-display font-bold outline-none"
         />
       </div>
       {error ? <p className="mt-1 text-base font-bold text-[#85503C]">{error}</p> : null}
