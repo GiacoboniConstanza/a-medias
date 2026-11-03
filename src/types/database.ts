@@ -119,6 +119,7 @@ export type Database = {
           icon: string
           target_amount: number
           target_date: string | null
+          archived_at: string | null
           created_at: string
         },
         {
@@ -129,9 +130,17 @@ export type Database = {
           icon: string
           target_amount: number
           target_date?: string | null
+          archived_at?: string | null
           created_at?: string
         },
-        { name?: string; emoji?: string; icon?: string; target_amount?: number; target_date?: string | null }
+        {
+          name?: string
+          emoji?: string
+          icon?: string
+          target_amount?: number
+          target_date?: string | null
+          archived_at?: string | null
+        }
       >
       bag_movements: Table<
         {
@@ -248,6 +257,7 @@ export type Database = {
           icon: string
           target_amount: number
           target_date: string | null
+          archived_at: string | null
           created_at: string
         },
         {
@@ -258,9 +268,17 @@ export type Database = {
           icon: string
           target_amount: number
           target_date?: string | null
+          archived_at?: string | null
           created_at?: string
         },
-        { name?: string; emoji?: string; icon?: string; target_amount?: number; target_date?: string | null }
+        {
+          name?: string
+          emoji?: string
+          icon?: string
+          target_amount?: number
+          target_date?: string | null
+          archived_at?: string | null
+        }
       >
       goal_contributions: Table<
         {
@@ -703,6 +721,7 @@ export type Database = {
           repaid: number
           pending: number
           status: string
+          lock_month: string | null
         }
         Relationships: []
       }
@@ -761,6 +780,16 @@ export type Database = {
       undo_shared_month: {
         Args: { p_settlement: string }
         Returns: undefined
+      }
+      replace_active_shared_goal: {
+        Args: {
+          p_restore: string | null
+          p_name: string | null
+          p_icon: string | null
+          p_target: number | null
+          p_target_date: string | null
+        }
+        Returns: string
       }
     }
   }

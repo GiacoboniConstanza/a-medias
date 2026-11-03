@@ -25,6 +25,7 @@ export function ConfirmSheet({
   return (
     <Sheet
       open={open}
+      layer="confirm"
       title={title}
       onClose={onClose}
       footer={

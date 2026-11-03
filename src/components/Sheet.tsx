@@ -2,21 +2,50 @@ import { useEffect, useId, useRef, useState, type PointerEvent, type ReactNode }
 import { createPortal } from 'react-dom'
 import { AppIcon } from './AppIcon.tsx'
 
+const openSheetIds: symbol[] = []
+let overflowBeforeSheets: string | null = null
+
+function rememberSheet(id: symbol) {
+  if (!openSheetIds.includes(id)) {
+    if (openSheetIds.length === 0) overflowBeforeSheets = document.body.style.overflow
+    openSheetIds.push(id)
+  }
+  document.getElementById('root')?.setAttribute('inert', '')
+  document.body.style.overflow = 'hidden'
+}
+
+function forgetSheet(id: symbol) {
+  const index = openSheetIds.indexOf(id)
+  if (index >= 0) openSheetIds.splice(index, 1)
+  if (openSheetIds.length === 0) {
+    document.getElementById('root')?.removeAttribute('inert')
+    document.body.style.overflow = overflowBeforeSheets ?? ''
+    overflowBeforeSheets = null
+  }
+}
+
+function sheetIsTop(id: symbol) {
+  return openSheetIds[openSheetIds.length - 1] === id
+}
+
 export function Sheet({
   open,
   title,
   onClose,
   children,
   footer,
+  layer = 'base',
 }: {
   open: boolean
   title: ReactNode
   onClose: () => void
   children: ReactNode
   footer?: ReactNode
+  layer?: 'base' | 'confirm'
 }) {
   const titleId = useId()
   const dialogRef = useRef<HTMLDivElement>(null)
+  const sheetId = useRef(Symbol('sheet'))
   const [mounted, setMounted] = useState(open)
   const [visible, setVisible] = useState(false)
   const [drag, setDrag] = useState(0)
@@ -57,10 +86,12 @@ export function Sheet({
 
   useEffect(() => {
     if (!open || !mounted) return
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    const id = sheetId.current
+    rememberSheet(id)
     const dialog = dialogRef.current
-    const frame = requestAnimationFrame(() => dialog?.focus())
+    const frame = requestAnimationFrame(() => {
+      if (sheetIsTop(id)) dialog?.focus()
+    })
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
 
     function focusable() {
@@ -71,6 +102,7 @@ export function Sheet({
     }
 
     function onKey(event: KeyboardEvent) {
+      if (!sheetIsTop(id)) return
       if (event.key === 'Escape') {
         event.preventDefault()
         onCloseRef.current()
@@ -90,13 +122,10 @@ export function Sheet({
       }
     }
 
-    const root = document.getElementById('root')
-    root?.setAttribute('inert', '')
     document.addEventListener('keydown', onKey)
     return () => {
       cancelAnimationFrame(frame)
-      root?.removeAttribute('inert')
-      document.body.style.overflow = previousOverflow
+      forgetSheet(id)
       document.removeEventListener('keydown', onKey)
       previousFocus?.focus()
     }
@@ -126,7 +155,7 @@ export function Sheet({
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-40">
+    <div className={`fixed inset-0 ${layer === 'confirm' ? 'z-50' : 'z-40'}`}>
       <button
         type="button"
         aria-label="Cerrar"

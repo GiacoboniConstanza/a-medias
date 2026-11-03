@@ -4,6 +4,7 @@ import {
   faBagShopping,
   faBasketShopping,
   faBell,
+  faBoxArchive,
   faBowlFood,
   faBullseye,
   faBolt,
@@ -120,6 +121,7 @@ export const ICON_CHOICES: { name: string; label: string }[] = [
 const ICONS: Record<string, IconDefinition> = {
   'bag-shopping': faBagShopping,
   bell: faBell,
+  'box-archive': faBoxArchive,
   'bowl-food': faBowlFood,
   bolt: faBolt,
   book: faBook,

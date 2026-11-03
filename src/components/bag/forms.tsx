@@ -3,16 +3,11 @@ import { AppIcon } from '../AppIcon.tsx'
 import { amountFromDigits, applyKey, Keypad } from '../Keypad.tsx'
 import { MoneyField } from '../MoneyField.tsx'
 import { Sheet } from '../Sheet.tsx'
-import { FieldError, NotesField, inputClass } from '../ui.tsx'
+import { Button, FieldError, NotesField, inputClass } from '../ui.tsx'
 import { createCategory, createExtra, createFund, moveBagMoney, spendFromGustos, updateFund, type Category, type FundItem } from '../../lib/api.ts'
 import { clampNotes, formatMoney, moneyDraftFromAmount, normalizeMoney } from '../../lib/format.ts'
 import { ICON_CHOICES } from '../../lib/icons.ts'
 import { todayISO } from '../../lib/month.ts'
-
-const primaryButton =
-  'block min-h-[52px] w-full rounded-2xl bg-primary text-base font-semibold text-on-primary disabled:opacity-50'
-const quietButton =
-  'mt-2 block min-h-[52px] w-full rounded-2xl border-2 border-primary bg-card text-base font-semibold text-primary'
 
 function IconGrid({ value, onChange }: { value: string; onChange: (name: string) => void }) {
   return (
@@ -33,7 +28,7 @@ function IconGrid({ value, onChange }: { value: string; onChange: (name: string)
           >
             <AppIcon name={choice.name} />
             {selected ? (
-              <span className="absolute right-0.5 top-0.5 text-[10px] text-primary">
+              <span className="absolute right-0.5 top-0.5 text-sm text-primary">
                 <AppIcon name="check" />
               </span>
             ) : null}
@@ -50,12 +45,14 @@ export function FundSheet({
   userId,
   onClose,
   onSaved,
+  onArchive,
 }: {
   open: boolean
   fund: FundItem | null
   userId: string
   onClose: () => void
   onSaved: (message: string) => void
+  onArchive?: () => void
 }) {
   const nameErrorId = useId()
   const [name, setName] = useState('')
@@ -107,12 +104,12 @@ export function FundSheet({
   return (
     <Sheet open={open} title={fund ? 'Editar fondo' : 'Nuevo fondo'} onClose={onClose} footer={
       <>
-        <button type="button" className={primaryButton} disabled={!valid || saving} onClick={() => void save()}>
+        <Button type="button" tall disabled={!valid || saving} onClick={() => void save()}>
           Guardar fondo
-        </button>
-        <button type="button" className={quietButton} onClick={onClose}>
+        </Button>
+        <Button type="button" tall variant="alt" className="mt-2" onClick={onClose}>
           Cancelar
-        </button>
+        </Button>
       </>
     }>
       <label className="mb-3 block text-sm font-bold text-muted" htmlFor={`${nameErrorId}-input`}>
@@ -151,6 +148,11 @@ export function FundSheet({
         <input type="date" value={targetDate} onChange={(event) => setTargetDate(event.target.value)} className={`mt-1 ${inputClass}`} />
       </label>
       <FieldError>{serverError}</FieldError>
+      {fund && onArchive ? (
+        <button type="button" className="mt-4 flex min-h-11 items-center gap-2 text-base font-semibold text-title" onClick={onArchive}>
+          <AppIcon name="box-archive" /> Archivar ahorro
+        </button>
+      ) : null}
     </Sheet>
   )
 }
@@ -239,9 +241,9 @@ export function ExtraSheet({
       footer={
         <>
           {step < 3 ? (
-            <button
+            <Button
               type="button"
-              className={primaryButton}
+              tall
               disabled={!stepValid}
               onClick={() => {
                 if (step === 1) setNameTouched(true)
@@ -250,20 +252,20 @@ export function ExtraSheet({
               }}
             >
               Siguiente
-            </button>
+            </Button>
           ) : (
-            <button type="button" className={primaryButton} disabled={!stepValid || saving} onClick={() => void save()}>
+            <Button type="button" tall disabled={!stepValid || saving} onClick={() => void save()}>
               Repartir extra
-            </button>
+            </Button>
           )}
           {step > 1 ? (
-            <button type="button" className={quietButton} onClick={() => setStep((current) => current - 1)}>
+            <Button type="button" tall variant="alt" className="mt-2" onClick={() => setStep((current) => current - 1)}>
               Atrás
-            </button>
+            </Button>
           ) : (
-            <button type="button" className={quietButton} onClick={onClose}>
+            <Button type="button" tall variant="alt" className="mt-2" onClick={onClose}>
               Cancelar
-            </button>
+            </Button>
           )}
         </>
       }
@@ -466,12 +468,12 @@ export function GustoSheet({
       onClose={onClose}
       footer={
         <>
-          <button type="button" className={primaryButton} disabled={!valid || saving} onClick={() => void save()}>
+          <Button type="button" tall disabled={!valid || saving} onClick={() => void save()}>
             Anotar gusto
-          </button>
-          <button type="button" className={quietButton} onClick={onClose}>
+          </Button>
+          <Button type="button" tall variant="alt" className="mt-2" onClick={onClose}>
             Cancelar
-          </button>
+          </Button>
         </>
       }
     >
@@ -539,9 +541,9 @@ export function GustoSheet({
           <div className="mt-2">
             <IconGrid value={draftIcon} onChange={setDraftIcon} />
           </div>
-          <button type="button" className={`${primaryButton} mt-3`} disabled={saving || !draftName.trim()} onClick={() => void addCategory()}>
+          <Button type="button" tall className="mt-3" disabled={saving || !draftName.trim()} onClick={() => void addCategory()}>
             Crear categoría
-          </button>
+          </Button>
         </div>
       ) : null}
       <label className="mt-4 block text-sm font-bold text-muted">
@@ -657,12 +659,12 @@ export function MoveSheet({
       onClose={onClose}
       footer={
         <>
-          <button type="button" className={primaryButton} disabled={!valid || saving} onClick={() => void save()}>
+          <Button type="button" tall disabled={!valid || saving} onClick={() => void save()}>
             {action}
-          </button>
-          <button type="button" className={quietButton} onClick={onClose}>
+          </Button>
+          <Button type="button" tall variant="alt" className="mt-2" onClick={onClose}>
             Cancelar
-          </button>
+          </Button>
         </>
       }
     >

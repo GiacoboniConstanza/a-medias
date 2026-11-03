@@ -3,6 +3,9 @@ import {
   filterSavings,
   goalSaved,
   legacySavingsLocation,
+  activeSavings,
+  activeSharedGoal,
+  archivedSavings,
   rememberedSavingsScope,
   savingSources,
   savingTotals,
@@ -52,6 +55,28 @@ describe('rutas viejas de ahorros', () => {
     expect(legacySavingsLocation('/bolsa')).toBe('/ahorros?alcance=private')
     expect(legacySavingsLocation('/meta')).toBe('/ahorros?alcance=shared')
     expect(legacySavingsLocation('/ahorros')).toBeNull()
+  })
+})
+
+describe('ahorro compartido activo', () => {
+  it('elige el que no está archivado aunque sea más viejo', () => {
+    const chosen = activeSharedGoal([
+      { id: 'nuevo', archivedAt: '2026-11-01T00:00:00Z', createdAt: '2026-08-01T00:00:00Z' },
+      { id: 'viejo', archivedAt: null, createdAt: '2026-01-01T00:00:00Z' },
+    ])
+    expect(chosen?.id).toBe('viejo')
+  })
+
+  it('deja los archivados fuera de la lista activa y el filtro los sigue separando', () => {
+    const rows = [
+      { id: 'viaje', shared: true, archivedAt: null },
+      { id: 'viaje-viejo', shared: true, archivedAt: '2026-10-01T00:00:00Z' },
+      { id: 'sillon', shared: false, archivedAt: null },
+      { id: 'curso', shared: false, archivedAt: '2026-09-01T00:00:00Z' },
+    ]
+    expect(activeSavings(rows).map((row) => row.id)).toEqual(['viaje', 'sillon'])
+    expect(filterSavings(archivedSavings(rows), 'shared').map((row) => row.id)).toEqual(['viaje-viejo'])
+    expect(filterSavings(archivedSavings(rows), 'private').map((row) => row.id)).toEqual(['curso'])
   })
 })
 

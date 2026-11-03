@@ -16,6 +16,7 @@ export type Loan = {
   lentOn: string
   period: string
   notes: string | null
+  lockMonth: string | null
 }
 
 export type LoanRepayment = {
@@ -53,6 +54,18 @@ export function loanState(amount: number, repaid: number): { repaid: number; pen
   if (paid <= 0) return { repaid: 0, pending: normalizeMoney(amount), status: 'pendiente' }
   if (pending <= 0) return { repaid: normalizeMoney(amount), pending: 0, status: 'saldado' }
   return { repaid: paid, pending, status: 'parcial' }
+}
+
+export function monthIsSettled(period: string, settledMonths: readonly string[]): boolean {
+  const month = period.slice(0, 10)
+  return settledMonths.some((settled) => settled.slice(0, 10) === month)
+}
+
+export function repaymentIsLocked(
+  repayment: { settlementId: string | null; period: string },
+  settledMonths: readonly string[],
+): boolean {
+  return repayment.settlementId != null || monthIsSettled(repayment.period, settledMonths)
 }
 
 export function matchesLoanFilter(status: LoanStatus, filter: LoanFilter): boolean {
@@ -257,6 +270,7 @@ function mapLoan(row: {
   lent_on: string
   period: string
   notes: string | null
+  lock_month?: string | null
 }): Loan {
   return {
     id: row.id,
@@ -269,6 +283,7 @@ function mapLoan(row: {
     lentOn: row.lent_on,
     period: row.period,
     notes: row.notes,
+    lockMonth: row.lock_month ? String(row.lock_month).slice(0, 10) : null,
   }
 }
 
@@ -298,7 +313,7 @@ export async function loadLoanMovements(): Promise<{ loans: PeriodLoan[]; repaym
 export async function loadLoanBalances(): Promise<Loan[]> {
   const { data, error } = await supabase
     .from('loan_balances')
-    .select('id, lender_id, borrower_id, amount, repaid, pending, status, lent_on, period, notes')
+    .select('id, lender_id, borrower_id, amount, repaid, pending, status, lent_on, period, notes, lock_month')
     .order('lent_on', { ascending: false })
   if (error) throw new Error(error.message)
   return (data ?? []).map((row) => mapLoan(row))

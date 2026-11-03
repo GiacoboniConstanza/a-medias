@@ -59,6 +59,20 @@ export function filterSavings<T extends { shared: boolean }>(items: readonly T[]
   return items.filter((item) => matchesScope(item.shared, scope))
 }
 
+export function activeSavings<T extends { archivedAt?: string | null }>(items: readonly T[]): T[] {
+  return items.filter((item) => !item.archivedAt)
+}
+
+export function archivedSavings<T extends { archivedAt?: string | null }>(items: readonly T[]): T[] {
+  return items.filter((item) => Boolean(item.archivedAt))
+}
+
+/** El activo es el que no está archivado, aunque haya otro creado después. */
+export function activeSharedGoal<T extends { archivedAt?: string | null; createdAt: string }>(goals: readonly T[]): T | null {
+  const active = goals.filter((goal) => !goal.archivedAt)
+  return [...active].sort((a, b) => a.createdAt.localeCompare(b.createdAt))[0] ?? null
+}
+
 export function savingTotals(items: readonly { shared: boolean; saved: number }[]): {
   all: number
   shared: number
