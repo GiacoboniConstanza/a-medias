@@ -106,7 +106,7 @@ export function YearScreen() {
       </div>
 
       {loading ? <YearSkeleton /> : null}
-      {!loading && error ? <p className="py-10 text-center font-extrabold text-tinta">{error}</p> : null}
+      {!loading && error ? <p className="py-10 text-center font-semibold text-tinta">{error}</p> : null}
       {!loading && !error && !ready ? <EmptyYear year={year} /> : null}
       {!loading && ready ? (
         accounting ? (
@@ -673,7 +673,7 @@ function Ring({
       </div>
       <p className="text-sm font-bold">{title}</p>
       <p className="text-sm text-muted">{detail}</p>
-      <p className="text-sm font-extrabold" style={{ color }}>
+      <p className="text-sm font-semibold" style={{ color }}>
         {note}
       </p>
       {extra ? <p className="text-sm font-semibold text-muted">{extra}</p> : null}
@@ -716,7 +716,7 @@ function EmptyYear({ year }: { year: number }) {
       </div>
       <h2 className="mt-2 font-display text-xl font-semibold">Todavía no hay datos de {year}</h2>
       <p className="mt-1 text-sm font-semibold text-muted">Cuando cargues el sueldo o un gasto, tu año va a aparecer acá. Con calma.</p>
-      <Link to="/sueldo" className="mt-3 inline-flex min-h-11 items-center font-extrabold text-mostaza-ink">
+      <Link to="/sueldo" className="mt-3 inline-flex min-h-11 items-center font-semibold text-mostaza-ink">
         Cargar sueldo base
       </Link>
     </Card>

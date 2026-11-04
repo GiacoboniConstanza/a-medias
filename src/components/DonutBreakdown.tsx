@@ -143,7 +143,7 @@ function LegendRow({ slice, onSelect }: { slice: DonutSlice; onSelect?: (id: str
     <span className="col-span-2 text-right text-sm font-semibold text-muted">{slice.detail}</span>
   ) : (
     <>
-      <span className="text-right font-extrabold text-tinta">{slice.percent}</span>
+      <span className="text-right font-semibold text-tinta">{slice.percent}</span>
       <span className="text-right text-sm font-semibold text-muted">{formatMoney(slice.amount)}</span>
     </>
   )

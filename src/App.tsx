@@ -24,14 +24,14 @@ import { YearScreen } from './screens/YearScreen.tsx'
 
 function HomeGate() {
   const { enabled, ready } = useModules()
-  if (!ready) return <p className="py-16 text-center font-extrabold text-muted">Cargando…</p>
+  if (!ready) return <p className="py-16 text-center font-semibold text-muted">Cargando…</p>
   if (isHubHome(enabled)) return <HubScreen />
   return <HomeScreen />
 }
 
 function FinanceGate() {
   const { enabled, ready } = useModules()
-  if (!ready) return <p className="py-16 text-center font-extrabold text-muted">Cargando…</p>
+  if (!ready) return <p className="py-16 text-center font-semibold text-muted">Cargando…</p>
   if (!enabled.includes('finanzas')) return <Navigate to="/" replace />
   return <HomeScreen />
 }

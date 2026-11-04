@@ -50,7 +50,7 @@ export function ModulesScreen() {
             >
               <Sprout module={module} muted={!on} />
               <div className="min-w-0 flex-1">
-                <p className="text-[15px] font-extrabold">{meta.label}</p>
+                <p className="text-[15px] font-semibold">{meta.label}</p>
                 <p className="text-sm font-semibold text-muted">{detail}</p>
               </div>
               <ModuleSwitch
@@ -83,7 +83,7 @@ export function ComingSoonScreen({ module }: { module: ModuleId }) {
       </div>
       <h1 className="font-display text-[1.8rem] font-bold">{meta.label}</h1>
       <p className="mt-2 font-bold text-muted">Próximamente</p>
-      <Link to="/" className="mt-6 inline-flex min-h-11 items-center justify-center rounded-2xl bg-mostaza px-5 font-extrabold text-tinta">
+      <Link to="/" className="mt-6 inline-flex min-h-11 items-center justify-center rounded-2xl bg-mostaza px-5 font-semibold text-tinta">
         Volver al inicio
       </Link>
     </section>

@@ -95,7 +95,7 @@ export function Bubbles({
               onClick={() => onPick(item.id)}
               aria-pressed={picked}
               aria-label={`${item.label}, ${formatMoney(item.amount)}`}
-              className={`bubble-motion flex h-full w-full flex-col items-center justify-center rounded-full px-3 text-center font-extrabold text-title shadow-soft ${
+              className={`bubble-motion flex h-full w-full flex-col items-center justify-center rounded-full px-3 text-center font-semibold text-title shadow-soft ${
                 picked ? 'ring-2 ring-mostaza-ink ring-offset-2 ring-offset-bg' : ''
               }`}
               style={{

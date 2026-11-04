@@ -142,7 +142,7 @@ export function HabitsScreen() {
     <>
       <header className="mb-4 flex min-h-11 items-center justify-between gap-1">
         <ModuleTitle module="habitos" />
-        <span className="inline-flex items-center gap-1 rounded-2xl bg-salvia-claro px-3 py-1.5 text-sm font-extrabold text-mostaza-ink">
+        <span className="inline-flex items-center gap-1 rounded-2xl bg-salvia-claro px-3 py-1.5 text-sm font-semibold text-mostaza-ink">
           <AppIcon name="lock" /> Solo vos
         </span>
       </header>
@@ -167,7 +167,7 @@ export function HabitsScreen() {
           <h2 className="flex items-center gap-1.5 font-display text-sm font-semibold text-muted">
             <AppIcon name="sun" className="text-mostaza-ink" /> Tu semana en brotes
           </h2>
-          <p className="text-sm font-extrabold text-title">{counter.elapsed > 0 ? weekCounterLabel(counter.touched, counter.elapsed) : 'Sin hábitos'}</p>
+          <p className="text-sm font-semibold text-title">{counter.elapsed > 0 ? weekCounterLabel(counter.touched, counter.elapsed) : 'Sin hábitos'}</p>
         </div>
         <div className="mt-1.5 flex justify-between">
           {days.map((day, index) => {
@@ -181,7 +181,7 @@ export function HabitsScreen() {
                 aria-label={`${meta?.name ?? ''}, ${detail}`}
               >
                 <DaySprout stage={stage} />
-                <span className="text-sm font-extrabold">{meta?.label}</span>
+                <span className="text-sm font-semibold">{meta?.label}</span>
               </div>
             )
           })}
@@ -189,11 +189,11 @@ export function HabitsScreen() {
       </section>
       <div className="mb-2 flex items-center justify-between px-1">
         <h2 className="text-sm font-bold text-muted">Hoy · {weekday}</h2>
-        <p className="text-sm font-extrabold text-title">
+        <p className="text-sm font-semibold text-title">
           {progress.total > 0 ? `${todayCounterLabel(progress.done, progress.total)} hoy` : 'Nada para hoy'}
         </p>
       </div>
-      {loading ? <p className="py-6 text-center font-extrabold text-muted">Cargando hábitos…</p> : null}
+      {loading ? <p className="py-6 text-center font-semibold text-muted">Cargando hábitos…</p> : null}
       {!loading && todayHabits.length === 0 ? <p className="py-4 text-center text-sm font-bold text-muted">Hoy no hay hábitos. Podés sumar uno.</p> : null}
       <ul>
         {todayHabits.map((habit) => {
@@ -210,7 +210,7 @@ export function HabitsScreen() {
                 type="button"
                 disabled={pendingId === habit.id}
                 onClick={() => void toggleDone(habit)}
-                className={`inline-flex min-h-11 min-w-[92px] items-center justify-center gap-1.5 rounded-full px-4 text-sm font-extrabold ${
+                className={`inline-flex min-h-11 min-w-[92px] items-center justify-center gap-1.5 rounded-full px-4 text-sm font-semibold ${
                   done ? 'border-[1.5px] border-tinta bg-mostaza text-tinta' : 'border-2 border-azul text-mostaza-ink'
                 }`}
               >
@@ -234,7 +234,7 @@ export function HabitsScreen() {
         <span className="grid h-11 w-11 place-items-center rounded-full bg-sand text-muted">
           <AppIcon name="plus" />
         </span>
-        <span className="font-extrabold text-muted">Nuevo hábito</span>
+        <span className="font-semibold text-muted">Nuevo hábito</span>
       </button>
       {error ? <p className="mt-3 text-center text-sm font-bold text-tinta">{error}</p> : null}
       <HabitSheet
@@ -388,7 +388,7 @@ function HabitSheet({
               aria-pressed={on}
               aria-label={day.name}
               onClick={() => toggleDay(day.index)}
-              className={`grid h-11 w-11 place-items-center rounded-2xl text-sm font-extrabold ${on ? 'border-[1.5px] border-tinta bg-mostaza text-tinta' : 'bg-sand text-muted'}`}
+              className={`grid h-11 w-11 place-items-center rounded-2xl text-sm font-semibold ${on ? 'border-[1.5px] border-tinta bg-mostaza text-tinta' : 'bg-sand text-muted'}`}
             >
               {day.label}
             </button>
@@ -397,7 +397,7 @@ function HabitSheet({
       </div>
       <p className="mt-2 text-sm font-semibold text-muted">Elegí al menos un día.</p>
       {habit ? (
-        <button type="button" onClick={() => void archive()} disabled={saving} className="mt-4 min-h-11 w-full rounded-2xl border-2 border-line text-base font-extrabold text-tinta">
+        <button type="button" onClick={() => void archive()} disabled={saving} className="mt-4 min-h-11 w-full rounded-2xl border-2 border-line text-base font-semibold text-tinta">
           Archivar
         </button>
       ) : null}

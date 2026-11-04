@@ -149,11 +149,11 @@ export function MealsScreen() {
           <button
             type="button"
             onClick={() => setGoalsOpen(true)}
-            className="inline-flex min-h-11 items-center gap-1.5 rounded-2xl bg-card px-3 text-sm font-extrabold text-mostaza-ink shadow-soft"
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-2xl bg-card px-3 text-sm font-semibold text-mostaza-ink shadow-soft"
           >
             <AppIcon name="bullseye" /> Objetivos
           </button>
-          <span className="inline-flex items-center gap-1 rounded-2xl bg-rosa-claro px-3 py-1.5 text-sm font-extrabold text-tinta">
+          <span className="inline-flex items-center gap-1 rounded-2xl bg-rosa-claro px-3 py-1.5 text-sm font-semibold text-tinta">
             <AppIcon name="lock" /> Solo vos
           </span>
         </div>
@@ -206,14 +206,14 @@ export function MealsScreen() {
         </div>
       </section>
       <h2 className="mb-2 px-1 text-sm font-bold text-muted">Lo que comiste</h2>
-      {loading ? <p className="py-6 text-center font-extrabold text-muted">Cargando comidas…</p> : null}
+      {loading ? <p className="py-6 text-center font-semibold text-muted">Cargando comidas…</p> : null}
       {!loading && meals.length === 0 ? <p className="py-4 text-center text-sm font-bold text-muted">Todavía no hay comidas este día.</p> : null}
       {MEAL_TYPES.map((type) => {
         const items = meals.filter((meal) => meal.mealType === type)
         if (items.length === 0) return null
         return (
           <section key={type} className="mb-2">
-            <h3 className="mb-1.5 px-1 text-sm font-extrabold text-mostaza-ink">{MEAL_LABEL[type]}</h3>
+            <h3 className="mb-1.5 px-1 text-sm font-semibold text-mostaza-ink">{MEAL_LABEL[type]}</h3>
             <ul>
               {items.map((meal) => (
                 <li key={meal.id} className="mb-2 flex min-h-16 items-center gap-3 rounded-[22px] bg-card px-3 py-2 border-2 border-azul-ink">
@@ -221,13 +221,13 @@ export function MealsScreen() {
                     <AppIcon name={MEAL_ICON[meal.mealType]} />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[15.5px] font-extrabold">{meal.name}</span>
+                    <span className="block truncate text-[15.5px] font-semibold">{meal.name}</span>
                     <span className="block text-sm font-bold text-muted">{formatAmount(meal.proteinG)} g de proteína</span>
                   </span>
                   <button
                     type="button"
                     onClick={() => void removeMeal(meal)}
-                    className="min-h-11 shrink-0 rounded-2xl px-2 text-sm font-extrabold text-muted"
+                    className="min-h-11 shrink-0 rounded-2xl px-2 text-sm font-semibold text-muted"
                   >
                     Quitar
                   </button>
@@ -245,7 +245,7 @@ export function MealsScreen() {
         <span className="grid h-11 w-11 place-items-center rounded-full bg-sand text-muted">
           <AppIcon name="plus" />
         </span>
-        <span className="font-extrabold text-muted">Nueva comida</span>
+        <span className="font-semibold text-muted">Nueva comida</span>
       </button>
       {error ? <p className="mt-3 text-center text-sm font-bold text-tinta">{error}</p> : null}
       <MealSheet
@@ -279,7 +279,7 @@ function MacroStat({ label, text, percent, color }: { label: string; text: strin
   return (
     <div>
       <span className="block text-sm font-bold text-muted">{label}</span>
-      <b className="mt-0.5 block text-[15px] font-extrabold">{text}</b>
+      <b className="mt-0.5 block text-[15px] font-semibold">{text}</b>
       {percent != null ? (
         <span className="mt-1.5 block">
           <Progress value={percent} color={color} />
@@ -427,7 +427,7 @@ function MealSheet({
                 key={food.id}
                 type="button"
                 onClick={() => applySaved(food)}
-                className="min-h-11 shrink-0 rounded-2xl bg-rosa-claro px-3 text-sm font-extrabold text-tinta"
+                className="min-h-11 shrink-0 rounded-2xl bg-rosa-claro px-3 text-sm font-semibold text-tinta"
               >
                 {food.name}
               </button>
@@ -452,7 +452,7 @@ function MealSheet({
         Si dejás las calorías vacías, se calculan con 4 por gramo de proteína y de carbos, y 9 por gramo de grasa.
       </p>
       <div className="flex min-h-11 items-center justify-between gap-3">
-        <span className="text-base font-extrabold">Guardar como frecuente</span>
+        <span className="text-base font-semibold">Guardar como frecuente</span>
         <ModuleSwitch on={frequent} label="Guardar como frecuente" onToggle={() => setFrequent((current) => !current)} />
       </div>
       {formError ? <p className="mt-3 text-sm font-bold text-tinta">{formError}</p> : null}

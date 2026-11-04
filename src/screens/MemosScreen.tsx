@@ -93,9 +93,9 @@ export function MemosScreen() {
         <Sprout module="memos" size={30} />
         <span>{cheer}</span>
       </div>
-      {loading ? <p className="py-8 text-center font-extrabold text-muted">Cargando memos…</p> : null}
+      {loading ? <p className="py-8 text-center font-semibold text-muted">Cargando memos…</p> : null}
       {!loading && groups.shared.length === 0 && groups.solo.length === 0 ? (
-        <p className="py-8 text-center font-extrabold text-muted">Todavía no hay memos.</p>
+        <p className="py-8 text-center font-semibold text-muted">Todavía no hay memos.</p>
       ) : null}
       <MemoGroup title={`Con ${partnerName}`} memos={groups.shared} meId={profile.id} partnerName={partnerName} onToggle={toggleDone} />
       <MemoGroup title="Solo vos" memos={groups.solo} meId={profile.id} partnerName={partnerName} onToggle={toggleDone} />
@@ -165,7 +165,7 @@ function MemoGroup({
             {memo.shared || memo.done ? (
               <p className="mt-0.5 text-sm font-semibold text-muted">
                 {memo.shared ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-azul-claro px-2 py-0.5 text-sm font-extrabold text-azul-ink">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-azul-claro px-2 py-0.5 text-sm font-semibold text-azul-ink">
                     <AppIcon name="user-group" /> Las dos
                   </span>
                 ) : null}
@@ -265,7 +265,7 @@ function NewMemoSheet({
             <AppIcon name="user-group" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[15px] font-extrabold">Compartir con {partnerName}</span>
+            <span className="block text-[15px] font-semibold">Compartir con {partnerName}</span>
             <span className="block text-sm font-semibold text-muted">Lo ve en su Inicio y cualquiera lo puede tachar</span>
           </span>
           <ModuleSwitch

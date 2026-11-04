@@ -167,7 +167,7 @@ export function HouseholdScreen() {
         Unirme
       </Button>
       <ErrorText>{error || profileError}</ErrorText>
-      <button type="button" className="mt-8 text-sm font-extrabold text-muted" onClick={() => void signOut()}>
+      <button type="button" className="mt-8 text-sm font-semibold text-muted" onClick={() => void signOut()}>
         Cerrar sesión
       </button>
     </main>
