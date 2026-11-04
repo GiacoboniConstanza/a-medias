@@ -190,13 +190,13 @@ export function SalaryScreen() {
           type="button"
           aria-expanded={historyOpen}
           onClick={() => setHistoryOpen((currentOpen) => !currentOpen)}
-          className="flex min-h-11 w-full items-center justify-between rounded-3xl bg-card px-4 text-left shadow-card"
+          className="flex min-h-11 w-full items-center justify-between rounded-2xl bg-card px-4 text-left border-2 border-azul-ink"
         >
           <span className="font-display text-base font-semibold">Historial</span>
           <span className="text-sm font-semibold text-muted">{historyOpen ? 'Ocultar' : 'Ver'}</span>
         </button>
         {historyOpen ? (
-          <div className="mt-2 rounded-3xl bg-card px-4 py-1 shadow-card">
+          <div className="mt-2 rounded-2xl bg-card px-4 py-1 border-2 border-azul-ink">
             {history.length === 0 ? <p className="py-4 text-sm font-semibold text-muted">Todavía no hay sueldos.</p> : null}
             <ul>
               {history.map((row) => {
@@ -210,10 +210,10 @@ export function SalaryScreen() {
                       </div>
                       {canChange && confirmId !== row.id ? (
                         <div className="flex shrink-0 gap-1">
-                          <button type="button" className="min-h-11 px-2 text-sm font-semibold text-primary" onClick={() => openEdit(row)}>
+                          <button type="button" className="min-h-11 px-2 text-sm font-semibold text-mostaza-ink" onClick={() => openEdit(row)}>
                             <AppIcon name="pen" /> Editar
                           </button>
-                          <button type="button" className="min-h-11 px-2 text-sm font-semibold text-alert-ink" onClick={() => setConfirmId(row.id)}>
+                          <button type="button" className="min-h-11 px-2 text-sm font-semibold text-tinta" onClick={() => setConfirmId(row.id)}>
                             Eliminar
                           </button>
                         </div>

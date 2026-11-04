@@ -76,7 +76,7 @@ export function BreakdownScreen() {
   if (!profile) return null
   const me = profile
   if (loading && !data) return <p className="py-16 text-center font-bold text-muted">Cargando…</p>
-  if (!data) return <p className="py-16 text-center font-bold text-alert-ink">{error}</p>
+  if (!data) return <p className="py-16 text-center font-bold text-tinta">{error}</p>
 
   const categories = data.categories.filter((category) => category.ownerId === null || category.ownerId === me.id)
   const mine = monthSplit(data).rows.find((row) => row.id === me.id)
@@ -175,12 +175,12 @@ export function BreakdownScreen() {
           aria-expanded={sheetOpen}
           aria-label={activeCount > 0 ? `Filtros, ${activeCount} activos` : 'Filtros'}
           className={`relative grid h-11 w-11 shrink-0 place-items-center rounded-full border text-lg ${
-            activeCount > 0 ? 'border-primary bg-primary text-on-primary' : 'border-line bg-card text-primary'
+            activeCount > 0 ? 'border-mostaza-ink border-[1.5px] border-tinta bg-mostaza text-tinta' : 'border-line bg-card text-mostaza-ink'
           }`}
         >
           <AppIcon name="sliders" />
           {activeCount > 0 ? (
-            <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-card px-1 text-sm font-bold text-primary ring-2 ring-primary">
+            <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-card px-1 text-sm font-bold text-mostaza-ink ring-2 ring-mostaza-ink">
               {activeCount}
             </span>
           ) : null}
@@ -190,13 +190,13 @@ export function BreakdownScreen() {
       {activeCount > 0 ? (
         <p className="mb-3 text-sm font-semibold leading-6 text-muted">
           Mostrando: {summaryParts.join(' · ')}{' '}
-          <button type="button" onClick={clearFilters} className="ml-1 inline-flex min-h-11 items-center font-bold text-primary">
+          <button type="button" onClick={clearFilters} className="ml-1 inline-flex min-h-11 items-center font-bold text-mostaza-ink">
             Limpiar
           </button>
         </p>
       ) : null}
 
-      {listError ? <p className="mb-3 text-center text-sm font-bold text-alert-ink">{listError}</p> : null}
+      {listError ? <p className="mb-3 text-center text-sm font-bold text-tinta">{listError}</p> : null}
 
       {!friendly ? (
         <div className="mb-3">
@@ -206,16 +206,16 @@ export function BreakdownScreen() {
           ) : (
             <>
               <p className="mt-1 font-display text-[38px] font-semibold leading-none text-title">{formatMoney(total)}</p>
-              <div className="my-2 flex h-3.5 overflow-hidden rounded-full bg-sand" aria-hidden="true">
-                <i className="h-full bg-good" style={{ width: `${sharedWidth}%` }} />
-                <i className="h-full bg-warn-soft" style={{ width: `${privateWidth}%` }} />
+              <div className="my-2 flex h-3.5 overflow-hidden rounded-full border-[1.5px] border-azul-ink" aria-hidden="true">
+                <i className="h-full bg-azul" style={{ width: `${sharedWidth}%` }} />
+                <i className="h-full border-l-[1.5px] border-mostaza-ink bg-mostaza" style={{ width: `${privateWidth}%` }} />
               </div>
               <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 text-sm font-semibold text-muted">
                 <span className="inline-flex items-center gap-1">
-                  <AppIcon name="circle" className="text-sm text-good" /> Compartidos {formatMoney(shared)}
+                  <AppIcon name="circle" className="text-sm text-azul-ink" /> Compartidos {formatMoney(shared)}
                 </span>
                 <span className="inline-flex items-center gap-1">
-                  <AppIcon name="circle" className="text-sm text-warn-soft" /> Privados {formatMoney(privateSpent)}
+                  <AppIcon name="circle" className="text-sm text-mostaza-ink" /> Privados {formatMoney(privateSpent)}
                 </span>
               </div>
               <p className="mt-1 text-sm font-semibold text-muted">Suma solo lo que pagaste vos.</p>
@@ -234,7 +234,7 @@ export function BreakdownScreen() {
           <p className="text-sm font-semibold text-muted">
             {friendly ? 'Con este período no hay gastos.' : 'Con este período y estas categorías no hay gastos.'}
           </p>
-          <button type="button" onClick={clearFilters} className="mt-3 inline-flex min-h-11 items-center font-semibold text-primary">
+          <button type="button" onClick={clearFilters} className="mt-3 inline-flex min-h-11 items-center font-semibold text-mostaza-ink">
             Ver todo el mes
           </button>
         </Card>
@@ -249,9 +249,9 @@ export function BreakdownScreen() {
           />
           <div className="mb-4 mt-2">
             <p className="text-sm font-semibold text-muted">Gastaste {formatMoney(periodTotal)} este mes</p>
-            <div className="mt-1.5 flex h-1 overflow-hidden rounded-full bg-sand" aria-hidden="true">
-              <i className="h-full bg-good" style={{ width: `${periodSharedWidth}%` }} />
-              <i className="h-full bg-warn-soft" style={{ width: `${periodPrivateWidth}%` }} />
+            <div className="mt-1.5 flex h-3 overflow-hidden rounded-full border-[1.5px] border-azul-ink" aria-hidden="true">
+              <i className="h-full bg-azul" style={{ width: `${periodSharedWidth}%` }} />
+              <i className="h-full border-l-[1.5px] border-mostaza-ink bg-mostaza" style={{ width: `${periodPrivateWidth}%` }} />
             </div>
           </div>
           <BagPaidList expenses={visible.filter((expense) => expense.paidFromBag)} onOpen={setEditing} />
@@ -289,7 +289,7 @@ export function BreakdownScreen() {
 
       {top ? (
         <p className="mb-3 flex items-start gap-2 text-sm font-semibold text-title">
-          <AppIcon name="lightbulb" className="mt-0.5 shrink-0 text-warn-ink" />
+          <AppIcon name="lightbulb" className="mt-0.5 shrink-0 text-mostaza-ink" />
           Este mes: {top.label.toLowerCase()} fue tu gasto más grande.
         </p>
       ) : null}
@@ -329,7 +329,7 @@ function BagPaidList({ expenses, onOpen }: { expenses: ExpenseItem[]; onOpen: (e
         <li key={expense.id}>
           <button type="button" onClick={() => onOpen(expense)} className="flex min-h-11 w-full items-center justify-between gap-3 text-left text-sm">
             <span className="min-w-0 font-semibold">
-              <AppIcon name="bag-shopping" className="mr-1.5 text-primary" />
+              <AppIcon name="bag-shopping" className="mr-1.5 text-mostaza-ink" />
               {expense.title}
               <span className="text-muted"> · privado, pagado con la bolsa</span>
             </span>
@@ -356,7 +356,7 @@ function ExpenseRows({
 }) {
   if (expenses.length === 0) return null
   return (
-    <ul className="mb-4 overflow-hidden rounded-3xl bg-card px-4">
+    <ul className="mb-4 overflow-hidden rounded-2xl bg-card px-4">
       {expenses.map((expense) => {
         const category = categories.find((item) => item.id === expense.categoryId)
         return (
@@ -380,10 +380,10 @@ function SoftEmpty() {
   return (
     <svg viewBox="0 0 160 120" className="mx-auto mb-2 h-28 w-40" role="img" aria-label="Ilustración de un filtro sin gastos">
       <ellipse cx="80" cy="100" rx="48" ry="8" fill="var(--color-line)" />
-      <circle cx="80" cy="62" r="30" fill="var(--color-alert)" />
-      <path d="M80 84 C80 68 78 58 76 48" stroke="var(--color-good)" strokeWidth="3" fill="none" strokeLinecap="round" />
-      <path d="M76 60 C62 58 54 48 56 40 C70 40 78 50 76 60Z" fill="var(--color-sage-light)" />
-      <circle cx="118" cy="34" r="9" fill="var(--color-warn)" />
+      <circle cx="80" cy="62" r="30" fill="var(--color-rosa)" />
+      <path d="M80 84 C80 68 78 58 76 48" stroke="var(--color-azul)" strokeWidth="3" fill="none" strokeLinecap="round" />
+      <path d="M76 60 C62 58 54 48 56 40 C70 40 78 50 76 60Z" fill="var(--color-salvia)" />
+      <circle cx="118" cy="34" r="9" fill="var(--color-mostaza)" />
     </svg>
   )
 }

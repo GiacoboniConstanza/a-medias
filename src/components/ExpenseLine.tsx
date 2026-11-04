@@ -17,7 +17,7 @@ export function PeriodTag({
     ? 'px-2 py-0.5 text-base font-bold'
     : 'px-2 py-0.5 text-sm font-bold leading-none'
   return (
-    <span className={`ml-1 inline-flex items-center rounded-full bg-lavender-soft text-lavender-ink ${size}`}>
+    <span className={`ml-1 inline-flex items-center rounded-full bg-azul-claro text-azul-ink ${size}`}>
       {shortPeriodLabel(expense.period)}
     </span>
   )
@@ -44,7 +44,7 @@ export function ExpenseLine({
   return (
     <button type="button" onClick={onOpen} className="flex min-h-11 w-full items-start justify-between gap-3 py-3 text-left">
       {markPrivate ? (
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-warn-soft text-title" aria-hidden="true">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-mostaza-claro text-title" aria-hidden="true">
           <AppIcon name="lock" />
         </span>
       ) : null}
@@ -52,13 +52,13 @@ export function ExpenseLine({
         <span className="block font-bold">
           {expense.title}
           <PeriodTag expense={expense} />
-          {markPrivate ? <span className="ml-1 rounded-full bg-warn-soft px-2 text-sm font-bold text-title">Privado</span> : null}
+          {markPrivate ? <span className="ml-1 rounded-full bg-mostaza-claro px-2 text-sm font-bold text-title">Privado</span> : null}
           {expense.notes ? <AppIcon name="note-sticky" className="ml-1.5 text-sm text-muted" /> : null}
         </span>
         <span className="mt-0.5 block text-sm font-semibold leading-snug text-muted">
           {partnerPaid ? (
             <>
-              <span className="font-bold text-lavender-ink">Pagó {partnerPaid}</span>
+              <span className={`font-bold ${personInk(partnerPaid)}`}>Pagó {partnerPaid}</span>
               {` · ${shortDate(expense.spentOn)} · ${categoryName}`}
             </>
           ) : (
@@ -77,7 +77,14 @@ export function ExpenseLine({
           )}
         </span>
       </span>
-      <span className="shrink-0 whitespace-nowrap font-display font-medium">{formatMoney(expense.amount)}</span>
+      <span className="shrink-0 whitespace-nowrap font-display font-medium tabular-nums">{formatMoney(expense.amount)}</span>
     </button>
   )
+}
+
+function personInk(name: string): string {
+  const key = name.trim().toLowerCase()
+  if (key === 'maru') return 'text-salvia-ink'
+  if (key === 'coty') return 'text-rosa-texto'
+  return 'text-tinta'
 }

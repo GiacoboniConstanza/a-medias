@@ -31,9 +31,25 @@ Las pantallas de la sección 11 (Gastos, formulario de carga, Avisos, Ahorros y 
 
 En los bocetos de navegación, el lugar del botón Inicio, el color de Finanzas (`gold-soft`) y la forma del número de la campana son decisiones de diseño (Art Attack, 8.1).
 
+## Identidad vigente (3/11/2026, Art Attack)
+
+Esta sección gana sobre la paleta de la sección 1, las fuentes de 2.1, la escala de 2.2 en lo que nombra, la plantita de 3.5, y los componentes 4.1, 4.3, 4.11, 4.12, 4.13, 4.15, 4.16 y 4.19. También gana sobre R2, R7, R9, R10, R11, R16, R17, R23, R25 y R34. Los tokens viven en `tailwind.config.ts` y en `docs/identidad/`.
+
+- Lienzo `bg`, `shell` y `crema` #FEF4E8. Tarjeta `card` y `tarjeta` #FFFAF3. Texto `title` y `tinta` #1B242E. Gris `muted` y `gris` #5F6266.
+- `sand` apunta a `azul-claro` #DFE2EC. `sand-soft` apunta a `crema`. `line` es tinta al 30 % y `line-strong` al 45 %.
+- Azul #7D8BB2, `azul-ink` #4C5A80, `azul-claro` #DFE2EC. Mostaza #E6A940, `mostaza-ink` #7E5611, `mostaza-claro` #F6E1BB. Rosa #E8A198, `rosa-hondo` #B96D64, `rosa-claro` #F6D9D5, `rosa-texto` #A25B53. Salvia #A6A066, `salvia-ink` #5A5735, `salvia-claro` #E3E1CF. Ciruela #9C7092, `ciruela-ink` #86607F, `ciruela-claro` #E6D8DB.
+- Aviso `aviso` #2F4A38, `aviso-texto` #FFFAF4, `aviso-accion` #E3EED4.
+- Se retiraron `primary`, `on-primary`, `sage-*`, `good`, `alert*`, `copper-soft`, `warn*`, `gold-soft`, `lavender*`, `blue-*`, `shadow-card` y `shadow-fab`. El rosa de esta identidad sí se usa. Siguen prohibidos `blush`, `debt` y los hex viejos #F7B7C4, #FCE6EA, #E98C9E, #FDEEE9 y #FCE7EC.
+- Maru: texto `salvia-ink`, barra `salvia` con borde `salvia-ink`, rayado `salvia` / `salvia-claro`. Coty: texto `rosa-texto` sobre tarjeta, barra `rosa` con borde `rosa-hondo`. Préstamos: texto `ciruela-ink`, barra `ciruela`. Sobre el bloque azul, todo el texto va en `tinta`. Errores y borrar van en `tinta`.
+- Fuentes: DM Sans 500/600/700 y Fraunces 600 (SOFT 100, WONK 0). Cuerpo 14 px, peso 500, interlineado 1.35. El mes va a 18 px. El botón principal mide 18 px y 52 px de alto. El título de pantalla de 34 px y el monto de 36 px solo van en Inicio y en el total de Compartidos.
+- Tarjeta neutra: `rounded-2xl`, borde de 2 px `azul-ink`, sin sombra. Hoja: `rounded-t-2xl`, borde superior de 1.5 px `azul-ink`. Barra inferior: 76 px, fondo `azul`, festón arriba, etiqueta de 14 px en `tinta`, píldora activa de 52 × 30 en `tarjeta`. FAB: 52 px, `mostaza`, borde de 1.5 px `tinta`, «+» en `tinta`, sin sombra. Campana: toque de 44, badge `mostaza` con texto `tinta`.
+- Una sola plantita (`src/assets/marca/plantita.svg`). Si hay texto al lado, `aria-hidden="true"`. Si está sola, `aria-label="Plantita"`. `plantStage`, `potStage` y `sproutStage` no cambian. Los adornos de gouache (PNG) están permitidos.
+
 ---
 
 ## 1. Paleta
+
+> Desde el 3/11/2026 manda la sección «Identidad vigente». Lo de abajo queda como historia de la paleta anterior.
 
 Todos los colores salen de `tailwind.config.ts` (`theme.extend.colors`). **No se escriben hex sueltos en los componentes**; si falta un color, primero se agrega como token acá y en la config.
 El contraste se mide sobre `card` #FFFAF4 y sobre `bg` #FBF3EA. "Estado" compara contra `develop`.
@@ -742,25 +758,25 @@ Cada regla se puede comprobar en el código o en una captura a 360 y 390 px.
 
 **Color**
 - R1. No hay hex sueltos en `src/**/*.tsx`. Se puede revisar con `rg "#[0-9A-Fa-f]{3,8}\b" src --glob '*.tsx'`, y las únicas excepciones son los SVG de ilustración, que igual usan valores de la paleta.
-- R2. No hay rosa: no aparecen `blush`, `debt`, #F7B7C4, #FCE6EA, #E98C9E, #FDEEE9 ni #FCE7EC.
+- R2. El rosa de la identidad (`rosa`, `rosa-hondo`, `rosa-claro`, `rosa-texto`) sí se usa. Siguen prohibidos `blush`, `debt`, #F7B7C4, #FCE6EA, #E98C9E, #FDEEE9 y #FCE7EC.
 - R3. Los títulos y el texto común van en `title`. No se usa `text-text` con #202808 ni negro.
 - R4. Hay un solo gris, `muted`. Los tachados y lo desactivado también van en `muted`.
 - R5. `good`, `alert`, `lavender`, `warn` y `warn-strong` nunca son color de texto, con la única excepción de `warn-strong` como ícono con texto al lado.
 - R6. Los montos que se deben van en `alert-ink`, los que están a favor en `primary`, y lo que se debe tiene fondo `copper-soft`.
-- R7. Maru siempre va en `lavender-ink`/`lavender` y Coty en `alert-ink`/`alert`.
+- R7. Maru va en `salvia-ink`/`salvia` y Coty en `rosa-texto`/`rosa`. Los préstamos van en `ciruela-ink`/`ciruela`. Sobre el bloque azul, el texto va en `tinta`.
 - R8. El contraste es AA: el texto llega a ≥ 4.5:1, y los íconos, bordes de controles y estados a ≥ 3:1.
 
 **Tipografía**
 - R9. Ningún texto mide menos de 14 px. No aparecen `text-xs`, `text-[10px]`, `text-[11px]`, `text-[12px]`, `text-[12.5px]`, `text-[13px]` ni `text-[13.5px]`.
-- R10. Solo se usan los tamaños de la escala (2.2).
-- R11. Fredoka va en los títulos y los montos, y Nunito en el resto.
-- R12. No se usa `font-extrabold`. Por tarjeta hay como mucho una cifra en Fredoka 600.
+- R10. El cuerpo va a 14 px. El mes va a 18 px. El botón principal va a 18 px. El título de 34 px y el monto de 36 px solo van en Inicio y en el total de Compartidos.
+- R11. Fraunces va en los títulos y los montos, y DM Sans en el resto. No se usan Fredoka ni Nunito.
+- R12. No se agrega `font-extrabold`. El que ya estaba en el código queda hasta una pasada aparte.
 - R13. Los montos van en un renglón (`whitespace-nowrap`) a 360 px.
 
 **Layout y forma**
 - R14. No hay scroll horizontal: no se usa `overflow-x-auto` ni `overflow-x-scroll`, y a 360 px `scrollWidth` es igual a `innerWidth`.
 - R15. Los títulos de sección y de tarjeta caben en un renglón a 360 px.
-- R16. Las tarjetas usan `rounded-3xl`, y los botones, chips y toggles `rounded-full`.
+- R16. Las tarjetas usan `rounded-2xl` con borde de 2 px `azul-ink` y sin sombra. Las hojas usan `rounded-t-2xl` con borde superior de 1.5 px `azul-ink`. Los botones, chips y toggles usan `rounded-full`.
 - R17. Todo lo tocable mide al menos 44 × 44 px.
 - R18. No hay círculos con iniciales: alcanza el nombre en su color.
 
@@ -769,9 +785,9 @@ Cada regla se puede comprobar en el código o en una captura a 360 y 390 px.
 - R20. **Todas** las pantallas tienen ayuda (`HelpSheet`, cada panel con su color de subtítulo): en las que tienen modo, desde "Cómo se lee esta pantalla" en la hoja Opciones (S1); en las que no, con el "?" del encabezado (N10). Los textos los escribe Jinx y los aprueba Coty. Mientras una pantalla no tenga su texto aprobado, el "?" y la fila no se muestran (N26).
 - R21. Todas las hojas usan `Sheet`, con un botón X visible.
 - R22. Las acciones que mueven plata o borran datos de las dos llevan `ConfirmSheet` y después el aviso con deshacer (4.15). Las que borran algo propio llevan, como mínimo, el aviso con deshacer. **Excepción (N19):** eliminar un gasto mantiene la confirmación de hoy ("¿Eliminar este gasto? No se puede deshacer."), sin aviso con deshacer.
-- R23. Hay un solo FAB: `Fab`, `primary`, de 52 px, con el "+" blanco.
+- R23. Hay un solo FAB: `Fab`, de 52 px, fondo `mostaza`, borde de 1.5 px `tinta` y «+» en `tinta`, sin sombra.
 - R24. Los íconos son de Font Awesome Solid, a través de `AppIcon`, y no se usan emojis. Sin excepciones: el "?" también va en `circle-question` Solid (N22).
-- R25. Las ilustraciones son planas: solo `fill`, sin `stroke` de contorno, sin punteados y sin degradados.
+- R25. La plantita y los adornos son el gouache de la identidad (SVG y PNG). El resto de los íconos sigue en Font Awesome Solid. El festón y el rayado de Maru están permitidos.
 - R26. No hay mensajes que narren lo que ya se ve: el dato se muestra (barra, chip o color) y el texto acompaña.
 - R27. Toda la interfaz está en castellano rioplatense con voseo, sin emojis y con tildes y ¿¡.
 
@@ -784,7 +800,7 @@ Cada regla se puede comprobar en el código o en una captura a 360 y 390 px.
 
 **Simplificación** (aprobada por Coty; sección 10)
 - R33. Los botones de ícono del encabezado y las flechas del mes no tienen círculo ni sombra, y su área táctil es de 44 × 44. La cápsula de migas lleva borde de 1 px `line` y no sombra. Solo el FAB y el botón principal tienen relleno y sombra.
-- R34. No hay h1 de pestaña en Finanzas: el ítem activo del menú lo dice. El mes va en `titulo-mes` (22 px).
+- R34. No hay h1 de pestaña en Finanzas: el ítem activo del menú lo dice. El mes va a 18 px. El título de 34 px y el monto de 36 px solo van en Inicio y en el total de Compartidos.
 - R35. Los avisos que no son del estado del mes (balance del año, novedades) van debajo del contenido, con X, y solo cuando corresponden.
 - R36. Las acciones secundarias van como enlace (Exportar a planilla, Ver todo); botón lleno solo para la acción principal de la pantalla.
 - R37. "Me queda" (Contable) lleva tres líneas punteadas: debajo del hint, entre Ingresos y Gastos y antes de "Préstamos dados" (S4).

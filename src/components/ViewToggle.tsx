@@ -36,7 +36,7 @@ function ToggleButton({
       aria-checked={active}
       onClick={onClick}
       className={`inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 rounded-full px-3 text-base font-bold ${
-        active ? 'bg-primary text-on-primary' : 'text-muted'
+        active ? 'border-[1.5px] border-tinta bg-mostaza text-tinta' : 'text-muted'
       }`}
     >
       <AppIcon name={icon} className="text-sm" />

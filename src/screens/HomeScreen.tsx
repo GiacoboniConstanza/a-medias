@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { AppIcon } from '../components/AppIcon.tsx'
+import { Plantita } from '../components/Adornos.tsx'
 import { Fab } from '../components/Fab.tsx'
 import { MonthSwitcher } from '../components/MonthSwitcher.tsx'
 import { NotificationBell } from '../components/NotificationBell.tsx'
@@ -72,8 +73,8 @@ export function HomeScreen() {
   const year = new Date().getFullYear()
   const bannerKey = yearBannerKey(profile.id, year)
   const showBanner = closedBanner !== bannerKey && !yearBannerClosed(bannerKey)
-  if (loading && !data) return <p className="py-16 text-center font-semibold text-primary">Cargando tu mes…</p>
-  if (!data) return <p className="py-16 text-center font-semibold text-alert-ink">{error}</p>
+  if (loading && !data) return <p className="py-16 text-center font-semibold text-mostaza-ink">Cargando tu mes…</p>
+  if (!data) return <p className="py-16 text-center font-semibold text-tinta">{error}</p>
 
   const meId = profile.id
   const otherId = partnerId(data, meId)
@@ -97,9 +98,9 @@ export function HomeScreen() {
     ...pace,
   })
   const friendly = profile.viewMode === 'friendly'
-  const amountTone = remaining < 0 ? 'text-alert-ink' : 'text-title'
+  const amountTone = remaining < 0 ? 'text-rosa-texto' : 'text-title'
   const sharedSigned = sharedSignedBalance(meId, split)
-  const sharedTone = sharedSigned > 0 ? 'text-primary' : sharedSigned < 0 ? 'text-alert-ink' : 'text-title'
+  const sharedTone = sharedSigned > 0 ? 'text-mostaza-ink' : sharedSigned < 0 ? 'text-rosa-texto' : 'text-title'
 
   async function changeMode(mode: ViewMode) {
     await saveViewMode(meId, mode)
@@ -124,7 +125,7 @@ export function HomeScreen() {
           <>
             <NotificationBell />
             {hub ? null : (
-              <Link to="/modulos" aria-label="Mis módulos" className="grid h-11 w-11 place-items-center text-primary">
+              <Link to="/modulos" aria-label="Mis módulos" className="grid h-11 w-11 place-items-center text-mostaza-ink">
                 <AppIcon name="sliders" />
               </Link>
             )}
@@ -141,10 +142,10 @@ export function HomeScreen() {
             <HomePot />
             <div className="min-w-0">
               <h2 className="flex items-center gap-1.5 font-display text-base font-medium text-title">
-                <AppIcon name="seedling" className="text-primary" /> Me queda
+                <AppIcon name="seedling" className="text-mostaza-ink" /> Me queda
               </h2>
               {jar.tone === 'empty' ? (
-                <Link to="/sueldo" className="mt-1 inline-flex min-h-11 items-center font-semibold text-primary">
+                <Link to="/sueldo" className="mt-1 inline-flex min-h-11 items-center font-semibold text-mostaza-ink">
                   Cargar sueldo base
                 </Link>
               ) : (
@@ -188,26 +189,26 @@ export function HomeScreen() {
       </Card>
 
       {hub ? null : <PartnerMemos />}
-      {modules.error ? <p className="mb-3 text-center text-sm font-semibold text-alert-ink">{modules.error}</p> : null}
+      {modules.error ? <p className="mb-3 text-center text-sm font-semibold text-tinta">{modules.error}</p> : null}
 
       <Link to="/compartidos" className="block">
         <Card className="flex items-center gap-2.5">
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-copper-soft text-alert-ink">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-rosa-claro text-tinta">
             <AppIcon name="handshake" />
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-muted">Saldo compartidos</p>
             <p className={`font-display text-lg font-semibold leading-snug ${sharedTone}`}>{stableMoney(debtCopy(meId, split), sharedSigned)}</p>
           </div>
-          <AppIcon name="arrow-right" className="text-alert" />
+          <AppIcon name="arrow-right" className="text-tinta" />
         </Card>
       </Link>
 
       {showBanner ? (
         <div className="mb-3 flex h-14 items-center gap-1 rounded-2xl border border-line bg-sand-soft pl-3 pr-1">
-          <AppIcon name="chart-pie" className="shrink-0 text-primary" />
+          <AppIcon name="chart-pie" className="shrink-0 text-mostaza-ink" />
           <p className="min-w-0 flex-1 font-display text-base font-medium text-title">Tu balance {year} está listo</p>
-          <Link to="/mi-anio" className="grid h-12 w-12 place-items-center text-base font-bold text-primary">
+          <Link to="/mi-anio" className="grid h-12 w-12 place-items-center text-base font-bold text-mostaza-ink">
             Ver
           </Link>
           <button type="button" aria-label="Cerrar aviso" onClick={closeBanner} className="grid h-12 w-12 place-items-center text-title">
@@ -218,23 +219,23 @@ export function HomeScreen() {
 
       {!otherId ? (
         <Card>
-          <p className="font-display font-semibold text-primary">Invitá a tu compañera</p>
+          <p className="font-display font-semibold text-mostaza-ink">Invitá a tu compañera</p>
           <p className="text-sm font-normal text-muted">Pasale este código para que se sume al hogar.</p>
-          <p className="mt-2 font-display text-2xl font-semibold tracking-widest text-primary">{data.inviteCode}</p>
+          <p className="mt-2 font-display text-2xl font-semibold tracking-widest text-mostaza-ink">{data.inviteCode}</p>
         </Card>
       ) : null}
 
       {base <= 0 ? (
         <Card>
-          <p className="font-display font-semibold text-alert-ink">Falta tu sueldo base</p>
+          <p className="font-display font-semibold text-tinta">Falta tu sueldo base</p>
           <p className="text-base font-normal text-muted">Sin eso el reparto no sabe qué porcentaje te toca.</p>
-          <Link to="/sueldo" className="mt-2 inline-flex min-h-11 items-center font-semibold text-primary">
+          <Link to="/sueldo" className="mt-2 inline-flex min-h-11 items-center font-semibold text-mostaza-ink">
             Cargarlo ahora
           </Link>
         </Card>
       ) : null}
 
-      {error ? <p className="text-center text-sm font-semibold text-alert-ink">{error}</p> : null}
+      {error ? <p className="text-center text-sm font-semibold text-tinta">{error}</p> : null}
 
       <Fab to="/cargar" label="Nuevo gasto" state={{ from: hub ? '/finanzas' : '/' }} />
       <Toast aboveFab onDone={() => setToast('')}>
@@ -259,13 +260,7 @@ function stableMoney(sentence: string, signed: number) {
 }
 
 function HomePot() {
-  return (
-    <svg viewBox="0 0 72 72" className="h-16 w-14 shrink-0" role="img" aria-label="Plantita en maceta">
-      <path d="M34 46 C22 46 16 36 18 28 C28 30 34 38 34 46Z" fill="var(--color-sage-light)" />
-      <path d="M36 40 C48 38 54 28 52 20 C42 22 36 30 36 40Z" fill="var(--color-good)" />
-      <path d="M22 48 h30 l-4 16 h-22z" fill="var(--color-alert)" />
-    </svg>
-  )
+  return <Plantita width={56} height={73} />
 }
 
 function SoftDivider() {
@@ -275,9 +270,9 @@ function SoftDivider() {
 function Row({ line }: { line: HomeCardLine }) {
   const tone = {
     detail: 'font-normal text-muted',
-    income: 'font-semibold text-primary',
-    spent: 'font-semibold text-alert-ink',
-    loan: 'font-normal text-lavender-ink',
+    income: 'font-semibold text-mostaza-ink',
+    spent: 'font-semibold text-rosa-texto',
+    loan: 'font-normal text-ciruela-ink',
   }[line.role]
   return (
     <div className={`flex items-baseline justify-between gap-3 text-[14px] ${tone}`}>

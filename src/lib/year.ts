@@ -18,12 +18,12 @@ export const MONTH_NAMES = [
 ] as const
 
 export const CATEGORY_COLORS = [
-  { fill: 'var(--color-primary)', ink: 'var(--color-on-primary)' },
-  { fill: 'var(--color-sage-light)', ink: 'var(--color-title)' },
-  { fill: 'var(--color-warn)', ink: 'var(--color-warn-ink)' },
-  { fill: 'var(--color-alert)', ink: 'var(--color-alert-ink)' },
-  { fill: 'var(--color-lavender)', ink: 'var(--color-lavender-ink)' },
-  { fill: 'var(--color-warn-soft)', ink: 'var(--color-warn-ink)' },
+  { fill: 'var(--color-azul)', ink: 'var(--color-tinta)' },
+  { fill: 'var(--color-ciruela)', ink: 'var(--color-tinta)' },
+  { fill: 'var(--color-mostaza-ink)', ink: 'var(--color-crema)' },
+  { fill: 'var(--color-rosa-hondo)', ink: 'var(--color-crema)' },
+  { fill: 'var(--color-azul)', ink: 'var(--color-tinta)' },
+  { fill: 'var(--color-salvia-ink)', ink: 'var(--color-crema)' },
 ] as const
 
 export type YearMonth = {

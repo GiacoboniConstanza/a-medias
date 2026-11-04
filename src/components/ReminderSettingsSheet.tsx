@@ -5,7 +5,7 @@ import { ErrorText, Toggle } from './ui.tsx'
 import { MAX_ASK_TIMES, nextTimeSlot, reminderFootnote, timesValid, type ReminderPrefs } from '../lib/reminders.ts'
 
 const pill =
-  'min-h-11 rounded-[18px] border-2 border-sage-light bg-sand-soft px-3.5 font-display text-xl font-bold text-primary scheme-light'
+  'min-h-11 rounded-[18px] border-2 border-azul bg-sand-soft px-3.5 font-display text-xl font-bold text-mostaza-ink scheme-light'
 
 export function ReminderSettingsSheet({
   open,
@@ -57,12 +57,12 @@ export function ReminderSettingsSheet({
 
   return (
     <Sheet open={open} title="Mis recordatorios" onClose={onClose}>
-      <section className="mb-3 rounded-3xl bg-sand px-4 py-4">
+      <section className="mb-3 rounded-2xl bg-sand px-4 py-4">
         <p className="text-base font-bold text-title">Activar notificaciones en el celu</p>
         <p className="mt-1 text-sm font-semibold text-muted">Si el celular no está configurado, no enviamos nada.</p>
         <button
           type="button"
-          className="mt-3 min-h-11 rounded-2xl bg-primary px-4 text-sm font-bold text-on-primary disabled:opacity-50"
+          className="mt-3 min-h-11 rounded-2xl bg-mostaza px-4 text-sm font-bold text-tinta disabled:opacity-50"
           onClick={onActivatePush}
           disabled={prefs.pushEnabled}
         >
@@ -102,7 +102,7 @@ export function ReminderSettingsSheet({
           {extra ? (
             <button
               type="button"
-              className="min-h-11 rounded-[18px] border-2 border-dashed border-sage-light bg-sand-soft px-3.5 text-sm font-bold text-muted"
+              className="min-h-11 rounded-[18px] border-2 border-dashed border-azul bg-sand-soft px-3.5 text-sm font-bold text-muted"
               onClick={addTime}
             >
               + Hora

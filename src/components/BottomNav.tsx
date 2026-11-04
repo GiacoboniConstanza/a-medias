@@ -9,7 +9,7 @@ export function BottomNav() {
   const from = (location.state as { from?: string } | null)?.from ?? null
   const { items, activeTo } = navFor(location.pathname, ready ? enabled : ['finanzas'], from)
   return (
-    <nav aria-label="Secciones" className="fixed inset-x-0 bottom-0 z-20 mx-auto flex h-[74px] max-w-[430px] items-center justify-around border-t border-line bg-card px-1 pb-1.5">
+    <nav aria-label="Secciones" className="scallop-t fixed inset-x-0 bottom-0 z-20 mx-auto flex h-[76px] max-w-[430px] items-center justify-around bg-azul px-1 pb-1.5 text-tinta">
       {items.map((link) => {
         const active = link.to === activeTo
         return (
@@ -18,11 +18,9 @@ export function BottomNav() {
             to={link.to}
             aria-current={active ? 'page' : undefined}
             aria-label={link.label}
-            className={`flex min-h-14 min-w-12 shrink-0 flex-col items-center justify-center gap-0.5 whitespace-nowrap rounded-2xl px-1 text-sm font-bold leading-none ${
-              active ? 'text-primary' : 'text-muted'
-            }`}
+            className="flex min-h-14 min-w-12 shrink-0 flex-col items-center justify-center gap-0.5 whitespace-nowrap px-1 text-sm font-semibold leading-none text-tinta"
           >
-            <span className={`grid h-[30px] min-w-12 place-items-center rounded-full ${active ? 'bg-sage-light' : ''}`}>
+            <span className={`grid h-[30px] w-[52px] place-items-center rounded-full ${active ? 'bg-tarjeta' : ''}`}>
               <AppIcon name={link.icon} className="text-lg" />
             </span>
             <span className="max-[359px]:sr-only">{link.label}</span>

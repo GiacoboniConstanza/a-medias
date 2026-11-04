@@ -90,7 +90,7 @@ export function SavingsScreen() {
 
   if (!profile?.householdId) return null
   if (loading && !data) return <p className="py-16 text-center text-base font-semibold text-muted">Cargando…</p>
-  if (!data) return <p className="py-16 text-center text-base font-semibold text-alert-ink">{error}</p>
+  if (!data) return <p className="py-16 text-center text-base font-semibold text-tinta">{error}</p>
 
   const userId = profile.id
   const activeFunds = data.funds.filter((fund) => !fund.archivedAt)
@@ -239,7 +239,7 @@ export function SavingsScreen() {
           const percent = savingPercent(row.saved, row.target)
           const fund = activeFunds.find((item) => item.id === row.id) ?? null
           return (
-            <li key={row.id} className="mb-3 rounded-3xl bg-card p-4 shadow-card">
+            <li key={row.id} className="mb-3 rounded-2xl bg-card p-4 border-2 border-azul-ink">
               <div className="flex items-center gap-3">
                 <PotPlant variant="fondo" progress={percent} className="h-11 w-11 shrink-0" />
                 <div className="min-w-0 flex-1">
@@ -260,12 +260,12 @@ export function SavingsScreen() {
                   {pace ? <p className="text-base text-muted">{pace}</p> : null}
                   <p className="text-base text-muted">{partnerName} ve tu aporte, no tus ahorros privados.</p>
                   <div className="mt-1 flex flex-wrap items-center gap-2">
-                    <button type="button" className="min-h-11 text-base font-semibold text-primary" onClick={() => setContributeOpen(true)}>
+                    <button type="button" className="min-h-11 text-base font-semibold text-mostaza-ink" onClick={() => setContributeOpen(true)}>
                       Sumar
                     </button>
                     <button
                       type="button"
-                      className="min-h-11 text-base font-semibold text-primary"
+                      className="min-h-11 text-base font-semibold text-mostaza-ink"
                       aria-expanded={historyOpen}
                       onClick={() => setHistoryOpen((current) => !current)}
                     >
@@ -284,13 +284,13 @@ export function SavingsScreen() {
                 </div>
               ) : fund ? (
                 <div className="mt-1 flex flex-wrap gap-2">
-                  <button type="button" className="min-h-11 text-base font-semibold text-primary" onClick={() => setEditing(fund)}>
+                  <button type="button" className="min-h-11 text-base font-semibold text-mostaza-ink" onClick={() => setEditing(fund)}>
                     Editar
                   </button>
-                  <button type="button" className="min-h-11 text-base font-semibold text-primary" onClick={() => openMove('use', fund)}>
+                  <button type="button" className="min-h-11 text-base font-semibold text-mostaza-ink" onClick={() => openMove('use', fund)}>
                     Usar
                   </button>
-                  <button type="button" className="min-h-11 text-base font-semibold text-primary" onClick={() => openMove('to_gustos', fund)}>
+                  <button type="button" className="min-h-11 text-base font-semibold text-mostaza-ink" onClick={() => openMove('to_gustos', fund)}>
                     A gustos
                   </button>
                 </div>
@@ -305,17 +305,17 @@ export function SavingsScreen() {
           <button
             type="button"
             aria-expanded={archivedOpen}
-            className="flex min-h-11 w-full items-center gap-3 rounded-3xl bg-sage-soft px-4 py-3"
+            className="flex min-h-11 w-full items-center gap-3 rounded-2xl bg-salvia-claro px-4 py-3"
             onClick={() => setArchivedOpen((current) => !current)}
           >
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-on-primary">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border-[1.5px] border-tinta bg-mostaza text-tinta">
               <AppIcon name="box-archive" />
             </span>
             <span className="flex-1 text-left text-base font-bold text-title">Archivados</span>
             <span className="rounded-full bg-card px-2.5 py-1 text-base font-bold text-title">{archivedRows.length}</span>
             <AppIcon
               name="chevron-down"
-              className={`text-primary transition-transform motion-reduce:transition-none ${archivedOpen ? 'rotate-180' : ''}`}
+              className={`text-mostaza-ink transition-transform motion-reduce:transition-none ${archivedOpen ? 'rotate-180' : ''}`}
             />
           </button>
           {archivedOpen ? (
@@ -324,7 +324,7 @@ export function SavingsScreen() {
                 <li key={row.id}>
                   <button
                     type="button"
-                    className="flex min-h-11 w-full flex-col items-start rounded-3xl bg-card px-4 py-3 text-left shadow-card"
+                    className="flex min-h-11 w-full flex-col items-start rounded-2xl bg-card px-4 py-3 text-left border-2 border-azul-ink"
                     onClick={() => setArchivedHistory(row)}
                   >
                     <span className="text-base font-semibold">{row.name}</span>
@@ -344,18 +344,18 @@ export function SavingsScreen() {
       </Button>
 
       {showPrivateActions ? (
-        <div className="mt-3 rounded-3xl bg-sand-soft p-4">
+        <div className="mt-3 rounded-2xl bg-sand-soft p-4">
           <p className="text-base text-muted">
             {data.gustosPool > 0
               ? `Para gustos te quedan ${formatMoney(Math.max(data.gustosFree, 0))}.`
               : 'Cuando un extra no va a un fondo, queda para gustos.'}
           </p>
-          <button type="button" className="block min-h-11 text-base font-semibold text-primary" onClick={() => setExtraOpen(true)}>
+          <button type="button" className="block min-h-11 text-base font-semibold text-mostaza-ink" onClick={() => setExtraOpen(true)}>
             Cargar un extra
           </button>
           <button
             type="button"
-            className="block min-h-11 text-base font-semibold text-primary disabled:opacity-50"
+            className="block min-h-11 text-base font-semibold text-mostaza-ink disabled:opacity-50"
             disabled={data.gustosFree <= 0}
             onClick={() => setGustoOpen(true)}
           >
@@ -363,7 +363,7 @@ export function SavingsScreen() {
           </button>
           <button
             type="button"
-            className="block min-h-11 text-base font-semibold text-primary disabled:opacity-50"
+            className="block min-h-11 text-base font-semibold text-mostaza-ink disabled:opacity-50"
             disabled={data.gustosFree <= 0 || activeFunds.length === 0}
             onClick={() => openMove('to_fund', null)}
           >
@@ -372,8 +372,8 @@ export function SavingsScreen() {
         </div>
       ) : null}
       {showPrivateActions && gustos.level === 'low' ? (
-        <Card className="mt-3 bg-copper-soft text-base">
-          <b className="inline-flex items-center gap-1 text-alert-ink">
+        <Card className="mt-3 bg-rosa-claro text-base">
+          <b className="inline-flex items-center gap-1 text-tinta">
             <AppIcon name="triangle-exclamation" /> Ojo:
           </b>{' '}
           te quedan {formatMoney(data.gustosFree)} para gustos.
@@ -625,7 +625,7 @@ function ScopeTag({ shared }: { shared: boolean }) {
   return (
     <span
       className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2 py-0.5 text-base font-semibold ${
-        shared ? 'bg-lavender-soft text-title' : 'bg-warn-soft text-title'
+        shared ? 'bg-azul-claro text-title' : 'bg-mostaza-claro text-title'
       }`}
     >
       {shared ? 'Compartido' : 'Privado'}
@@ -821,7 +821,7 @@ function NewSavingSheet({
         </>
       )}
       {touched && message ? (
-        <p role="alert" className="mt-3 text-base font-semibold text-alert-ink">
+        <p role="alert" className="mt-3 text-base font-semibold text-tinta">
           {message}
         </p>
       ) : null}
@@ -905,7 +905,7 @@ function GoalEditSheet({
         <input type="date" value={targetDate} onChange={(event) => setTargetDate(event.target.value)} className={`mt-1 ${inputClass}`} />
       </label>
       {touched && message ? (
-        <p role="alert" className="mt-3 text-base font-semibold text-alert-ink">
+        <p role="alert" className="mt-3 text-base font-semibold text-tinta">
           {message}
         </p>
       ) : null}

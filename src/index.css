@@ -12,6 +12,9 @@ body {
   background: var(--color-shell);
   color: var(--color-title);
   font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.35;
 }
 
 button,
@@ -20,8 +23,52 @@ input {
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-azul-ink);
   outline-offset: 2px;
+}
+
+.font-display {
+  font-variation-settings: 'SOFT' 100, 'WONK' 0;
+}
+
+:root {
+  --feston-radio: 12.5px;
+  --feston-borde: 13px;
+  --feston-ancho: 26px;
+  --feston-alto: 13px;
+  --sc: var(--color-azul);
+}
+
+.scallop-b {
+  position: relative;
+}
+
+.scallop-b::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(-1 * var(--feston-alto));
+  height: var(--feston-alto);
+  background: radial-gradient(circle at 50% 0, var(--sc) var(--feston-radio), transparent var(--feston-borde));
+  background-size: var(--feston-ancho) var(--feston-alto);
+  background-repeat: round no-repeat;
+}
+
+.scallop-t {
+  position: relative;
+}
+
+.scallop-t::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(-1 * var(--feston-alto));
+  height: var(--feston-alto);
+  background: radial-gradient(circle at 50% 100%, var(--sc) var(--feston-radio), transparent var(--feston-borde));
+  background-size: var(--feston-ancho) var(--feston-alto);
+  background-repeat: round no-repeat;
 }
 
 @keyframes bubble-enter {

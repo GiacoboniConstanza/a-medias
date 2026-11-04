@@ -8,7 +8,7 @@ export function SplitNotice({ notice }: { notice: SplitNoticeItem | null }) {
   return (
     <Card className="bg-sand">
       <p className="flex items-start gap-2 text-sm font-semibold text-title">
-        <AppIcon name="chart-pie" className="mt-0.5 shrink-0 text-primary" />
+        <AppIcon name="chart-pie" className="mt-0.5 shrink-0 text-mostaza-ink" />
         <span>
           Desde {monthName(notice.effectiveFrom)} el reparto queda {notice.myPercent}% / {notice.partnerPercent}%
         </span>

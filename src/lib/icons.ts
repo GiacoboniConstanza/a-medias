@@ -207,11 +207,11 @@ export function iconByName(name: string | null | undefined): IconDefinition {
   return ICONS[DEFAULT_ICON] ?? faTag
 }
 
-const SAGE_SURFACE = { background: 'var(--color-sage-soft)', color: 'var(--color-primary)' }
-const COPPER_SURFACE = { background: 'var(--color-copper-soft)', color: 'var(--color-alert-ink)' }
-const GOLD_SURFACE = { background: 'var(--color-gold-soft)', color: 'var(--color-warn-ink)' }
-const BLUE_SURFACE = { background: 'var(--color-blue-soft)', color: 'var(--color-blue-ink)' }
-const LAVENDER_SURFACE = { background: 'var(--color-lavender-soft)', color: 'var(--color-lavender-ink)' }
+const SAGE_SURFACE = { background: 'var(--color-salvia-claro)', color: 'var(--color-salvia-ink)' }
+const COPPER_SURFACE = { background: 'var(--color-rosa-claro)', color: 'var(--color-tinta)' }
+const GOLD_SURFACE = { background: 'var(--color-mostaza-claro)', color: 'var(--color-mostaza-ink)' }
+const BLUE_SURFACE = { background: 'var(--color-azul-claro)', color: 'var(--color-azul-ink)' }
+const AZUL_SURFACE = { background: 'var(--color-azul-claro)', color: 'var(--color-azul-ink)' }
 
 const ICON_SURFACES: Record<string, { background: string; color: string }> = {
   wifi: BLUE_SURFACE,
@@ -223,10 +223,10 @@ const ICON_SURFACES: Record<string, { background: string; color: string }> = {
   heart: COPPER_SURFACE,
   pills: COPPER_SURFACE,
   stethoscope: COPPER_SURFACE,
-  book: LAVENDER_SURFACE,
-  'graduation-cap': LAVENDER_SURFACE,
-  music: LAVENDER_SURFACE,
-  star: LAVENDER_SURFACE,
+  book: AZUL_SURFACE,
+  'graduation-cap': AZUL_SURFACE,
+  music: AZUL_SURFACE,
+  star: AZUL_SURFACE,
 }
 
 export function iconSurface(name: string): { background: string; color: string } {

@@ -195,7 +195,7 @@ export function FilterSheet({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className={`absolute inset-x-0 bottom-0 mx-auto flex max-h-[min(86dvh,760px)] w-full max-w-[430px] flex-col rounded-t-[32px] bg-card shadow-card outline-none transition-transform duration-300 ease-out ${
+        className={`absolute inset-x-0 bottom-0 mx-auto flex max-h-[min(86dvh,760px)] w-full max-w-[430px] flex-col rounded-t-2xl border-t-[1.5px] border-azul-ink bg-card outline-none transition-transform duration-300 ease-out ${
           visible ? 'translate-y-0' : 'translate-y-full'
         }`}
         style={drag > 0 ? { transform: `translateY(${drag}px)` } : undefined}
@@ -213,7 +213,7 @@ export function FilterSheet({
           <h2 id={titleId} className="font-display text-xl font-semibold">
             {title}
           </h2>
-          <button type="button" onClick={clearDraft} className="inline-flex min-h-11 items-center text-sm font-bold text-primary">
+          <button type="button" onClick={clearDraft} className="inline-flex min-h-11 items-center text-sm font-bold text-mostaza-ink">
             Limpiar filtros
           </button>
         </div>
@@ -305,7 +305,7 @@ export function FilterSheet({
           <button
             type="button"
             onClick={onClose}
-            className="mt-2 block min-h-[52px] w-full rounded-2xl border-2 border-primary bg-card text-base font-semibold text-primary"
+            className="mt-2 block min-h-[52px] w-full rounded-2xl border-2 border-mostaza-ink bg-card text-base font-semibold text-mostaza-ink"
           >
             Cancelar
           </button>
@@ -323,7 +323,7 @@ function SheetChip({ active, onClick, children }: { active: boolean; onClick: ()
       onClick={onClick}
       aria-pressed={active}
       className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-2xl border-2 px-3 text-sm font-semibold text-title ${
-        active ? 'border-primary bg-sage-light' : 'border-line bg-sand-soft'
+        active ? 'border-mostaza-ink bg-salvia-claro' : 'border-line bg-sand-soft'
       }`}
     >
       {active ? <AppIcon name="check" /> : null}

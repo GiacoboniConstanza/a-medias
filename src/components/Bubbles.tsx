@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { AppIcon } from './AppIcon.tsx'
 import { formatMoney } from '../lib/format.ts'
 
-const COLORS = ['var(--color-alert)', 'var(--color-sage-light)', 'var(--color-warn-soft)', 'var(--color-warn)', 'var(--color-lavender)', 'var(--color-alert)']
+const COLORS = ['var(--color-rosa)', 'var(--color-salvia)', 'var(--color-mostaza-claro)', 'var(--color-mostaza)', 'var(--color-azul)', 'var(--color-rosa)']
 
 export type BubbleItem = {
   id: string
@@ -96,7 +96,7 @@ export function Bubbles({
               aria-pressed={picked}
               aria-label={`${item.label}, ${formatMoney(item.amount)}`}
               className={`bubble-motion flex h-full w-full flex-col items-center justify-center rounded-full px-3 text-center font-extrabold text-title shadow-soft ${
-                picked ? 'ring-2 ring-primary ring-offset-2 ring-offset-bg' : ''
+                picked ? 'ring-2 ring-mostaza-ink ring-offset-2 ring-offset-bg' : ''
               }`}
               style={{
                 background: COLORS[index % COLORS.length],

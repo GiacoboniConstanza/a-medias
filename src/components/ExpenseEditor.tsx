@@ -371,15 +371,15 @@ function ExpenseForm({
       }}
     >
       {prefill ? (
-        <p className="mb-3 rounded-2xl bg-gold-soft px-3 py-2 text-sm font-bold leading-snug text-warn-ink">
+        <p className="mb-3 rounded-2xl bg-mostaza-claro px-3 py-2 text-sm font-bold leading-snug text-mostaza-ink">
           Revisá el comprobante. No se guarda hasta que toques Guardar.
         </p>
       ) : null}
       {settledLock ? (
-        <div className="mb-3 rounded-2xl bg-sage-soft p-3 text-base font-semibold text-title">
+        <div className="mb-3 rounded-2xl bg-azul-claro p-3 text-base font-semibold text-tinta">
           <AppIcon name="lock" className="mr-1" />
           {monthWord(expense?.period ?? period)} ya está saldado. Para cambiar este gasto, primero deshacé el saldo en Compartidos.
-          <Link to="/compartidos" className="mt-2 flex min-h-11 items-center text-base font-bold text-primary">
+          <Link to="/compartidos" className="mt-2 flex min-h-11 items-center text-base font-bold text-mostaza-ink">
             Ir a Compartidos
           </Link>
         </div>
@@ -403,7 +403,7 @@ function ExpenseForm({
       <>
       {expense?.paidFromBag ? (
         <p className="mb-3 text-sm font-semibold text-muted">
-          <AppIcon name="bag-shopping" className="mr-1 text-primary" /> Pagado con la bolsa. Sigue siendo privado.
+          <AppIcon name="bag-shopping" className="mr-1 text-mostaza-ink" /> Pagado con la bolsa. Sigue siendo privado.
         </p>
       ) : (
         <div className="mb-3 grid grid-cols-2 gap-2" role="group" aria-label="¿Compartido o privado?">
@@ -458,9 +458,9 @@ function ExpenseForm({
           className={`mt-1 ${inputClass}`}
           placeholder="Alquiler, súper, café…"
         />
-        {showErrors && missingName ? <span className="mt-1 block font-bold text-alert-ink">Poné un nombre.</span> : null}
+        {showErrors && missingName ? <span className="mt-1 block font-bold text-tinta">Poné un nombre.</span> : null}
         {prefill?.missingTitle && title.trim() === '' ? (
-          <span className="mt-1 block font-bold text-alert-ink">No pude leer el comercio. Podés escribirlo vos.</span>
+          <span className="mt-1 block font-bold text-tinta">No pude leer el comercio. Podés escribirlo vos.</span>
         ) : null}
       </label>
       <div className="mb-3">
@@ -470,7 +470,7 @@ function ExpenseForm({
             <Chip
               key={category.id}
               active={categoryId === category.id}
-              className={category.id === suggestedId ? 'ring-2 ring-alert' : ''}
+              className={category.id === suggestedId ? 'ring-2 ring-mostaza-ink' : ''}
               onClick={() => {
                 if (readOnly) return
                 setCategoryTouched(true)
@@ -486,9 +486,9 @@ function ExpenseForm({
             </Chip>
           )}
         </div>
-        {showErrors && missingCategory ? <p className="mt-1 text-sm font-bold text-alert-ink">Elegí una categoría.</p> : null}
+        {showErrors && missingCategory ? <p className="mt-1 text-sm font-bold text-tinta">Elegí una categoría.</p> : null}
         {drafting ? (
-          <div className="mt-2 rounded-3xl bg-card p-4 shadow-card">
+          <div className="mt-2 rounded-2xl bg-card p-4 border-2 border-azul-ink">
             <input
               value={draftName}
               onChange={(event) => setDraftName(event.target.value)}
@@ -530,7 +530,7 @@ function ExpenseForm({
               setSpentOn(next)
               if (!periodTouched) setPeriod(periodFromDate(next))
             }}
-            className={`mt-1 ${inputClass} ${showErrors && futureDate ? '!border-alert-ink' : ''}`}
+            className={`mt-1 ${inputClass} ${showErrors && futureDate ? '!border-rosa-hondo' : ''}`}
           />
         </label>
         <div>
@@ -541,18 +541,18 @@ function ExpenseForm({
         </div>
       </div>
       {showErrors && futureDate ? (
-        <p className="mb-3 flex items-center gap-1 text-sm font-bold text-alert-ink">
+        <p className="mb-3 flex items-center gap-1 text-sm font-bold text-tinta">
           <AppIcon name="circle-exclamation" /> La fecha no puede ser posterior a hoy
         </p>
       ) : null}
       {prefill?.missingDate && !dateTouched ? (
-        <p className="mb-3 text-sm font-bold text-alert-ink">No pude leer la fecha. Dejé la de hoy para que la corrijas.</p>
+        <p className="mb-3 text-sm font-bold text-tinta">No pude leer la fecha. Dejé la de hoy para que la corrijas.</p>
       ) : null}
       {nextShared ? <p className="mb-3 text-sm font-semibold text-muted">{settledHelp}</p> : null}
       {notesOpen ? (
         <NotesField value={notes} onChange={setNotes} />
       ) : (
-        <button type="button" className="mb-3 inline-flex min-h-11 items-center text-base font-bold text-primary" onClick={() => setNotesOpen(true)}>
+        <button type="button" className="mb-3 inline-flex min-h-11 items-center text-base font-bold text-mostaza-ink" onClick={() => setNotesOpen(true)}>
           Agregar una nota
         </button>
       )}
@@ -641,7 +641,7 @@ function periodCaption(period: string, choices: readonly string[]): string {
 }
 
 function segmentClass(active: boolean, tone: 'primary' | 'warn'): string {
-  const on = tone === 'warn' ? 'bg-warn-soft text-title' : 'bg-primary text-on-primary'
+  const on = tone === 'warn' ? 'bg-mostaza-claro text-title' : 'border-[1.5px] border-tinta bg-mostaza text-tinta'
   return `inline-flex min-h-[52px] items-center justify-center gap-2 rounded-full px-3 text-base font-bold disabled:opacity-60 ${active ? on : 'bg-sand text-title'}`
 }
 
@@ -706,7 +706,7 @@ function PeriodPicker({
                   <AppIcon name="lock" /> Saldado
                 </span>
               ) : period === choice ? (
-                <AppIcon name="check" className="text-primary" />
+                <AppIcon name="check" className="text-mostaza-ink" />
               ) : null}
             </button>
           )

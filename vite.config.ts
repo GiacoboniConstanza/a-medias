@@ -9,7 +9,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon-v2.ico', 'favicon.svg', 'icons/icon.svg', 'icons/apple-touch-icon-v2.png', 'icons/icon-192-v2.png', 'icons/icon-512-v2.png', 'icons/icon-maskable-512-v2.png'],
+      includeAssets: ['favicon-v3.ico', 'favicon.svg', 'icons/icon.svg', 'icons/apple-touch-icon-v3.png', 'icons/icon-192-v3.png', 'icons/icon-512-v3.png', 'icons/icon-maskable-192-v3.png', 'icons/icon-maskable-512-v3.png'],
       manifest: {
         name: 'A Medias',
         short_name: 'A Medias',
@@ -19,12 +19,13 @@ export default defineConfig({
         scope: '/',
         display: 'standalone',
         orientation: 'portrait',
-        background_color: '#FBF3EA',
-        theme_color: '#FBF3EA',
+        background_color: '#7D8BB2',
+        theme_color: '#7D8BB2',
         icons: [
-          { src: 'icons/icon-192-v2.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-          { src: 'icons/icon-512-v2.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
-          { src: 'icons/icon-maskable-512-v2.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: 'icons/icon-192-v3.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icons/icon-512-v3.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'icons/icon-maskable-192-v3.png', sizes: '192x192', type: 'image/png', purpose: 'maskable' },
+          { src: 'icons/icon-maskable-512-v3.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
         share_target: {
           action: '/compartir',

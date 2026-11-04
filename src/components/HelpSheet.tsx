@@ -29,7 +29,7 @@ export function HelpSheet({
       open={open}
       onClose={onClose}
       title={
-        <span className="inline-flex items-center gap-2 text-alert-ink">
+        <span className="inline-flex items-center gap-2 text-tinta">
           <AppIcon name="circle-question" />
           {kicker}
         </span>
@@ -40,7 +40,7 @@ export function HelpSheet({
         </Button>
       }
     >
-      <p className="text-base font-semibold text-muted">{intro}</p>
+      <p className="text-base font-semibold leading-5 text-muted">{intro}</p>
       <ul>
         {blocks.map((block) => (
           <li key={block.title} className="border-t border-dashed border-line py-4 first:border-t-0 first:pt-4">
@@ -50,7 +50,7 @@ export function HelpSheet({
               </span>
               {block.title}
             </h3>
-            <div className="mt-2 text-base font-semibold text-title">{block.body}</div>
+            <div className="mt-2 text-base font-semibold leading-5 text-title">{block.body}</div>
           </li>
         ))}
       </ul>

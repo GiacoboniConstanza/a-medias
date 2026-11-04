@@ -109,7 +109,7 @@ export function LoansScreen() {
       <Card>
         <div className="flex items-center gap-2">
           <Plant stage={signed === 0 ? 'lush' : 'steady'} />
-          <p className="min-w-0 font-display text-2xl font-semibold leading-tight text-primary">
+          <p className="min-w-0 font-display text-2xl font-semibold leading-tight text-ciruela-ink">
             {friendlyLoanSummary(partnerName, signed)}
           </p>
         </div>
@@ -217,12 +217,12 @@ function LoanCard({
 }) {
   const who = mine ? `Le prestaste a ${partnerName ?? 'ella'}` : `${partnerName ?? 'Ella'} te prestó`
   return (
-    <article className="mb-3 rounded-3xl bg-card p-4 shadow-card">
+    <article className="mb-3 rounded-2xl bg-card p-4 border-2 border-azul-ink">
       <button type="button" onClick={onOpen} className="w-full text-left">
         <span className="flex items-start justify-between gap-3">
           <span className="min-w-0">
             <span className="block text-base font-semibold text-muted">{who}</span>
-            <span className="mt-1 block whitespace-nowrap font-display text-2xl font-semibold text-primary">
+            <span className="mt-1 block whitespace-nowrap font-display text-2xl font-semibold tabular-nums text-ciruela-ink">
               {formatMoney(loan.amount)}
             </span>
           </span>
@@ -234,11 +234,11 @@ function LoanCard({
         </span>
       </button>
       {loan.pending > 0 ? (
-        <button type="button" onClick={onRepay} className="mt-1 min-h-11 text-base font-semibold text-primary">
+        <button type="button" onClick={onRepay} className="mt-1 min-h-11 text-base font-semibold text-mostaza-ink">
           Registrar devolución
         </button>
       ) : (
-        <p className="mt-1 inline-flex min-h-11 items-center gap-2 text-base font-semibold text-primary">
+        <p className="mt-1 inline-flex min-h-11 items-center gap-2 text-base font-semibold text-mostaza-ink">
           <AppIcon name="check" /> Saldado
         </p>
       )}
@@ -327,7 +327,7 @@ function LoanDetail({
                 <Button type="button" variant="alt" onClick={onEdit}>
                   Editar préstamo
                 </Button>
-                <button type="button" className="min-h-11 w-full rounded-2xl text-base font-semibold text-alert-ink" onClick={() => setConfirming('loan')}>
+                <button type="button" className="min-h-11 w-full rounded-2xl text-base font-semibold text-tinta" onClick={() => setConfirming('loan')}>
                   <AppIcon name="trash" /> Eliminar
                 </button>
               </>
@@ -336,15 +336,15 @@ function LoanDetail({
         }
       >
         {locked && loan.lockMonth ? (
-          <div className="mb-3 rounded-2xl bg-sage-soft p-3 text-base font-semibold text-title">
+          <div className="mb-3 rounded-2xl bg-azul-claro p-3 text-base font-semibold text-tinta">
             <AppIcon name="lock" className="mr-1" />
             {monthWord(loan.lockMonth)} ya está saldado. Para cambiar este préstamo, primero deshacé el saldo en Compartidos.
-            <Link to="/compartidos" className="mt-2 flex min-h-11 items-center text-base font-bold text-primary">
+            <Link to="/compartidos" className="mt-2 flex min-h-11 items-center text-base font-bold text-mostaza-ink">
               Ir a Compartidos
             </Link>
           </div>
         ) : null}
-        <p className="whitespace-nowrap font-display text-3xl font-semibold text-primary">{formatMoney(loan.amount)}</p>
+        <p className="whitespace-nowrap font-display text-3xl font-semibold tabular-nums text-ciruela-ink">{formatMoney(loan.amount)}</p>
         <p className="mt-1 text-base font-semibold text-muted">
           {names[loan.lenderId] ?? 'Alguien'} le prestó a {names[loan.borrowerId] ?? 'alguien'} · {shortDate(loan.lentOn)}
         </p>
@@ -366,10 +366,10 @@ function LoanDetail({
                 {repayment.notes ? <p className="text-base font-semibold text-muted">{repayment.notes}</p> : null}
                 {repayment.createdBy === meId && !rowLocked ? (
                   <p className="mt-1 flex gap-3">
-                    <button type="button" className="min-h-11 font-semibold text-primary" onClick={() => onEditRepayment(repayment)}>
+                    <button type="button" className="min-h-11 font-semibold text-mostaza-ink" onClick={() => onEditRepayment(repayment)}>
                       Editar
                     </button>
-                    <button type="button" className="min-h-11 font-semibold text-alert-ink" onClick={() => setConfirming(repayment.id)}>
+                    <button type="button" className="min-h-11 font-semibold text-tinta" onClick={() => setConfirming(repayment.id)}>
                       Eliminar
                     </button>
                   </p>
@@ -482,7 +482,7 @@ function LoanEditor({
               {saving ? 'Guardando…' : 'Guardar'}
             </Button>
             {loan ? (
-              <button type="button" className="min-h-11 w-full rounded-2xl text-base font-semibold text-alert-ink" onClick={() => setConfirming(true)} disabled={saving}>
+              <button type="button" className="min-h-11 w-full rounded-2xl text-base font-semibold text-tinta" onClick={() => setConfirming(true)} disabled={saving}>
                 <AppIcon name="trash" /> Eliminar
               </button>
             ) : null}
@@ -611,7 +611,7 @@ function RepaymentEditor({
               {saving ? 'Guardando…' : 'Guardar'}
             </Button>
             {repayment ? (
-              <button type="button" className="min-h-11 w-full rounded-2xl text-base font-semibold text-alert-ink" onClick={() => setConfirming(true)} disabled={saving}>
+              <button type="button" className="min-h-11 w-full rounded-2xl text-base font-semibold text-tinta" onClick={() => setConfirming(true)} disabled={saving}>
                 <AppIcon name="trash" /> Eliminar
               </button>
             ) : null}
@@ -693,7 +693,7 @@ function PeriodField({
                 onChange(choice)
               }}
               className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-2xl px-3 text-base font-semibold disabled:text-muted ${
-                !closed && value === choice && !other ? 'bg-primary text-on-primary' : 'border border-line bg-card text-title'
+                !closed && value === choice && !other ? 'border-[1.5px] border-tinta bg-mostaza text-tinta' : 'border border-line bg-card text-title'
               }`}
             >
               {closed ? <AppIcon name="lock" /> : null}

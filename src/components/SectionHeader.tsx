@@ -43,14 +43,14 @@ export function SectionHeader({
   else if (lead === 'greeting') {
     left = (
       <p className="min-w-0 font-display text-xl font-medium text-title">
-        <AppIcon name="house" className="mr-1.5 text-alert" />
+        <AppIcon name="house" className="mr-1.5 text-tinta" />
         Hola, {name}
       </p>
     )
   } else {
     left = (
       <div className="flex min-w-0 items-center">
-        <Link to={backTo} aria-label="Volver" className="grid h-11 w-11 shrink-0 place-items-center text-alert-ink">
+        <Link to={backTo} aria-label="Volver" className="grid h-11 w-11 shrink-0 place-items-center text-tinta">
           <AppIcon name="chevron-left" className="text-base" />
         </Link>
         {screenTitle && title ? (

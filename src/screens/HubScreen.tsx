@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AppIcon } from '../components/AppIcon.tsx'
-import { HubPlant, Sprout } from '../components/Sprout.tsx'
+import { Bird, OrnamentDivider, Plantita } from '../components/Adornos.tsx'
 import { Progress } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
@@ -9,9 +9,9 @@ import { useModules } from '../context/ModulesProvider.tsx'
 import { useMonth } from '../context/MonthProvider.tsx'
 import { monthPocket, monthSplit, myPrivateSpent, partnerId } from '../lib/derive.ts'
 import { formatMoney } from '../lib/format.ts'
-import { habitPlantCopy, todayCounterLabel, todayProgress, visibleLeaves, type Habit, type HabitCheck } from '../lib/habits.ts'
-import { argentinaISO, asNumber, dayTotals, foodPlantCopy, fruitScale, proteinLabel, proteinPercent, type MacroInput } from '../lib/meals.ts'
-import { checkedThisWeek, memoCounts, pendingLabel, plantLine, type MemoItem } from '../lib/memos.ts'
+import { todayCounterLabel, todayProgress, type Habit, type HabitCheck } from '../lib/habits.ts'
+import { argentinaISO, asNumber, dayTotals, proteinLabel, proteinPercent, type MacroInput } from '../lib/meals.ts'
+import { checkedThisWeek, memoCounts, pendingLabel, type MemoItem } from '../lib/memos.ts'
 import { hubDayLabel, MODULE_META, type ModuleId } from '../lib/modules.ts'
 import { monthName, todayISO } from '../lib/month.ts'
 import { supabase } from '../lib/supabase.ts'
@@ -147,18 +147,19 @@ export function HubScreen() {
   const habitsOn = enabled.includes('habitos')
   const foodOn = enabled.includes('comidas')
   const progress = todayProgress(habits, habitChecks, new Date())
-  const leaves = habitsOn ? visibleLeaves(progress.done, progress.total) : { solid: 3, dashed: 0 }
   const foodTotals = dayTotals(foodMeals)
-  const foodPercent = proteinPercent(foodTotals.protein, foodGoal)
-  const fruit = foodOn ? fruitScale(foodPercent ?? 0) : undefined
-  const line =
-    habitsOn && (progress.total > 0 || !enabled.includes('memos'))
-      ? habitPlantCopy(progress.done, progress.total)
-      : enabled.includes('memos')
-        ? plantLine(counts.pending, checkedThisWeek(memos, profile.id))
-        : foodOn
-          ? foodPlantCopy(foodTotals.protein, foodGoal)
-          : plantLine(0, 0)
+  const checkedWeek = checkedThisWeek(memos, profile.id)
+  const line = hubPlantCopy({
+    habitsOn,
+    memosOn: enabled.includes('memos'),
+    foodOn,
+    done: progress.done,
+    total: progress.total,
+    pending: counts.pending,
+    checkedWeek,
+    protein: foodTotals.protein,
+    foodGoal,
+  })
   const otherId = data ? partnerId(data, profile.id) : null
   const partnerName = (otherId && data?.names[otherId]) || 'tu compañera'
   const showFinance = enabled.includes('finanzas')
@@ -177,24 +178,30 @@ export function HubScreen() {
 
   return (
     <>
-      <header className="mb-4 flex items-center justify-between gap-1">
-        <p className="min-w-0 font-display text-xl font-medium text-title">
-          <AppIcon name="seedling" className="mr-1.5 text-primary" /> Hola, {profile.displayName}
-        </p>
-        <Link to="/modulos" aria-label="Mis módulos" className="grid h-11 w-11 shrink-0 place-items-center text-primary">
-          <AppIcon name="sliders" />
-        </Link>
-      </header>
-      <h1 className="font-display text-[1.8rem] font-bold leading-tight">{hubDayLabel()}</h1>
-      <section className="mb-3 mt-3.5 flex items-center gap-1.5 rounded-3xl bg-gradient-to-br from-card to-[var(--color-sage-soft)] py-2.5 pl-0 pr-4 shadow-card">
-        <HubPlant bloom={counts.pending + checkedThisWeek(memos, profile.id) > 0} solid={leaves.solid} dashed={leaves.dashed} fruit={fruit} />
-        <div className="min-w-0">
-          <h2 className="font-display text-xl font-semibold leading-tight text-title">{line.title}</h2>
-          <p className="mt-1.5 text-sm font-bold text-muted">{line.detail}</p>
+      <section className="scallop-b -mx-5 mb-2 min-h-[282px] bg-azul px-5 pb-5 pt-4 text-tinta">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="font-display text-lg font-semibold text-tinta">Hola, {profile.displayName}</p>
+            <h1 className="font-display text-[34px] font-semibold leading-tight text-tinta">{hubDayLabel()}</h1>
+          </div>
+          <div className="flex shrink-0 flex-col items-end">
+            <Link to="/modulos" aria-label="Mis módulos" className="grid h-11 w-11 place-items-center text-tinta">
+              <AppIcon name="sliders" />
+            </Link>
+            <Bird />
+          </div>
+        </div>
+        <div className="mt-3 flex items-center gap-3 rounded-2xl border-2 border-azul-ink bg-card px-3 py-2 text-tinta">
+          <Plantita width={66} height={86} />
+          <div className="min-w-0">
+            <h2 className="font-display text-lg font-semibold leading-tight text-tinta">{line.title}</h2>
+            {line.detail ? <p className="mt-1 text-sm font-semibold text-tinta">{line.detail}</p> : null}
+          </div>
         </div>
       </section>
+      <OrnamentDivider />
       {error || memoError || habitError || foodError ? (
-        <p className="mb-3 text-center text-sm font-bold text-alert-ink">{error || memoError || habitError || foodError}</p>
+        <p className="mb-3 text-center text-sm font-bold text-tinta">{error || memoError || habitError || foodError}</p>
       ) : null}
       {enabled.map((module) => (
         <ModuleCard
@@ -246,8 +253,10 @@ function ModuleCard({
 }) {
   const meta = MODULE_META[module]
   return (
-    <Link to={meta.to} className="mb-2.5 flex min-h-[74px] items-center gap-3.5 rounded-3xl bg-card px-4 py-3 shadow-card">
-      <Sprout module={module} />
+    <Link to={meta.to} className={`mb-2.5 flex min-h-[74px] items-center gap-3.5 rounded-2xl border-2 bg-card px-4 py-3 ${MODULE_BORDER[module]}`}>
+      <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-full ${meta.tone} ${meta.ink}`} aria-hidden="true">
+        <AppIcon name={meta.icon} />
+      </span>
       <span className="min-w-0 flex-1">
         <span className="block font-display text-sm font-semibold text-muted">{meta.label}</span>
         {module === 'finanzas' ? (
@@ -260,8 +269,8 @@ function ModuleCard({
           <>
             <span className="block font-display text-xl font-bold leading-tight">{pendingLabel(pending)}</span>
             {sharedPending > 0 ? (
-              <span className="mt-0.5 block text-sm font-bold text-lavender-ink">
-                <AppIcon name="user-group" className="mr-1 text-[10px]" />
+              <span className="mt-0.5 block text-sm font-bold text-azul-ink">
+                <AppIcon name="user-group" className="mr-1 text-sm" />
                 {sharedPending} con {partnerName}
               </span>
             ) : null}
@@ -277,7 +286,7 @@ function ModuleCard({
                 {Array.from({ length: habitTotal }, (_, index) => (
                   <i
                     key={index}
-                    className={`h-2 min-w-1 flex-1 rounded-full ${index < habitDone ? 'bg-good' : 'bg-sand'}`}
+                    className={`h-2 min-w-1 flex-1 rounded-full ${index < habitDone ? 'bg-azul' : 'bg-sand'}`}
                   />
                 ))}
               </span>
@@ -290,7 +299,7 @@ function ModuleCard({
               <span className="block font-display text-xl font-bold leading-tight">{proteinLabel(foodProtein, foodGoal)}</span>
               {foodGoal != null && foodGoal > 0 ? (
                 <span className="mt-1.5 block">
-                  <Progress value={proteinPercent(foodProtein, foodGoal) ?? 0} color="var(--color-alert)" />
+                  <Progress value={proteinPercent(foodProtein, foodGoal) ?? 0} color="var(--color-rosa-hondo)" />
                 </span>
               ) : null}
             </>
@@ -302,4 +311,49 @@ function ModuleCard({
       <AppIcon name="chevron-right" className="text-muted" />
     </Link>
   )
+}
+
+const MODULE_BORDER: Record<ModuleId, string> = {
+  finanzas: 'border-mostaza-ink',
+  habitos: 'border-salvia-ink',
+  comidas: 'border-rosa-hondo',
+  memos: 'border-azul-ink',
+}
+
+function hubPlantCopy({
+  habitsOn,
+  memosOn,
+  foodOn,
+  done,
+  total,
+  pending,
+  checkedWeek,
+  protein,
+  foodGoal,
+}: {
+  habitsOn: boolean
+  memosOn: boolean
+  foodOn: boolean
+  done: number
+  total: number
+  pending: number
+  checkedWeek: number
+  protein: number
+  foodGoal: number | null
+}): { title: string; detail: string } {
+  if (habitsOn && (total > 0 || !memosOn)) {
+    if (total <= 0) return { title: 'Hoy', detail: 'Nada para hoy' }
+    return { title: 'Hoy', detail: `${todayCounterLabel(done, total)} hábitos.` }
+  }
+  if (memosOn) {
+    if (pending > 0) {
+      return { title: 'Tus memos', detail: pending === 1 ? 'Tenés 1 memo pendiente.' : `Tenés ${pending} memos pendientes.` }
+    }
+    if (checkedWeek > 0) {
+      return { title: 'Tus memos', detail: checkedWeek === 1 ? 'Esta semana tachaste 1.' : `Esta semana tachaste ${checkedWeek}.` }
+    }
+    return { title: 'Tus memos', detail: 'Todavía no hay memos.' }
+  }
+  if (foodOn) return { title: 'Hoy', detail: `${proteinLabel(protein, foodGoal)}.` }
+  return { title: 'Hoy', detail: '' }
 }

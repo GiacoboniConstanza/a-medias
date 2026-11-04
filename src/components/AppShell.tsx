@@ -26,7 +26,7 @@ export function RequireHousehold() {
   const resume = shareReturnPath(here)
   if (supabaseConfigError) return <Navigate to="/ingresar" replace />
   if (loading || (session && !profile)) {
-    return <p className="grid min-h-dvh place-items-center bg-bg font-display text-2xl font-semibold text-primary">A Medias</p>
+    return <p className="grid min-h-dvh place-items-center bg-bg font-display text-2xl font-semibold text-mostaza-ink">A Medias</p>
   }
   if (!session) {
     const login = resume ? `/ingresar?next=${encodeURIComponent(resume)}` : '/ingresar'

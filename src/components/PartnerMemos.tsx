@@ -64,7 +64,7 @@ export function PartnerMemos() {
         return (
           <div
             key={memo.id}
-            className="mb-2.5 flex items-center gap-1 rounded-[22px] bg-lavender-soft py-1 pl-1 pr-3.5 shadow-[inset_4px_0_0_var(--color-lavender)] shadow-soft"
+            className="mb-2.5 flex items-center gap-1 rounded-[22px] bg-azul-claro py-1 pl-1 pr-3.5 shadow-[inset_4px_0_0_var(--color-azul)] shadow-soft"
           >
             <button
               type="button"
@@ -76,14 +76,14 @@ export function PartnerMemos() {
             </button>
             <div className="min-w-0 flex-1 py-2">
               <p className="text-[15.5px] font-bold leading-snug">{memo.text}</p>
-              <p className="mt-0.5 text-sm font-bold text-lavender-ink">
+              <p className="mt-0.5 text-sm font-bold text-azul-ink">
                 <AppIcon name="note-sticky" className="mr-1" /> Memo de {author}
               </p>
             </div>
           </div>
         )
       })}
-      {error ? <p className="text-center text-sm font-bold text-alert-ink">{error}</p> : null}
+      {error ? <p className="text-center text-sm font-bold text-tinta">{error}</p> : null}
     </div>
   )
 }

@@ -5,7 +5,7 @@ export const inputClass =
   'min-h-11 w-full rounded-2xl border border-line bg-sand-soft px-3 py-2 text-base font-semibold text-title placeholder:text-muted'
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <section className={`mb-3 rounded-3xl bg-card p-4 shadow-card ${className}`}>{children}</section>
+  return <section className={`mb-3 rounded-2xl bg-card p-4 border-2 border-azul-ink ${className}`}>{children}</section>
 }
 
 export function Button({
@@ -15,15 +15,16 @@ export function Button({
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'alt' | 'pink' | 'danger'; tall?: boolean }) {
   const tone = {
-    primary: 'bg-primary text-on-primary',
-    alt: 'bg-sand text-primary',
-    pink: 'bg-primary text-on-primary',
-    danger: 'border border-alert-ink bg-card text-alert-ink',
+    primary: 'border-[1.5px] border-tinta bg-mostaza text-tinta',
+    alt: 'border-[1.5px] border-azul bg-card text-tinta',
+    pink: 'border-[1.5px] border-tinta bg-mostaza text-tinta',
+    danger: 'border-[1.5px] border-tinta bg-card text-tinta',
   }[variant]
-  const height = tall ? 'min-h-[52px]' : 'min-h-11'
+  const main = variant === 'primary' || variant === 'pink'
+  const height = main || tall ? 'min-h-[52px]' : 'min-h-11'
   return (
     <button
-      className={`block w-full rounded-2xl px-4 py-3 text-center text-base font-semibold disabled:opacity-50 ${height} ${tone} ${className}`}
+      className={`block w-full rounded-full px-4 py-3 text-center font-semibold disabled:opacity-50 ${main ? 'text-lg' : 'text-base'} ${height} ${tone} ${className}`}
       {...props}
     />
   )
@@ -41,7 +42,7 @@ export function FilterBar({
   label?: string
 }) {
   return (
-    <div className="mb-3 flex gap-2 overflow-x-auto" role="group" aria-label={label}>
+    <div className="mb-3 flex flex-wrap gap-2" role="group" aria-label={label}>
       {options.map((option) => (
         <Chip key={option.id} active={value === option.id} onClick={() => onChange(option.id)}>
           {option.label}
@@ -68,7 +69,7 @@ export function Chip({
       onClick={onClick}
       aria-pressed={active}
       className={`inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-2xl px-3 text-sm font-semibold ${
-        active ? 'bg-primary text-on-primary' : 'border border-line bg-card text-title'
+        active ? 'border-[1.5px] border-tinta bg-mostaza text-tinta' : 'border-[1.5px] border-azul bg-card text-title'
       } ${className}`}
     >
       {active ? <AppIcon name="check" /> : null}
@@ -80,7 +81,7 @@ export function Chip({
 export function Progress({ value, color }: { value: number; color: string }) {
   const width = Math.max(0, Math.min(100, value))
   return (
-    <div className="h-2.5 overflow-hidden rounded-full bg-sand">
+    <div className="h-2.5 overflow-hidden rounded-full border-[1.5px] border-azul-ink bg-azul-claro">
       <div className="h-full rounded-full" style={{ width: `${width}%`, background: color }} />
     </div>
   )
@@ -149,7 +150,7 @@ export function Toggle({
       aria-labelledby={labelledBy}
       disabled={disabled}
       onClick={onClick}
-      className={`relative h-11 w-16 shrink-0 rounded-full border border-line disabled:opacity-50 ${checked ? 'bg-primary' : 'bg-sand'}`}
+      className={`relative h-11 w-16 shrink-0 rounded-full border border-line disabled:opacity-50 ${checked ? 'bg-mostaza' : 'bg-sand'}`}
     >
       <span
         className={`absolute left-1 top-1.5 h-8 w-8 rounded-full bg-sand-soft shadow-soft transition-transform motion-reduce:transition-none ${
@@ -219,14 +220,14 @@ export function Toast({
       tabIndex={-1}
       onFocus={() => setPaused(true)}
       onBlur={() => setPaused(false)}
-      className={`fixed left-1/2 z-50 flex w-[min(398px,calc(100%-2rem))] -translate-x-1/2 items-center gap-2 rounded-2xl bg-title py-1 pl-4 pr-1.5 text-card shadow-toast ${
+      className={`fixed left-1/2 z-50 flex w-[min(398px,calc(100%-2rem))] -translate-x-1/2 items-center gap-2 rounded-2xl bg-aviso py-1 pl-4 pr-1.5 text-base text-aviso-texto shadow-toast ${
         aboveFab ? 'bottom-40' : 'bottom-[86px]'
       }`}
     >
       <AppIcon name="circle-check" className="shrink-0" />
       <p className="min-w-0 flex-1 text-base font-semibold">{shown}</p>
       {onUndo && !followup ? (
-        <button type="button" className="min-h-11 shrink-0 px-2 text-base font-bold text-sage-soft" onClick={() => void undo()}>
+        <button type="button" className="min-h-11 shrink-0 px-2 text-base font-bold text-aviso-accion" onClick={() => void undo()}>
           Deshacer
         </button>
       ) : null}
@@ -236,13 +237,13 @@ export function Toast({
 
 export function ErrorText({ children }: { children: ReactNode }) {
   if (!children) return null
-  return <p className="mt-2 text-center text-sm font-bold text-alert-ink">{children}</p>
+  return <p className="mt-2 text-center text-sm font-bold text-tinta">{children}</p>
 }
 
 export function FieldError({ children, id }: { children: ReactNode; id?: string }) {
   if (!children) return null
   return (
-    <p id={id} role="alert" className="mt-1 flex items-start gap-1.5 text-sm font-bold text-alert-ink">
+    <p id={id} role="alert" className="mt-1 flex items-start gap-1.5 text-sm font-bold text-tinta">
       <AppIcon name="triangle-exclamation" className="mt-0.5 shrink-0" />
       <span>{children}</span>
     </p>

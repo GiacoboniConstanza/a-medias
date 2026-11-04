@@ -28,7 +28,7 @@ export function ViewOptions({
         className={`inline-flex h-11 items-center justify-center gap-[5px] rounded-full border border-line bg-card px-2 max-[359px]:w-[50px] max-[359px]:px-0 ${width}`}
       >
         <span aria-hidden="true" className="inline-flex items-center gap-[5px]">
-          <AppIcon name={friendly ? 'seedling' : 'table-list'} className="text-sm text-primary" />
+          <AppIcon name={friendly ? 'seedling' : 'table-list'} className="text-sm text-mostaza-ink" />
           <span className="text-sm font-semibold text-title max-[359px]:hidden">{short}</span>
         </span>
         <span aria-hidden="true">
@@ -47,7 +47,7 @@ export function ViewOptions({
               onHelp()
             }}
           >
-            <AppIcon name="circle-question" className="text-primary" />
+            <AppIcon name="circle-question" className="text-mostaza-ink" />
             <span className="min-w-0 flex-1 text-base font-bold text-title">Cómo se lee esta pantalla</span>
             <AppIcon name="chevron-right" className="text-muted" />
           </button>

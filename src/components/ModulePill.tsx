@@ -14,7 +14,7 @@ export function ModuleCrumb({ module = 'finanzas' }: { module?: ModuleId }) {
   return (
     <>
       <div className="inline-flex h-[46px] items-center rounded-full border border-line bg-card">
-        <Link to="/" aria-label="Ir al Inicio" className="grid h-11 w-11 place-items-center text-alert-ink">
+        <Link to="/" aria-label="Ir al Inicio" className="grid h-11 w-11 place-items-center text-tinta">
           <AppIcon name="house" className="text-base" />
         </Link>
         <span className="h-5 w-px shrink-0 bg-line" aria-hidden="true" />
@@ -43,7 +43,7 @@ export function ModuleCrumb({ module = 'finanzas' }: { module?: ModuleId }) {
                 <button
                   type="button"
                   aria-current={current ? 'page' : undefined}
-                  className={`flex min-h-[62px] w-full items-center gap-3 rounded-2xl px-1 text-left ${current ? 'bg-sage-soft' : ''}`}
+                  className={`flex min-h-[62px] w-full items-center gap-3 rounded-2xl px-1 text-left ${current ? 'bg-salvia-claro' : ''}`}
                   onClick={() => {
                     setOpen(false)
                     navigate(item.to)
@@ -56,14 +56,14 @@ export function ModuleCrumb({ module = 'finanzas' }: { module?: ModuleId }) {
                     <span className="block font-display text-lg font-medium text-title">{item.label}</span>
                     <span className="block text-sm font-semibold text-muted">{item.detail}</span>
                   </span>
-                  {current ? <AppIcon name="check" className="text-primary" /> : null}
+                  {current ? <AppIcon name="check" className="text-mostaza-ink" /> : null}
                 </button>
               </li>
             )
           })}
         </ul>
         <Link to="/modulos" onClick={() => setOpen(false)} className="mt-2 flex min-h-14 items-center gap-2 text-base font-bold text-title">
-          <AppIcon name="sliders" className="text-primary" />
+          <AppIcon name="sliders" className="text-mostaza-ink" />
           Mis módulos
         </Link>
       </Sheet>

@@ -23,12 +23,12 @@ function IconGrid({ value, onChange }: { value: string; onChange: (name: string)
             aria-label={choice.label}
             onClick={() => onChange(choice.name)}
             className={`relative grid aspect-square min-h-11 place-items-center rounded-2xl border-2 text-lg text-title ${
-              selected ? 'border-primary bg-sage-light' : 'border-line bg-sand-soft'
+              selected ? 'border-mostaza-ink bg-salvia-claro' : 'border-line bg-sand-soft'
             }`}
           >
             <AppIcon name={choice.name} />
             {selected ? (
-              <span className="absolute right-0.5 top-0.5 text-sm text-primary">
+              <span className="absolute right-0.5 top-0.5 text-sm text-mostaza-ink">
                 <AppIcon name="check" />
               </span>
             ) : null}
@@ -331,7 +331,7 @@ export function ExtraSheet({
                   aria-pressed={selected}
                   onClick={() => setActiveFund(fund.id)}
                   className={`mb-2 flex min-h-11 w-full items-center justify-between gap-2 rounded-2xl border-2 px-3 text-left text-sm font-semibold ${
-                    selected ? 'border-primary bg-sage-light' : 'border-line bg-sand-soft'
+                    selected ? 'border-mostaza-ink bg-salvia-claro' : 'border-line bg-sand-soft'
                   }`}
                 >
                   <span className="inline-flex items-center gap-2">
@@ -513,7 +513,7 @@ export function GustoSheet({
                 setCategoryTouched(true)
               }}
               className={`inline-flex min-h-11 items-center gap-1.5 rounded-2xl border-2 px-3 text-sm font-semibold ${
-                selected ? 'border-primary bg-sage-light' : 'border-line bg-sand-soft'
+                selected ? 'border-mostaza-ink bg-salvia-claro' : 'border-line bg-sand-soft'
               }`}
             >
               <AppIcon name={category.icon} /> {category.name}
@@ -686,7 +686,7 @@ export function MoveSheet({
                     setFundTouched(true)
                   }}
                   className={`flex min-h-11 flex-col items-start justify-center gap-1 rounded-2xl border-2 px-3 py-2 text-left text-sm font-semibold ${
-                    selected ? 'border-primary bg-sage-light' : 'border-line bg-sand-soft'
+                    selected ? 'border-mostaza-ink bg-salvia-claro' : 'border-line bg-sand-soft'
                   }`}
                 >
                   <AppIcon name={item.icon} />

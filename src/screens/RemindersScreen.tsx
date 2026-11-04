@@ -55,9 +55,9 @@ const GROUPS: { id: DueBucket; title: string }[] = [
 ]
 
 const toneClass = {
-  today: 'text-primary',
+  today: 'text-mostaza-ink',
   soon: 'text-muted',
-  late: 'text-alert-ink',
+  late: 'text-rosa-texto',
 } as const
 
 export function RemindersScreen() {
@@ -339,7 +339,7 @@ export function RemindersScreen() {
 
   if (!profile?.householdId) return null
   if (loading && !data) return <p className="py-16 text-center font-bold text-muted">Cargando…</p>
-  if (!data) return <p className="py-16 text-center font-bold text-alert-ink">{error}</p>
+  if (!data) return <p className="py-16 text-center font-bold text-tinta">{error}</p>
 
   const today = todayISO(now)
   const otherId = partnerId(data, profile.id)
@@ -422,12 +422,12 @@ export function RemindersScreen() {
           aria-expanded={sheetOpen}
           aria-label={activeCount > 0 ? `Filtros, ${activeCount} activos` : 'Filtros'}
           className={`relative grid h-11 w-11 shrink-0 place-items-center rounded-full border text-lg ${
-            activeCount > 0 ? 'border-primary bg-primary text-on-primary' : 'border-line bg-card text-primary'
+            activeCount > 0 ? 'border-mostaza-ink border-[1.5px] border-tinta bg-mostaza text-tinta' : 'border-line bg-card text-mostaza-ink'
           }`}
         >
           <AppIcon name="sliders" />
           {activeCount > 0 ? (
-            <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-card px-1 text-sm font-bold text-primary ring-2 ring-primary">
+            <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-card px-1 text-sm font-bold text-mostaza-ink ring-2 ring-mostaza-ink">
               {activeCount}
             </span>
           ) : null}
@@ -444,14 +444,14 @@ export function RemindersScreen() {
               setScope('all')
               setPaidFilter('all')
             }}
-            className="ml-1 inline-flex min-h-11 items-center font-bold text-primary"
+            className="ml-1 inline-flex min-h-11 items-center font-bold text-mostaza-ink"
           >
             Limpiar
           </button>
         </p>
       ) : null}
       {ask ? (
-        <section className="relative mb-3 rounded-3xl bg-card p-4 shadow-card">
+        <section className="relative mb-3 rounded-2xl bg-card p-4 border-2 border-azul-ink">
           <button
             type="button"
             aria-label="Cerrar hasta el próximo horario"
@@ -467,11 +467,11 @@ export function RemindersScreen() {
           <div className="mt-3.5 flex items-center gap-3">
             <Link
               to="/cargar"
-              className="inline-flex min-h-11 items-center gap-1.5 rounded-[18px] bg-primary px-5 text-sm font-bold text-on-primary"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-[18px] bg-mostaza px-5 text-sm font-bold text-tinta"
             >
               <AppIcon name="pen" /> Anotar
             </Link>
-            <button type="button" className="min-h-11 px-1 text-sm font-bold text-primary" onClick={() => void markReviewed()}>
+            <button type="button" className="min-h-11 px-1 text-sm font-bold text-mostaza-ink" onClick={() => void markReviewed()}>
               No gasté nada
             </button>
           </div>
@@ -486,7 +486,7 @@ export function RemindersScreen() {
       {grouped.map((group) => (
         <section key={group.id} className="mt-5">
           <h2 className="mb-2 px-1 text-sm font-semibold text-muted">{group.title}</h2>
-          <div className="overflow-hidden rounded-3xl bg-card">
+          <div className="overflow-hidden rounded-2xl bg-card">
             {group.items.map((item) => (
               <SwipeDue
                 key={item.id}
@@ -509,23 +509,23 @@ export function RemindersScreen() {
           <button
             type="button"
             aria-expanded={paidOpen}
-            className="flex min-h-11 w-full items-center gap-3 rounded-3xl bg-sage-soft px-4 py-3"
+            className="flex min-h-11 w-full items-center gap-3 rounded-2xl bg-salvia-claro px-4 py-3"
             onClick={() => setPaidOpen((current) => !current)}
           >
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-sm text-on-primary">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-mostaza text-sm text-tinta">
               <AppIcon name="check" />
             </span>
             <span className="flex-1 text-left text-sm font-bold text-title">Ya pagados</span>
             <span className="rounded-full bg-card px-2.5 py-1 text-sm font-bold text-title">{paidItems.length}</span>
             <AppIcon
               name="chevron-down"
-              className={`text-primary transition-transform motion-reduce:transition-none ${paidOpen ? 'rotate-180' : ''}`}
+              className={`text-mostaza-ink transition-transform motion-reduce:transition-none ${paidOpen ? 'rotate-180' : ''}`}
             />
           </button>
           {paidOpen ? (
             <ul className="mt-2.5 space-y-2.5">
               {paidItems.map((item) => (
-                <li key={item.id} className="flex items-center gap-3.5 rounded-3xl bg-card px-4 py-3 shadow-card">
+                <li key={item.id} className="flex items-center gap-3.5 rounded-2xl bg-card px-4 py-3 border-2 border-azul-ink">
                   <button type="button" className="flex min-h-11 min-w-0 flex-1 items-center gap-3.5 text-left" onClick={() => openEditor(item)}>
                     <IconBubble icon={item.icon} />
                     <span className="min-w-0 flex-1 truncate text-base font-bold">
@@ -537,7 +537,7 @@ export function RemindersScreen() {
                     <p className="font-display text-base font-bold">{formatMoney(item.amount)}</p>
                     <button
                       type="button"
-                      className="min-h-11 text-sm font-bold text-primary disabled:opacity-50"
+                      className="min-h-11 text-sm font-bold text-mostaza-ink disabled:opacity-50"
                       onClick={() => void undo(item.id)}
                       disabled={saving}
                     >
@@ -556,7 +556,7 @@ export function RemindersScreen() {
           <button
             type="button"
             aria-expanded={pausedOpen}
-            className="flex min-h-11 w-full items-center gap-3 rounded-3xl bg-sand px-4 py-3"
+            className="flex min-h-11 w-full items-center gap-3 rounded-2xl bg-sand px-4 py-3"
             onClick={() => setPausedOpen((current) => !current)}
           >
             <span className="flex-1 text-left text-sm font-bold text-title">En pausa</span>
@@ -572,7 +572,7 @@ export function RemindersScreen() {
                 <li key={item.id}>
                   <button
                     type="button"
-                    className="flex min-h-11 w-full items-center gap-3.5 rounded-3xl bg-card px-4 py-3 text-left shadow-card"
+                    className="flex min-h-11 w-full items-center gap-3.5 rounded-2xl bg-card px-4 py-3 text-left border-2 border-azul-ink"
                     onClick={() => openEditor(item)}
                   >
                     <IconBubble icon={item.icon} />
@@ -671,11 +671,11 @@ function compareDue(left: FixedItem, right: FixedItem, bucket: DueBucket, month:
 function MoonMark() {
   return (
     <svg width="58" height="58" viewBox="0 0 58 58" aria-hidden="true" className="shrink-0">
-      <circle cx="29" cy="29" r="27" fill="var(--color-lavender-soft)" />
-      <path d="M36 14a15 15 0 1 0 9 24a12 12 0 1 1-9-24z" fill="var(--color-warn)" />
-      <circle cx="16" cy="16" r="1.8" fill="var(--color-lavender)" />
-      <circle cx="44" cy="12" r="1.4" fill="var(--color-lavender)" />
-      <circle cx="12" cy="40" r="1.2" fill="var(--color-lavender)" />
+      <circle cx="29" cy="29" r="27" fill="var(--color-azul-claro)" />
+      <path d="M36 14a15 15 0 1 0 9 24a12 12 0 1 1-9-24z" fill="var(--color-mostaza)" />
+      <circle cx="16" cy="16" r="1.8" fill="var(--color-azul)" />
+      <circle cx="44" cy="12" r="1.4" fill="var(--color-azul)" />
+      <circle cx="12" cy="40" r="1.2" fill="var(--color-azul)" />
     </svg>
   )
 }
@@ -770,7 +770,7 @@ function SwipeDue({
   }
 
   return (
-    <div className={`relative overflow-hidden bg-sage-soft ${grouped ? 'border-b border-line last:border-0' : 'rounded-3xl'}`}>
+    <div className={`relative overflow-hidden bg-salvia-claro ${grouped ? 'border-b border-line last:border-0' : 'rounded-2xl'}`}>
       <button
         type="button"
         data-pay="true"
@@ -779,15 +779,15 @@ function SwipeDue({
         tabIndex={reveal >= 36 ? 0 : -1}
         disabled={saving}
         onClick={onPay}
-        className="absolute inset-y-0 right-0 flex w-[72px] flex-col items-center justify-center gap-1 text-sm font-bold text-primary disabled:opacity-50"
+        className="absolute inset-y-0 right-0 flex w-[72px] flex-col items-center justify-center gap-1 text-sm font-bold text-mostaza-ink disabled:opacity-50"
       >
-        <span className="grid h-9 w-9 place-items-center rounded-full bg-sage-light">
+        <span className="grid h-9 w-9 place-items-center rounded-full bg-salvia-claro">
           <AppIcon name="check" />
         </span>
         Pagué
       </button>
       <div
-        className={`swipe-motion relative z-10 touch-pan-y bg-card ${grouped ? '' : 'rounded-3xl shadow-card'} ${dragging ? '' : 'transition-[margin] duration-200 ease-out'}`}
+        className={`swipe-motion relative z-10 touch-pan-y bg-card ${grouped ? '' : 'rounded-2xl border-2 border-azul-ink'} ${dragging ? '' : 'transition-[margin] duration-200 ease-out'}`}
         style={{ marginRight: reveal }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -814,7 +814,7 @@ function SwipeDue({
               <button
                 type="button"
                 data-pay="true"
-                className="inline-flex min-h-11 items-center gap-1 text-sm font-bold text-primary disabled:opacity-50"
+                className="inline-flex min-h-11 items-center gap-1 text-sm font-bold text-mostaza-ink disabled:opacity-50"
                 onClick={onPay}
                 disabled={saving}
               >

@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { AppIcon } from './AppIcon.tsx'
 
 const fabClass =
-  'fixed bottom-24 right-[max(1.25rem,calc(50vw-195px))] z-30 grid h-[52px] w-[52px] place-items-center rounded-full bg-primary text-on-primary shadow-fab-lite'
+  'fixed bottom-24 right-[max(1.25rem,calc(50vw-195px))] z-30 grid h-[52px] w-[52px] place-items-center rounded-full border-[1.5px] border-tinta bg-mostaza text-tinta '
 
 export function Fab({
   to,

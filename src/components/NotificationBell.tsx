@@ -74,12 +74,12 @@ export function NotificationBell() {
   const label = count == null ? 'Avisos' : count === 0 ? 'Avisos, sin pendientes' : `Avisos, ${count} pendientes`
   const badge = count != null && count > 0 ? (count > 9 ? '9+' : String(count)) : null
   return (
-    <Link to="/recordatorios" aria-label={label} className="relative grid h-11 w-11 place-items-center text-warn-ink">
+    <Link to="/recordatorios" aria-label={label} className="relative grid h-11 w-11 place-items-center text-tinta">
       <AppIcon name="bell" className="text-lg" />
       {badge ? (
         <span
           aria-hidden="true"
-          className="absolute -right-0.5 top-0 inline-flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-bg bg-alert-ink px-1.5 text-sm font-bold text-on-primary"
+          className="absolute -right-0.5 top-0 inline-flex h-6 min-w-6 items-center justify-center rounded-full border-2 border-crema bg-mostaza px-1 text-sm font-bold text-tinta"
         >
           {badge}
         </span>

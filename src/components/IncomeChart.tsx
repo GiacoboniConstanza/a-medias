@@ -75,8 +75,8 @@ export function IncomeChart({
         const fill = `${line} L ${last.x1} ${baseline} L ${first.x0} ${baseline} Z`
         return (
           <g key={first.x0} className={`year-line ${drawn ? 'opacity-100' : 'opacity-0'}`}>
-            <path d={fill} fill="var(--color-sage-light)" opacity="0.55" />
-            <path d={line} fill="none" stroke="var(--color-primary)" strokeWidth="3.5" strokeLinejoin="round" />
+            <path d={fill} fill="var(--color-salvia)" opacity="0.55" />
+            <path d={line} fill="none" stroke="var(--color-mostaza)" strokeWidth="3.5" strokeLinejoin="round" />
           </g>
         )
       })}
@@ -89,9 +89,9 @@ export function IncomeChart({
                 : `L ${segment.x0} ${segment.y} L ${segment.x1} ${segment.y}`,
             )
             .join(' ')} L ${futureRun[futureRun.length - 1]?.x1} ${baseline} L ${futureRun[0]?.x0} ${baseline} Z`}
-          fill="var(--color-sage-light)"
+          fill="var(--color-salvia)"
           opacity="0.25"
-          stroke="var(--color-sage-light)"
+          stroke="var(--color-salvia)"
           strokeDasharray="4 4"
         />
       ) : null}
@@ -114,7 +114,7 @@ export function IncomeChart({
                 width="12"
                 height={Math.max(barHeight, 4)}
                 rx="5"
-                fill="var(--color-warn)"
+                fill="var(--color-mostaza)"
                 style={{ animationDelay: `${index * 40}ms` }}
               />
             ) : null}
@@ -125,13 +125,13 @@ export function IncomeChart({
                   y1={yFor(month.base, max)}
                   x2={left + slot * index}
                   y2={Math.max(yFor(month.base, max) - 36, 8)}
-                  stroke="var(--color-primary)"
+                  stroke="var(--color-mostaza)"
                   strokeWidth="2"
                   strokeDasharray="3 3"
                 />
                 <g transform={`translate(${Math.min(left + slot * index - 28, width - 64)}, ${Math.max(yFor(month.base, max) - 52, 4)})`}>
-                  <rect width="56" height="20" rx="10" fill="var(--color-primary)" />
-                  <text x="28" y="14" textAnchor="middle" fontSize="10.5" fontWeight="800" fill="var(--color-on-primary)">
+                  <rect width="56" height="20" rx="10" fill="var(--color-mostaza)" />
+                  <text x="28" y="14" textAnchor="middle" fontSize="10.5" fontWeight="800" fill="var(--color-tinta)">
                     Aumento
                   </text>
                 </g>

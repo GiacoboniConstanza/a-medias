@@ -1,0 +1,89 @@
+/* A Medias · tokens de la identidad nueva.
+   Valores tomados de las muestras aprobadas: muestras-v3/base.css, inicio.html, finanzas.html, smooth.js, marca.html; muestras-v4/modal-ayuda.html; aviso de src/components/ui.tsx y tailwind.config.ts del repo. */
+:root{
+  --color-crema:#FEF4E8;
+  --color-tarjeta:#FFFAF3;
+  --color-tinta:#1B242E;
+  --color-gris:#5F6266;
+  --color-azul:#7D8BB2;
+  --color-azul-ink:#4C5A80;
+  --color-azul-claro:#DFE2EC;
+  --color-mostaza:#E6A940;
+  --color-mostaza-ink:#7E5611;
+  --color-mostaza-claro:#F6E1BB;
+  --color-rosa:#E8A198;
+  --color-rosa-hondo:#B96D64;
+  --color-rosa-claro:#F6D9D5;
+  --color-rosa-texto:#A25B53;
+  --color-salvia:#A6A066;
+  --color-salvia-ink:#5A5735;
+  --color-salvia-claro:#E3E1CF;
+  --color-ciruela:#9C7092;
+  --color-ciruela-ink:#86607F;
+  --color-ciruela-claro:#E6D8DB;
+  --color-aviso-fondo:#2F4A38;
+  --color-aviso-texto:#FFFAF4;
+  --color-aviso-accion:#E3EED4;
+  --color-velo:rgba(27,36,46,.45);
+  --color-linea-punteada:rgba(27,36,46,.3);
+  --color-linea-punteada-total:rgba(27,36,46,.45);
+  --font-titulo:"Fraunces",serif; --font-titulo-peso:600; --font-titulo-variacion:"SOFT" 100,"WONK" 0;
+  --font-texto:"DM Sans",sans-serif;
+  --texto-base:14px;
+  --texto-alto-de-linea:1.35;
+  --texto-ayuda-alto-de-linea:20px;
+  --texto-titulo-y-boton:18px;
+  --texto-titulo-de-pantalla:34px;
+  --texto-monto-grande:36px;
+  --texto-aviso:16px;
+  --texto-barra-inferior:14px;
+  --texto-icono-chico:14px;
+  --texto-icono:18px;
+  --radio-tarjeta:16px;
+  --radio-hoja:16px 16px 0 0;
+  --radio-aviso:16px;
+  --radio-pildora:999px;
+  --radio-circulo:50%;
+  --radio-marco-ilustracion-plantita:16px;
+  --borde-tarjeta:2px; --borde-selector:1.5px; --borde-boton:1.5px; --borde-progreso:1.5px;
+  --alto-toque-minimo:44px;
+  --alto-selector-de-modulo:46px;
+  --alto-selector-de-vista:44px;
+  --alto-boton-principal:52px;
+  --alto-barra-inferior:76px;
+  --alto-item-de-barra:56px;
+  --alto-pildora-de-barra:30px; --ancho-pildora-de-barra:52px;
+  --alto-bloque-superior-inicio:282px;
+  --alto-fila-de-encabezado:48px;
+  --alto-fila-de-mes:48px;
+  --alto-circulo-icono-tarjeta:44px;
+  --alto-circulo-icono-lista:40px;
+  --alto-circulo-icono-selector:26px;
+  --alto-contador:24px;
+  --alto-segmentos:8px;
+  --alto-progreso:10px;
+  --alto-barra-reparto:12px;
+  --alto-fila-de-gasto:62px;
+  --alto-aviso:52px;
+  --espacio-margen-de-pantalla:16px;
+  --espacio-margen-de-hoja:20px;
+  --espacio-entre-tarjetas:16px;
+  --espacio-aire-de-adornos:12px;
+  --espacio-aviso-relleno:4px 6px 4px 16px;
+  --espacio-aviso-separacion:8px;
+  --aviso-ancho:min(398px, calc(100% - 32px));
+  --espacio-aviso-abajo:86px;
+  --aviso-duracion:6000ms;
+  --sombra-aviso:0 2px 8px rgb(47 74 56 / 14%);
+  --feston-radio:12.5px; --feston-borde:13px; --feston-ancho:26px; --feston-alto:13px;
+}
+/* Festón: solo bajo el bloque superior (.scallop-b) y sobre la barra inferior (.scallop-t). --sc es el color del bloque. */
+.scallop-b{position:relative}
+.scallop-b::after{content:"";position:absolute;left:0;right:0;bottom:calc(-1 * var(--feston-alto));height:var(--feston-alto);
+  background:radial-gradient(circle at 50% 0,var(--sc) var(--feston-radio),transparent var(--feston-borde));background-size:var(--feston-ancho) var(--feston-alto);background-repeat:round no-repeat}
+.scallop-t{position:relative}
+.scallop-t::before{content:"";position:absolute;left:0;right:0;top:calc(-1 * var(--feston-alto));height:var(--feston-alto);
+  background:radial-gradient(circle at 50% 100%,var(--sc) var(--feston-radio),transparent var(--feston-borde));background-size:var(--feston-ancho) var(--feston-alto);background-repeat:round no-repeat}
+/* Ícono: assets/marca/icon-512.png, icon-192.png (any), icon-180.png (apple-touch), icon-48/32/16.png (favicon),
+   icon-maskable-512.png e icon-maskable-192.png (maskable: la plantita entra en el círculo seguro del 80 %, fondo crema a sangre).
+   Reemplazan a los íconos viejos de public/icons del repo, también el maskable. */

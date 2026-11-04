@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AppIcon } from '../components/AppIcon.tsx'
+import { ListFlower, Plantita } from '../components/Adornos.tsx'
 import { ConfirmSheet } from '../components/ConfirmSheet.tsx'
 import { ExpenseEditor } from '../components/ExpenseEditor.tsx'
 import { ExpenseLine } from '../components/ExpenseLine.tsx'
@@ -75,7 +76,7 @@ export function SharedScreen() {
 
   if (!profile) return null
   if (loading && !data) return <p className="py-16 text-center font-bold text-muted">Cargando…</p>
-  if (!data) return <p className="py-16 text-center font-bold text-alert-ink">{error}</p>
+  if (!data) return <p className="py-16 text-center font-bold text-tinta">{error}</p>
 
   const meId = profile.id
   const otherId = partnerId(data, meId)
@@ -97,8 +98,6 @@ export function SharedScreen() {
   const headlineAmount = settled ? settled.amount : plan.amount
   const creditorId = settled ? settled.creditorId : plan.creditorId
   const favor = headlineAmount > 0 && creditorId === meId
-  const owed = headlineAmount > 0 && creditorId !== meId
-  const amountClass = favor ? 'text-primary' : owed ? 'text-alert-ink' : 'text-title'
   const visible = payerFilter === 'all' ? shared : shared.filter((expense) => expense.payerId === payerFilter)
   const filters = [
     { id: 'all', label: 'Todos' },
@@ -179,31 +178,37 @@ export function SharedScreen() {
       />
       <MonthSwitcher heading />
 
-      <Card>
+      <section className="scallop-b -mx-5 mb-6 bg-azul px-5 pb-5 pt-4 text-tinta">
         <div className="flex items-start justify-between gap-3">
-          <h2 className="inline-flex items-center gap-1.5 font-display text-base font-semibold text-primary">
+          <h2 className="inline-flex items-center gap-1.5 font-display text-lg font-semibold text-tinta">
             <AppIcon name="scale-balanced" /> Total a saldar
           </h2>
           <span
-            className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-sm font-bold ${
-              settled ? 'bg-sage-soft text-primary' : 'bg-gold-soft text-warn-ink'
+            className={`inline-flex h-[27px] shrink-0 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-tinta ${
+              settled ? 'bg-salvia-claro' : 'bg-mostaza'
             }`}
           >
-            <AppIcon name="circle" className={settled ? 'text-primary' : 'text-warn'} />
+            <AppIcon name="circle" />
             {settled ? 'Saldado' : 'Sin saldar'}
           </span>
         </div>
         {headlineAmount === 0 || !partner ? (
-          <p className="mt-3 font-display text-3xl font-semibold text-title">Están a mano</p>
+          <div className="mt-3 flex items-end justify-between gap-3">
+            <p className="min-w-0 font-display text-[36px] font-semibold text-tinta">Están a mano</p>
+            <Plantita width={46} height={60} />
+          </div>
         ) : (
           <>
-            <p className={`mt-3 text-base font-semibold ${amountClass}`}>{favor ? `${partner.name} te debe` : `Le debés a ${partner.name}`}</p>
-            <p className={`font-display text-3xl font-semibold whitespace-nowrap ${amountClass}`}>{formatMoney(headlineAmount)}</p>
+            <p className="mt-3 text-base font-semibold text-tinta">{favor ? `${partner.name} te debe` : `Le debés a ${partner.name}`}</p>
+            <div className="flex items-end justify-between gap-3">
+              <p className="min-w-0 font-display text-[36px] font-semibold whitespace-nowrap tabular-nums text-tinta">{formatMoney(headlineAmount)}</p>
+              <Plantita width={46} height={60} />
+            </div>
           </>
         )}
         <SplitBar expense={expenseAmount} loans={loanAmount} />
-        <MoneyRow label="Por gastos" amount={formatMoney(expenseAmount)} amountClass="text-alert-ink" dotClass="text-alert" />
-        <MoneyRow label="Por préstamos" amount={formatMoney(loanAmount)} amountClass="text-lavender-ink" dotClass="text-lavender" />
+        <MoneyRow label="Por gastos" amount={formatMoney(expenseAmount)} dotClass="border-rosa-hondo bg-rosa" />
+        <MoneyRow label="Por préstamos" amount={formatMoney(loanAmount)} dotClass="border-ciruela-ink bg-ciruela" />
         {settled ? (
           <Button type="button" variant="alt" className="mt-3" onClick={() => setConfirm('undo')} disabled={saving}>
             Deshacer
@@ -215,13 +220,13 @@ export function SharedScreen() {
                 <AppIcon name="check" /> Saldar mes
               </span>
             </Button>
-            {plan.blockedReason ? <p className="mt-2 text-center text-sm font-semibold text-muted">{plan.blockedReason}</p> : null}
+            {plan.blockedReason ? <p className="mt-2 text-center text-sm font-semibold text-tinta">{plan.blockedReason}</p> : null}
           </>
         )}
-      </Card>
+      </section>
 
       <Card>
-        <h2 className="inline-flex items-center gap-1.5 font-display text-base font-semibold text-alert-ink">
+        <h2 className="inline-flex items-center gap-1.5 font-display text-lg font-semibold text-tinta">
           <AppIcon name="chart-column" /> Cómo se reparte
         </h2>
         <p className="mt-1 text-sm font-semibold text-muted">{shareCaption(split, people)}</p>
@@ -232,10 +237,13 @@ export function SharedScreen() {
         </ul>
       </Card>
 
-      <div className="mb-1 flex items-baseline justify-between gap-3">
-        <h2 className="font-display text-base font-semibold text-lavender-ink">Gastos compartidos</h2>
-        <p className="shrink-0 whitespace-nowrap font-display text-2xl font-semibold text-title">{formatMoney(split.total)}</p>
-      </div>
+      <section className="mb-3 rounded-2xl border-2 border-azul-ink bg-card px-4 py-3">
+        <div className="mb-1 flex items-center justify-between gap-3">
+          <h2 className="inline-flex min-w-0 items-center gap-2 font-display text-lg font-semibold text-tinta">
+            <ListFlower /> Gastos compartidos
+          </h2>
+          <p className="shrink-0 whitespace-nowrap font-display text-lg font-semibold tabular-nums text-tinta">{formatMoney(split.total)}</p>
+        </div>
       <FilterBar label="Quién pagó" options={filters} value={payerFilter} onChange={setPayerFilter} />
       {visible.length === 0 ? (
         <p className="mb-3 text-base font-semibold text-muted">Este mes no hay gastos compartidos.</p>
@@ -257,6 +265,7 @@ export function SharedScreen() {
           })}
         </ul>
       )}
+      </section>
 
       <Button type="button" variant="alt" onClick={exportCsv}>
         <span className="inline-flex items-center justify-center gap-2">
@@ -296,8 +305,8 @@ export function SharedScreen() {
             <p className="font-display text-2xl font-semibold whitespace-nowrap text-title">
               {passPhrase(partner.name, plan.creditorId === meId, plan.amount)}
             </p>
-            <MoneyRow label="Por gastos" amount={formatMoney(plan.expenseAmount)} amountClass="text-alert-ink" dotClass="text-alert" />
-            <MoneyRow label="Por préstamos" amount={formatMoney(plan.loanAmount)} amountClass="text-lavender-ink" dotClass="text-lavender" />
+            <MoneyRow label="Por gastos" amount={formatMoney(plan.expenseAmount)} amountClass="text-rosa-texto" dotClass="border-rosa-hondo bg-rosa" />
+            <MoneyRow label="Por préstamos" amount={formatMoney(plan.loanAmount)} amountClass="text-ciruela-ink" dotClass="border-ciruela-ink bg-ciruela" />
             <p className="mt-3 text-base font-semibold text-muted">
               Los gastos y préstamos de {monthName(month)} quedan marcados como saldados. Si te equivocás, lo podés deshacer.
             </p>
@@ -358,43 +367,43 @@ function helpBlocks(split: SplitResult, people: SplitRow[], monthLabel: string):
   return [
     {
       title: 'Total a saldar',
-      titleClass: 'text-primary',
+      titleClass: 'text-mostaza-ink',
       icon: 'scale-balanced',
-      iconWrapClass: 'bg-sage-soft text-primary',
+      iconWrapClass: 'bg-salvia-claro text-mostaza-ink',
       body: 'Cuánta plata tiene que pasarle una a la otra este mes. Suma lo que falta por gastos y los préstamos pendientes.',
     },
     {
       title: 'Cómo se reparte',
-      titleClass: 'text-alert-ink',
+      titleClass: 'text-tinta',
       icon: 'chart-column',
-      iconWrapClass: 'bg-copper-soft text-alert-ink',
+      iconWrapClass: 'bg-rosa-claro text-tinta',
       body: (
         <div className="rounded-2xl bg-sand-soft p-3">
           <p>
             <span className="font-bold text-title">Pagó:</span> lo que puso de su bolsillo en gastos compartidos.
           </p>
           <p className="mt-2">
-            <span className="font-bold text-primary">Su parte:</span> lo que le corresponde poner según su sueldo base: {base}.
+            <span className="font-bold text-mostaza-ink">Su parte:</span> lo que le corresponde poner según su sueldo base: {base}.
           </p>
           <p className="mt-2">
-            Si pagó menos que su parte, <span className="text-alert-ink">debe</span> la diferencia. Si pagó más, la tiene{' '}
-            <span className="text-primary">a favor</span>.
+            Si pagó menos que su parte, <span className="text-rosa-texto">debe</span> la diferencia. Si pagó más, la tiene{' '}
+            <span className="text-mostaza-ink">a favor</span>.
           </p>
         </div>
       ),
     },
     {
       title: 'Gastos compartidos',
-      titleClass: 'text-lavender-ink',
+      titleClass: 'text-azul-ink',
       icon: 'receipt',
-      iconWrapClass: 'bg-lavender-soft text-lavender-ink',
+      iconWrapClass: 'bg-azul-claro text-azul-ink',
       body: `Los gastos que cuentan para este mes y quién los pagó. La etiqueta marca gastos de otra fecha que se cuentan en ${monthLabel}.`,
     },
     {
       title: 'Saldar mes',
-      titleClass: 'text-warn-ink',
+      titleClass: 'text-mostaza-ink',
       icon: 'check',
-      iconWrapClass: 'bg-gold-soft text-warn-ink',
+      iconWrapClass: 'bg-mostaza-claro text-mostaza-ink',
       body: 'Tocalo cuando ya se pasaron la plata. Te pedimos confirmación antes de marcar el mes como saldado, y lo podés deshacer.',
     },
   ]
@@ -405,9 +414,9 @@ function SplitBar({ expense, loans }: { expense: number; loans: number }) {
   const expenseWidth = total > 0 ? (expense / total) * 100 : 0
   const loanWidth = total > 0 ? (loans / total) * 100 : 0
   return (
-    <div className="mt-3 flex h-2.5 overflow-hidden rounded-full bg-sand" role="img" aria-label="Gastos y préstamos">
-      <div className="h-full bg-alert" style={{ width: `${expenseWidth}%` }} />
-      <div className="h-full bg-lavender" style={{ width: `${loanWidth}%` }} />
+    <div className="mt-3 flex h-3 overflow-hidden rounded-full border-[1.5px] border-tinta bg-azul-claro" role="img" aria-label="Gastos y préstamos">
+      <div className="h-full border-r-[1.5px] border-rosa-hondo bg-rosa" style={{ width: `${expenseWidth}%` }} />
+      <div className="h-full bg-ciruela" style={{ width: `${loanWidth}%` }} />
     </div>
   )
 }
@@ -415,21 +424,21 @@ function SplitBar({ expense, loans }: { expense: number; loans: number }) {
 function MoneyRow({
   label,
   amount,
-  amountClass,
+  amountClass = 'text-tinta',
   dotClass,
 }: {
   label: string
   amount: string
-  amountClass: string
+  amountClass?: string
   dotClass: string
 }) {
   return (
-    <div className="mt-2 flex min-h-11 items-center justify-between gap-3 text-base font-semibold">
+    <div className="mt-2 flex min-h-11 items-center justify-between gap-3 border-t border-dashed border-line text-base font-semibold text-tinta first:border-t-0">
       <span className="inline-flex min-w-0 items-center gap-1.5">
-        <AppIcon name="circle" className={dotClass} />
+        <span className={`inline-block h-3.5 w-3.5 shrink-0 rounded-full border-[1.5px] ${dotClass}`} aria-hidden="true" />
         {label}
       </span>
-      <span className={`shrink-0 whitespace-nowrap font-display font-bold ${amountClass}`}>{amount}</span>
+      <span className={`shrink-0 whitespace-nowrap font-display font-semibold tabular-nums ${amountClass}`}>{amount}</span>
     </div>
   )
 }
@@ -437,13 +446,13 @@ function MoneyRow({
 function PersonShare({ row }: { row: SplitRow }) {
   const key = row.name.trim().toLowerCase()
   const maru = key === 'maru'
-  const nameClass = maru ? 'text-lavender-ink' : key === 'coty' ? 'text-alert-ink' : 'text-title'
+  const nameClass = maru ? 'text-salvia-ink' : key === 'coty' ? 'text-rosa-texto' : 'text-tinta'
   const debt = row.balance < 0
   const favor = row.balance > 0
   const chip = debt
-    ? { label: `Debe ${formatMoney(-row.balance)}`, className: 'bg-copper-soft text-alert-ink', icon: 'arrow-down' }
+    ? { label: `Debe ${formatMoney(-row.balance)}`, className: 'bg-rosa-claro text-tinta', icon: 'arrow-down' }
     : favor
-      ? { label: `A favor ${formatMoney(row.balance)}`, className: 'bg-sage-soft text-primary', icon: 'arrow-up' }
+      ? { label: `A favor ${formatMoney(row.balance)}`, className: 'bg-salvia-claro text-salvia-ink', icon: 'arrow-up' }
       : { label: 'A mano', className: 'bg-sand text-muted', icon: '' }
   const scale = Math.max(row.paid, row.share)
   const paidWidth = scale > 0 ? (row.paid / scale) * 100 : 0
@@ -457,12 +466,12 @@ function PersonShare({ row }: { row: SplitRow }) {
           {chip.label}
         </span>
       </div>
-      <BarLine label="Pagó" amount={formatMoney(row.paid)} width={paidWidth} className={maru ? 'bg-lavender' : 'bg-alert'} />
+      <BarLine label="Pagó" amount={formatMoney(row.paid)} width={paidWidth} className={maru ? 'border-[1.5px] border-salvia-ink bg-salvia' : 'border-[1.5px] border-rosa-hondo bg-rosa'} />
       <BarLine
         label={`Su parte (${row.percent}%)`}
         amount={formatMoney(row.share)}
         width={shareWidth}
-        className={maru ? '' : 'bg-copper-soft'}
+        className={maru ? '' : 'bg-rosa-claro'}
         hatch={maru}
       />
     </li>
@@ -496,7 +505,7 @@ function BarLine({
             ...(hatch
               ? {
                   backgroundImage:
-                    'repeating-linear-gradient(-45deg, var(--color-lavender-light) 0 5px, var(--color-sand) 5px 9px)',
+                    'repeating-linear-gradient(-45deg, var(--color-salvia) 0 5px, var(--color-salvia-claro) 5px 9px)',
                 }
               : {}),
           }}

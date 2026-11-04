@@ -142,16 +142,16 @@ export function HabitsScreen() {
     <>
       <header className="mb-4 flex min-h-11 items-center justify-between gap-1">
         <ModuleTitle module="habitos" />
-        <span className="inline-flex items-center gap-1 rounded-2xl bg-sage-light px-3 py-1.5 text-sm font-extrabold text-primary">
+        <span className="inline-flex items-center gap-1 rounded-2xl bg-salvia-claro px-3 py-1.5 text-sm font-extrabold text-mostaza-ink">
           <AppIcon name="lock" /> Solo vos
         </span>
       </header>
       <div className="mb-3 flex items-center justify-between gap-3">
-        <button type="button" aria-label="Semana anterior" onClick={() => setWeekStart((current) => addDays(current, -7))} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-card text-primary shadow-soft">
+        <button type="button" aria-label="Semana anterior" onClick={() => setWeekStart((current) => addDays(current, -7))} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-card text-mostaza-ink shadow-soft">
           <AppIcon name="chevron-left" />
         </button>
         <h1 className="text-center font-display text-[1.75rem] font-bold leading-tight">{weekTitle(weekStart, today)}</h1>
-        <button type="button" aria-label="Semana siguiente" onClick={() => setWeekStart((current) => addDays(current, 7))} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-card text-primary shadow-soft">
+        <button type="button" aria-label="Semana siguiente" onClick={() => setWeekStart((current) => addDays(current, 7))} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-card text-mostaza-ink shadow-soft">
           <AppIcon name="chevron-right" />
         </button>
       </div>
@@ -162,10 +162,10 @@ export function HabitsScreen() {
           </button>
         </div>
       ) : null}
-      <section className="mb-3 rounded-3xl bg-card px-3 py-3 shadow-card">
+      <section className="mb-3 rounded-2xl bg-card px-3 py-3 border-2 border-azul-ink">
         <div className="flex items-center justify-between gap-3 px-1">
           <h2 className="flex items-center gap-1.5 font-display text-sm font-semibold text-muted">
-            <AppIcon name="sun" className="text-warn" /> Tu semana en brotes
+            <AppIcon name="sun" className="text-mostaza-ink" /> Tu semana en brotes
           </h2>
           <p className="text-sm font-extrabold text-title">{counter.elapsed > 0 ? weekCounterLabel(counter.touched, counter.elapsed) : 'Sin hábitos'}</p>
         </div>
@@ -177,7 +177,7 @@ export function HabitsScreen() {
             return (
               <div
                 key={day.iso}
-                className={`flex w-10 flex-col items-center rounded-2xl py-1 ${day.when === 'today' ? 'bg-sage-soft text-primary' : 'text-muted'}`}
+                className={`flex w-10 flex-col items-center rounded-2xl py-1 ${day.when === 'today' ? 'bg-salvia-claro text-mostaza-ink' : 'text-muted'}`}
                 aria-label={`${meta?.name ?? ''}, ${detail}`}
               >
                 <DaySprout stage={stage} />
@@ -199,8 +199,8 @@ export function HabitsScreen() {
         {todayHabits.map((habit) => {
           const done = checks.some((check) => check.habitId === habit.id && check.day === todayIso)
           return (
-            <li key={habit.id} className="mb-2 flex min-h-[58px] items-center gap-2 rounded-[22px] bg-card py-1.5 pl-4 pr-2.5 shadow-card">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-sage-soft text-primary">
+            <li key={habit.id} className="mb-2 flex min-h-[58px] items-center gap-2 rounded-[22px] bg-card py-1.5 pl-4 pr-2.5 border-2 border-azul-ink">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-salvia-claro text-mostaza-ink">
                 <AppIcon name={habit.iconName} />
               </span>
               <button type="button" onClick={() => openEdit(habit)} className="min-h-11 min-w-0 flex-1 text-left text-[15.5px] font-bold">
@@ -211,7 +211,7 @@ export function HabitsScreen() {
                 disabled={pendingId === habit.id}
                 onClick={() => void toggleDone(habit)}
                 className={`inline-flex min-h-11 min-w-[92px] items-center justify-center gap-1.5 rounded-full px-4 text-sm font-extrabold ${
-                  done ? 'bg-primary text-on-primary' : 'border-2 border-sage-light text-primary'
+                  done ? 'border-[1.5px] border-tinta bg-mostaza text-tinta' : 'border-2 border-azul text-mostaza-ink'
                 }`}
               >
                 {done ? (
@@ -236,7 +236,7 @@ export function HabitsScreen() {
         </span>
         <span className="font-extrabold text-muted">Nuevo hábito</span>
       </button>
-      {error ? <p className="mt-3 text-center text-sm font-bold text-alert-ink">{error}</p> : null}
+      {error ? <p className="mt-3 text-center text-sm font-bold text-tinta">{error}</p> : null}
       <HabitSheet
         open={sheetOpen}
         habit={sheetHabit}
@@ -388,7 +388,7 @@ function HabitSheet({
               aria-pressed={on}
               aria-label={day.name}
               onClick={() => toggleDay(day.index)}
-              className={`grid h-11 w-11 place-items-center rounded-2xl text-sm font-extrabold ${on ? 'bg-primary text-on-primary' : 'bg-sand text-muted'}`}
+              className={`grid h-11 w-11 place-items-center rounded-2xl text-sm font-extrabold ${on ? 'border-[1.5px] border-tinta bg-mostaza text-tinta' : 'bg-sand text-muted'}`}
             >
               {day.label}
             </button>
@@ -397,11 +397,11 @@ function HabitSheet({
       </div>
       <p className="mt-2 text-sm font-semibold text-muted">Elegí al menos un día.</p>
       {habit ? (
-        <button type="button" onClick={() => void archive()} disabled={saving} className="mt-4 min-h-11 w-full rounded-2xl border-2 border-line text-base font-extrabold text-alert-ink">
+        <button type="button" onClick={() => void archive()} disabled={saving} className="mt-4 min-h-11 w-full rounded-2xl border-2 border-line text-base font-extrabold text-tinta">
           Archivar
         </button>
       ) : null}
-      {error ? <p className="mt-3 text-sm font-bold text-alert-ink">{error}</p> : null}
+      {error ? <p className="mt-3 text-sm font-bold text-tinta">{error}</p> : null}
     </Sheet>
   )
 }

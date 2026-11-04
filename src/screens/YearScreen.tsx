@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { AppIcon } from '../components/AppIcon.tsx'
+import { Plantita } from '../components/Adornos.tsx'
 import { SectionHeader } from '../components/SectionHeader.tsx'
 import { ViewOptions } from '../components/ViewOptions.tsx'
 import { DonutBreakdown } from '../components/DonutBreakdown.tsx'
@@ -33,7 +34,7 @@ import {
 } from '../lib/year.ts'
 import type { ViewMode } from '../types/database.ts'
 
-const ARROW = 'grid h-11 w-11 shrink-0 place-items-center rounded-full bg-card text-lg text-primary shadow-soft disabled:opacity-40'
+const ARROW = 'grid h-11 w-11 shrink-0 place-items-center rounded-full bg-card text-lg text-mostaza-ink shadow-soft disabled:opacity-40'
 
 export function YearScreen() {
   const { profile, refreshProfile } = useAuth()
@@ -87,7 +88,7 @@ export function YearScreen() {
         title="Mi año"
         aside={
           <>
-            <span className="mr-1 inline-flex min-h-7 items-center gap-1.5 rounded-2xl bg-sage-light px-2.5 py-1 text-sm font-bold text-primary">
+            <span className="mr-1 inline-flex min-h-7 items-center gap-1.5 rounded-2xl bg-salvia-claro px-2.5 py-1 text-sm font-bold text-mostaza-ink">
               <AppIcon name="lock" /> Solo vos
             </span>
             <ViewOptions mode={me.viewMode} onChange={(mode) => void changeMode(mode)} />
@@ -105,7 +106,7 @@ export function YearScreen() {
       </div>
 
       {loading ? <YearSkeleton /> : null}
-      {!loading && error ? <p className="py-10 text-center font-extrabold text-alert-ink">{error}</p> : null}
+      {!loading && error ? <p className="py-10 text-center font-extrabold text-tinta">{error}</p> : null}
       {!loading && !error && !ready ? <EmptyYear year={year} /> : null}
       {!loading && ready ? (
         accounting ? (
@@ -164,7 +165,7 @@ function FriendlyView({
 
   return (
     <>
-      <Card className="year-rise bg-[linear-gradient(160deg,var(--color-card),var(--color-sage-soft))]">
+      <Card className="year-rise bg-[linear-gradient(160deg,var(--color-card),var(--color-salvia-claro))]">
         <div className="flex items-center gap-3">
           <YearPlant />
           <div>
@@ -174,21 +175,21 @@ function FriendlyView({
         </div>
         <div className="mt-3 flex gap-1.5">
           <Stat icon="arrow-down" label="Ingresos" value={totals.income} className="bg-sand" />
-          <Stat icon="arrow-up" label="Gastos" value={totals.expenses} className="bg-copper-soft" valueClass="text-alert-ink" />
-          <Stat icon="piggy-bank" label="Ahorraste" value={totals.saved} className="bg-sage-soft" valueClass="text-primary" />
+          <Stat icon="arrow-up" label="Gastos" value={totals.expenses} className="bg-rosa-claro" valueClass="text-rosa-texto" />
+          <Stat icon="piggy-bank" label="Ahorraste" value={totals.saved} className="bg-salvia-claro" valueClass="text-mostaza-ink" />
         </div>
       </Card>
 
       <Card className="year-rise">
         <h2 className="mb-2 flex items-center gap-2 font-display text-[17px] font-semibold">
-          <AppIcon name="seedling" className="text-primary" /> Cómo fueron tus ingresos
+          <AppIcon name="seedling" className="text-mostaza-ink" /> Cómo fueron tus ingresos
         </h2>
         <p className="mb-1 flex flex-wrap gap-3.5 text-sm font-semibold text-muted">
           <span className="inline-flex items-center gap-1">
-            <AppIcon name="minus" className="text-primary" /> Sueldo base
+            <AppIcon name="minus" className="text-mostaza-ink" /> Sueldo base
           </span>
           <span className="inline-flex items-center gap-1">
-            <AppIcon name="circle" className="text-[9px] text-warn" /> Extras (a la bolsa)
+            <AppIcon name="circle" className="text-[9px] text-mostaza-ink" /> Extras (a la bolsa)
           </span>
         </p>
         <IncomeChart year={report.year} months={report.months} caption={caption} today={today} />
@@ -196,16 +197,16 @@ function FriendlyView({
       </Card>
 
       <div className="mb-3 flex gap-3">
-        <Card className="year-rise mb-0 flex-1 bg-[var(--color-sage-soft)]">
-          <span className="grid h-10 w-10 place-items-center rounded-full bg-sage-light text-primary">
+        <Card className="year-rise mb-0 flex-1 bg-[var(--color-salvia-claro)]">
+          <span className="grid h-10 w-10 place-items-center rounded-full bg-salvia-claro text-mostaza-ink">
             <AppIcon name="trophy" />
           </span>
           <p className="mt-2 text-sm text-muted">Tu mejor mes</p>
           <p className="font-display text-xl font-bold">{best ? monthHeading(best.month) : '—'}</p>
           <p className="text-sm text-muted">{best?.saved != null ? `Ahorraste ${formatMoney(best.saved)}` : 'Todavía no hay un mes para comparar'}</p>
         </Card>
-        <Card className="year-rise mb-0 flex-1 bg-copper-soft">
-          <span className="grid h-10 w-10 place-items-center rounded-full bg-copper-soft text-alert-ink">
+        <Card className="year-rise mb-0 flex-1 bg-rosa-claro">
+          <span className="grid h-10 w-10 place-items-center rounded-full bg-rosa-claro text-tinta">
             <AppIcon name="fire" />
           </span>
           <p className="mt-2 text-sm text-muted">El mes más gastador</p>
@@ -218,7 +219,7 @@ function FriendlyView({
         {report.categories.length === 0 ? (
           <>
             <h2 className="mb-2 flex items-center gap-2 font-display text-[17px] font-semibold">
-              <AppIcon name="chart-pie" className="text-primary" /> ¿En qué se me fue?
+              <AppIcon name="chart-pie" className="text-mostaza-ink" /> ¿En qué se me fue?
             </h2>
             <p className="text-sm font-semibold text-muted">Cuando anotes gastos, vas a ver en qué se fueron.</p>
           </>
@@ -226,7 +227,7 @@ function FriendlyView({
           <>
             <DonutBreakdown
               title="¿En qué se me fue?"
-              titleIcon={<AppIcon name="chart-pie" className="text-primary" />}
+              titleIcon={<AppIcon name="chart-pie" className="text-mostaza-ink" />}
               center={{ kicker: 'Gastaste', value: formatMoney(report.categories.reduce((sum, item) => sum + item.total, 0)) }}
               slices={report.categories.map((item, index) => {
                 const color = CATEGORY_COLORS[index % CATEGORY_COLORS.length] ?? CATEGORY_COLORS[0]
@@ -236,7 +237,7 @@ function FriendlyView({
                   amount: item.total,
                   color: color.fill,
                   ink: color.ink,
-                  soft: color.ink !== 'var(--color-on-primary)',
+                  soft: color.ink !== 'var(--color-tinta)',
                   percent: `${percents[index] ?? 0}%`,
                   marker: <AppIcon name={item.icon} />,
                 }
@@ -250,19 +251,19 @@ function FriendlyView({
         )}
       </Card>
 
-      <Card className="year-rise bg-gold-soft">
+      <Card className="year-rise bg-mostaza-claro">
         <h2 className="mb-1 flex items-center gap-2 font-display text-[17px] font-semibold">
-          <AppIcon name="bag-shopping" className="text-alert-ink" /> Tus gustos del año
+          <AppIcon name="bag-shopping" className="text-tinta" /> Tus gustos del año
         </h2>
         {report.gustosSpent !== null && report.gustosSpent > 0 ? (
-          <p className="font-display text-[26px] font-bold text-alert-ink">{formatMoney(report.gustosSpent)}</p>
+          <p className="font-display text-[26px] font-bold text-tinta">{formatMoney(report.gustosSpent)}</p>
         ) : null}
         <p className="text-sm text-muted">{gustosSentence(report.gustosSpent, report.extrasTotal, report.extrasSaved)}</p>
       </Card>
 
       <Card className="year-rise">
         <h2 className="mb-3 flex items-center gap-2 font-display text-[17px] font-semibold">
-          <AppIcon name="piggy-bank" className="text-primary" /> Tus ahorros
+          <AppIcon name="piggy-bank" className="text-mostaza-ink" /> Tus ahorros
         </h2>
         {report.funds.length === 0 && !report.goal ? (
           <p className="text-sm font-semibold text-muted">Cuando apartes un extra a un fondo o a la meta, lo vas a ver acá.</p>
@@ -272,7 +273,7 @@ function FriendlyView({
               <Ring
                 key={fund.id}
                 icon={fund.icon}
-                color="var(--color-primary)"
+                color="var(--color-mostaza)"
                 ratio={fund.target > 0 ? fund.saved / fund.target : 0}
                 title={fund.name}
                 detail={`${formatMoney(fund.saved)} / ${formatMoney(fund.target)}`}
@@ -282,7 +283,7 @@ function FriendlyView({
             {report.goal ? (
               <Ring
                 icon={report.goal.icon}
-                color="var(--color-lavender)"
+                color="var(--color-azul)"
                 ratio={report.goal.target > 0 ? report.goal.total / report.goal.target : 0}
                 title={report.goal.name}
                 detail={`${formatMoney(report.goal.total)} / ${formatMoney(report.goal.target)}`}
@@ -295,13 +296,13 @@ function FriendlyView({
       </Card>
 
       <h2 className="year-rise mb-2.5 flex items-center gap-2 px-1 font-display text-[17px] font-semibold">
-        <AppIcon name="star" className="text-warn" /> Momentos del año
+        <AppIcon name="star" className="text-mostaza-ink" /> Momentos del año
       </h2>
       {moments.map((moment) => (
         <Card key={moment.text} className="year-rise flex items-center gap-3">
           <span
             className={`grid h-10 w-10 shrink-0 place-items-center rounded-full ${
-              moment.tone === 'blush' ? 'bg-copper-soft text-alert-ink' : moment.tone === 'sun' ? 'bg-gold-soft text-alert-ink' : 'bg-sage-soft text-primary'
+              moment.tone === 'blush' ? 'bg-rosa-claro text-tinta' : moment.tone === 'sun' ? 'bg-mostaza-claro text-tinta' : 'bg-salvia-claro text-mostaza-ink'
             }`}
           >
             <AppIcon name={moment.icon} />
@@ -332,9 +333,9 @@ function AccountingView({
       <Card className="mb-0">
         <h2 className="mb-3 font-display text-[17px] font-semibold">Resumen</h2>
         <ul>
-          <SummaryRow icon="arrow-down" label="Ingresos" value={totals.income} iconClass="bg-sand text-primary" />
-          <SummaryRow icon="arrow-up" label="Gastos" value={totals.expenses} iconClass="bg-copper-soft text-alert-ink" valueClass="text-alert-ink" />
-          <SummaryRow icon="piggy-bank" label="Ahorraste" value={totals.saved} iconClass="bg-sage-light text-primary" valueClass="text-primary" />
+          <SummaryRow icon="arrow-down" label="Ingresos" value={totals.income} iconClass="bg-sand text-mostaza-ink" />
+          <SummaryRow icon="arrow-up" label="Gastos" value={totals.expenses} iconClass="bg-rosa-claro text-tinta" valueClass="text-rosa-texto" />
+          <SummaryRow icon="piggy-bank" label="Ahorraste" value={totals.saved} iconClass="bg-salvia-claro text-mostaza-ink" valueClass="text-mostaza-ink" />
         </ul>
       </Card>
       <Card className="mb-0">
@@ -393,7 +394,7 @@ function AccountingView({
             )
           })}
         </ul>
-        <div className="mt-3 flex h-14 items-center justify-between rounded-2xl bg-sage-light px-3 font-display">
+        <div className="mt-3 flex h-14 items-center justify-between rounded-2xl bg-salvia-claro px-3 font-display">
           <span className="text-base font-semibold text-title">Total del año</span>
           {totals.saved === null ? (
             <span className="text-xl font-bold text-muted tabular-nums">—</span>
@@ -415,7 +416,7 @@ function AccountingView({
                 <li key={category.id} className="border-b border-line last:border-b-0">
                   <button type="button" className="flex h-14 w-full items-center gap-3 text-left" onClick={() => onCategory(category.id)}>
                     <span
-                      className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-sm ${color.ink === 'var(--color-on-primary)' ? '' : 'ring-1 ring-line ring-inset'}`}
+                      className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-sm ${color.ink === 'var(--color-tinta)' ? '' : 'ring-1 ring-line ring-inset'}`}
                       style={{ background: color.fill, color: color.ink }}
                       aria-hidden="true"
                     >
@@ -553,7 +554,7 @@ function FitMoney({ value, className = '' }: { value: number; className?: string
 
 function savingTone(value: number | null): string {
   if (value === null) return 'text-muted'
-  return value < 0 ? 'text-alert-ink' : 'text-primary'
+  return value < 0 ? 'text-rosa-texto' : 'text-mostaza-ink'
 }
 
 function CategoryDetail({
@@ -598,7 +599,7 @@ function CategoryDetail({
                 {future ? ' · aún no' : ''}
               </span>
               <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-sand" aria-hidden="true">
-                {amount !== null && amount > 0 ? <span className="year-bar block h-full rounded-full bg-primary" style={{ width: `${width}%` }} /> : null}
+                {amount !== null && amount > 0 ? <span className="year-bar block h-full rounded-full bg-mostaza" style={{ width: `${width}%` }} /> : null}
               </span>
               <span className="w-24 shrink-0 text-right font-display text-sm font-semibold">{yearCell(amount)}</span>
             </li>
@@ -704,26 +705,18 @@ function Stat({
 }
 
 function YearPlant() {
-  return (
-    <svg width="70" height="70" viewBox="0 0 70 70" className="shrink-0" role="img" aria-label="Plantita y sol">
-      <circle cx="48" cy="20" r="12" fill="var(--color-warn)" />
-      <path d="M35 64 C35 48 34 40 32 30" stroke="var(--color-good)" strokeWidth="3" fill="none" />
-      <path d="M33 44 C22 43 16 35 17 28 C27 28 33 35 33 44Z" fill="var(--color-sage-light)" />
-      <path d="M33 38 C43 36 48 28 47 21 C38 22 32 29 33 38Z" fill="var(--color-good)" />
-      <path d="M20 60 h30 l-4 10 h-22z" fill="var(--color-alert)" />
-    </svg>
-  )
+  return <Plantita width={54} height={70} />
 }
 
 function EmptyYear({ year }: { year: number }) {
   return (
-    <Card className="year-rise bg-[linear-gradient(160deg,var(--color-card),var(--color-sage-soft))] text-center">
+    <Card className="year-rise bg-[linear-gradient(160deg,var(--color-card),var(--color-salvia-claro))] text-center">
       <div className="flex justify-center">
         <YearPlant />
       </div>
       <h2 className="mt-2 font-display text-xl font-semibold">Todavía no hay datos de {year}</h2>
       <p className="mt-1 text-sm font-semibold text-muted">Cuando cargues el sueldo o un gasto, tu año va a aparecer acá. Con calma.</p>
-      <Link to="/sueldo" className="mt-3 inline-flex min-h-11 items-center font-extrabold text-primary">
+      <Link to="/sueldo" className="mt-3 inline-flex min-h-11 items-center font-extrabold text-mostaza-ink">
         Cargar sueldo base
       </Link>
     </Card>
@@ -734,11 +727,11 @@ function YearSkeleton() {
   return (
     <div aria-busy="true" aria-live="polite">
       <p className="sr-only">Cargando tu año…</p>
-      <div className="mb-3 h-36 animate-pulse rounded-3xl bg-sand motion-reduce:animate-none" />
-      <div className="mb-3 h-64 animate-pulse rounded-3xl bg-sand motion-reduce:animate-none" />
+      <div className="mb-3 h-36 animate-pulse rounded-2xl bg-sand motion-reduce:animate-none" />
+      <div className="mb-3 h-64 animate-pulse rounded-2xl bg-sand motion-reduce:animate-none" />
       <div className="mb-3 flex gap-3">
-        <div className="h-28 flex-1 animate-pulse rounded-3xl bg-sand motion-reduce:animate-none" />
-        <div className="h-28 flex-1 animate-pulse rounded-3xl bg-sand motion-reduce:animate-none" />
+        <div className="h-28 flex-1 animate-pulse rounded-2xl bg-sand motion-reduce:animate-none" />
+        <div className="h-28 flex-1 animate-pulse rounded-2xl bg-sand motion-reduce:animate-none" />
       </div>
     </div>
   )

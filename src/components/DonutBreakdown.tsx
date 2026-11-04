@@ -29,7 +29,7 @@ export function DonutBreakdown({
   titleIcon,
   center,
   slices,
-  track = 'var(--color-lavender-soft)',
+  track = 'var(--color-azul)',
   onSelect,
 }: {
   title: string
@@ -117,7 +117,7 @@ export function MonthBars({
         return (
           <li key={row.key} className="flex min-h-11 items-center gap-3">
             <span className="w-28 shrink-0 text-sm font-semibold">{row.label}</span>
-            <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-lavender-soft" aria-hidden="true">
+            <span className="h-3 flex-1 overflow-hidden rounded-full border-[1.5px] border-azul-ink bg-card" aria-hidden="true">
               <span className="donut-arc block h-full rounded-full" style={{ width: `${width}%`, background: color }} />
             </span>
             <span className="w-24 shrink-0 text-right font-display text-sm font-semibold">{formatMoney(row.amount)}</span>
@@ -133,7 +133,7 @@ function LegendRow({ slice, onSelect }: { slice: DonutSlice; onSelect?: (id: str
   const marker = (
     <span
       className={`grid h-7 w-7 place-items-center rounded-full text-sm font-semibold ${slice.soft ? 'ring-1 ring-line ring-inset' : ''}`}
-      style={{ background: slice.color, color: slice.ink ?? 'var(--color-on-primary)' }}
+      style={{ background: slice.color, color: slice.ink ?? 'var(--color-tinta)' }}
       aria-hidden="true"
     >
       {slice.marker}
@@ -143,7 +143,7 @@ function LegendRow({ slice, onSelect }: { slice: DonutSlice; onSelect?: (id: str
     <span className="col-span-2 text-right text-sm font-semibold text-muted">{slice.detail}</span>
   ) : (
     <>
-      <span className="text-right font-extrabold text-alert-ink">{slice.percent}</span>
+      <span className="text-right font-extrabold text-tinta">{slice.percent}</span>
       <span className="text-right text-sm font-semibold text-muted">{formatMoney(slice.amount)}</span>
     </>
   )

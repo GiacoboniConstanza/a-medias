@@ -99,12 +99,12 @@ export function MemosScreen() {
       ) : null}
       <MemoGroup title={`Con ${partnerName}`} memos={groups.shared} meId={profile.id} partnerName={partnerName} onToggle={toggleDone} />
       <MemoGroup title="Solo vos" memos={groups.solo} meId={profile.id} partnerName={partnerName} onToggle={toggleDone} />
-      {error ? <p className="text-center text-sm font-bold text-alert-ink">{error}</p> : null}
+      {error ? <p className="text-center text-sm font-bold text-tinta">{error}</p> : null}
       <button
         type="button"
         aria-label="Nuevo memo"
         onClick={() => setOpen(true)}
-        className="fixed bottom-24 right-[max(1.25rem,calc(50vw-190px))] z-30 grid h-[58px] w-[58px] place-items-center rounded-full bg-primary text-2xl text-on-primary shadow-fab"
+        className="fixed bottom-24 right-[max(1.25rem,calc(50vw-190px))] z-30 grid h-[58px] w-[58px] place-items-center rounded-full bg-mostaza text-2xl text-tinta "
       >
         <AppIcon name="plus" />
       </button>
@@ -141,8 +141,8 @@ function MemoGroup({
       {memos.map((memo) => (
         <article
           key={memo.id}
-          className={`mb-2.5 flex items-center gap-1 rounded-[22px] py-1 pl-1 pr-3.5 shadow-card ${
-            memo.shared ? 'bg-lavender-soft shadow-[inset_4px_0_0_var(--color-lavender)] shadow-soft' : 'bg-card'
+          className={`mb-2.5 flex items-center gap-1 rounded-[22px] py-1 pl-1 pr-3.5 border-2 border-azul-ink ${
+            memo.shared ? 'bg-azul-claro shadow-[inset_4px_0_0_var(--color-azul)] shadow-soft' : 'bg-card'
           } ${memo.done ? 'text-muted' : ''}`}
         >
           <button
@@ -153,8 +153,8 @@ function MemoGroup({
             onClick={() => onToggle(memo)}
           >
             <span
-              className={`grid h-7 w-7 place-items-center rounded-full border-[2.5px] text-sm text-on-primary ${
-                memo.done ? 'border-primary bg-primary' : 'border-line'
+              className={`grid h-7 w-7 place-items-center rounded-full border-[2.5px] text-sm text-tinta ${
+                memo.done ? 'border-mostaza-ink bg-mostaza' : 'border-line'
               }`}
             >
               {memo.done ? <AppIcon name="check" /> : null}
@@ -165,7 +165,7 @@ function MemoGroup({
             {memo.shared || memo.done ? (
               <p className="mt-0.5 text-sm font-semibold text-muted">
                 {memo.shared ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-lavender-soft px-2 py-0.5 text-sm font-extrabold text-lavender-ink">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-azul-claro px-2 py-0.5 text-sm font-extrabold text-azul-ink">
                     <AppIcon name="user-group" /> Las dos
                   </span>
                 ) : null}
@@ -256,12 +256,12 @@ function NewMemoSheet({
           rows={3}
           placeholder="Anotá algo para acordarte"
           onChange={(event) => setText(event.target.value)}
-          className="min-h-[88px] w-full rounded-[20px] border-2 border-sage-light bg-sand-soft px-4 py-3.5 text-base font-bold text-title outline-none placeholder:font-semibold placeholder:text-muted"
+          className="min-h-[88px] w-full rounded-[20px] border-2 border-azul bg-sand-soft px-4 py-3.5 text-base font-bold text-title outline-none placeholder:font-semibold placeholder:text-muted"
         />
       </label>
       {canShare ? (
-        <div className={`mt-2.5 flex min-h-16 items-center gap-3 rounded-[20px] px-3.5 py-3 ${shared ? 'bg-lavender-soft' : 'bg-card'}`}>
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-lavender-soft text-lavender-ink">
+        <div className={`mt-2.5 flex min-h-16 items-center gap-3 rounded-[20px] px-3.5 py-3 ${shared ? 'bg-azul-claro' : 'bg-card'}`}>
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-azul-claro text-azul-ink">
             <AppIcon name="user-group" />
           </span>
           <span className="min-w-0 flex-1">
@@ -270,7 +270,7 @@ function NewMemoSheet({
           </span>
           <ModuleSwitch
             on={shared}
-            tone="lavender"
+            tone="azul"
             label={`Compartir con ${partnerName}`}
             onToggle={() => setShared((current) => !current)}
           />
@@ -278,7 +278,7 @@ function NewMemoSheet({
       ) : (
         <p className="mt-3 text-sm font-semibold text-muted">Cuando se sume tu compañera vas a poder compartir memos.</p>
       )}
-      {error ? <p className="mt-3 text-sm font-bold text-alert-ink">{error}</p> : null}
+      {error ? <p className="mt-3 text-sm font-bold text-tinta">{error}</p> : null}
     </Sheet>
   )
 }

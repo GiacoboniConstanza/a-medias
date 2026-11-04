@@ -12,8 +12,8 @@ import { sortedTimes, type DailyKind, type ReminderPrefs, DEFAULT_REMINDER_PREFS
 import { supabase } from './supabase.ts'
 import { parseYearBalance, type YearReport } from './year.ts'
 
-const FUND_BAR = ['var(--color-primary)', 'var(--color-good)', 'var(--color-sage-light)']
-const GUSTOS_BAR = 'var(--color-warn)'
+const FUND_BAR = ['var(--color-azul)', 'var(--color-ciruela)', 'var(--color-azul-ink)']
+const GUSTOS_BAR = 'var(--color-rosa-hondo)'
 
 export type Category = {
   id: string
@@ -315,14 +315,14 @@ export async function loadFinance(householdId: string, userId: string, month: st
             label: fund?.name ?? 'Gustos',
             icon: fund?.icon || 'bag-shopping',
             amount: money(allocation.amount),
-            color: toGustos ? GUSTOS_BAR : 'var(--color-primary)',
+            color: toGustos ? GUSTOS_BAR : 'var(--color-azul)',
             toGustos,
           }
         })
       let fundShade = 0
       for (const part of parts) {
         if (part.toGustos) continue
-        part.color = FUND_BAR[fundShade % FUND_BAR.length] ?? 'var(--color-primary)'
+        part.color = FUND_BAR[fundShade % FUND_BAR.length] ?? 'var(--color-azul)'
         fundShade += 1
       }
       return {

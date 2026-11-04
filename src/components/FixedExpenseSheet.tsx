@@ -216,7 +216,7 @@ function FixedExpenseForm({
           type="button"
           aria-pressed={shared}
           onClick={() => setShared(true)}
-          className={`min-h-[52px] rounded-[15px] text-sm font-bold ${shared ? 'bg-primary text-on-primary' : 'text-muted'}`}
+          className={`min-h-[52px] rounded-[15px] text-sm font-bold ${shared ? 'border-[1.5px] border-tinta bg-mostaza text-tinta' : 'text-muted'}`}
         >
           Compartido
         </button>
@@ -224,7 +224,7 @@ function FixedExpenseForm({
           type="button"
           aria-pressed={!shared}
           onClick={() => setShared(false)}
-          className={`min-h-[52px] rounded-[15px] text-sm font-bold ${shared ? 'text-muted' : 'bg-primary text-on-primary'}`}
+          className={`min-h-[52px] rounded-[15px] text-sm font-bold ${shared ? 'text-muted' : 'border-[1.5px] border-tinta bg-mostaza text-tinta'}`}
         >
           Privado
         </button>

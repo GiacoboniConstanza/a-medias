@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type PointerEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { AppIcon } from './AppIcon.tsx'
+import { SheetStar } from './Adornos.tsx'
 
 const openSheetIds: symbol[] = []
 let overflowBeforeSheets: string | null = null
@@ -168,7 +169,7 @@ export function Sheet({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className={`sheet-motion absolute inset-x-0 mx-auto flex max-h-[min(86dvh,760px)] w-full max-w-[430px] flex-col rounded-t-[32px] bg-card shadow-card outline-none transition-transform duration-300 ease-out motion-reduce:transition-none ${
+        className={`sheet-motion absolute inset-x-0 mx-auto flex max-h-[min(86dvh,760px)] w-full max-w-[430px] flex-col rounded-t-2xl border-t-[1.5px] border-azul-ink bg-card outline-none transition-transform duration-300 ease-out motion-reduce:transition-none ${
           visible ? 'translate-y-0' : 'translate-y-full'
         }`}
         style={{
@@ -186,10 +187,11 @@ export function Sheet({
           <span className="h-1.5 w-12 rounded-full bg-line" aria-hidden="true" />
         </div>
         <div className="flex items-center justify-between gap-2 px-5 pb-2">
-          <h2 id={titleId} className="min-w-0 font-display text-xl font-medium">
-            {title}
+          <h2 id={titleId} className="flex min-w-0 items-center gap-2 font-display text-lg font-semibold">
+            <SheetStar />
+            <span className="min-w-0">{title}</span>
           </h2>
-          <button type="button" aria-label="Cerrar" onClick={onClose} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-sand text-alert-ink">
+          <button type="button" aria-label="Cerrar" onClick={onClose} className="grid h-11 w-11 shrink-0 place-items-center text-tinta">
             <AppIcon name="xmark" />
           </button>
         </div>

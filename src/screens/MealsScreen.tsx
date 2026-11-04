@@ -46,11 +46,11 @@ type DayOffset = -1 | 0 | 1
 const DAY_LABEL: Record<DayOffset, string> = { [-1]: 'Ayer', 0: 'Hoy', 1: 'Mañana' }
 
 const MEAL_TONE: Record<MealType, string> = {
-  desayuno: 'bg-gold-soft text-alert-ink',
-  almuerzo: 'bg-sage-soft text-primary',
-  merienda: 'bg-copper-soft text-alert-ink',
-  cena: 'bg-sage-soft text-primary',
-  snack: 'bg-gold-soft text-alert-ink',
+  desayuno: 'bg-mostaza-claro text-tinta',
+  almuerzo: 'bg-salvia-claro text-mostaza-ink',
+  merienda: 'bg-rosa-claro text-tinta',
+  cena: 'bg-salvia-claro text-mostaza-ink',
+  snack: 'bg-mostaza-claro text-tinta',
 }
 
 const EMPTY_GOALS: Goals = { proteinG: null, carbsG: null, fatG: null, kcal: null }
@@ -149,11 +149,11 @@ export function MealsScreen() {
           <button
             type="button"
             onClick={() => setGoalsOpen(true)}
-            className="inline-flex min-h-11 items-center gap-1.5 rounded-2xl bg-card px-3 text-sm font-extrabold text-primary shadow-soft"
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-2xl bg-card px-3 text-sm font-extrabold text-mostaza-ink shadow-soft"
           >
             <AppIcon name="bullseye" /> Objetivos
           </button>
-          <span className="inline-flex items-center gap-1 rounded-2xl bg-copper-soft px-3 py-1.5 text-sm font-extrabold text-alert-ink">
+          <span className="inline-flex items-center gap-1 rounded-2xl bg-rosa-claro px-3 py-1.5 text-sm font-extrabold text-tinta">
             <AppIcon name="lock" /> Solo vos
           </span>
         </div>
@@ -164,7 +164,7 @@ export function MealsScreen() {
           aria-label="Día anterior"
           disabled={offset === -1}
           onClick={() => setOffset((current) => (current === 1 ? 0 : -1))}
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-card text-primary shadow-soft disabled:opacity-40"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-card text-mostaza-ink shadow-soft disabled:opacity-40"
         >
           <AppIcon name="chevron-left" />
         </button>
@@ -174,12 +174,12 @@ export function MealsScreen() {
           aria-label="Día siguiente"
           disabled={offset === 1}
           onClick={() => setOffset((current) => (current === -1 ? 0 : 1))}
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-card text-primary shadow-soft disabled:opacity-40"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-card text-mostaza-ink shadow-soft disabled:opacity-40"
         >
           <AppIcon name="chevron-right" />
         </button>
       </div>
-      <section className="mb-3 rounded-3xl bg-card p-4 shadow-card">
+      <section className="mb-3 rounded-2xl bg-card p-4 border-2 border-azul-ink">
         <div className="flex items-center gap-3.5">
           <Sprout module="comidas" size={64} />
           <div className="min-w-0 flex-1">
@@ -192,7 +192,7 @@ export function MealsScreen() {
             </p>
             {proteinRatio != null ? (
               <div className="mt-2">
-                <Progress value={proteinRatio} color="var(--color-alert)" />
+                <Progress value={proteinRatio} color="var(--color-rosa)" />
               </div>
             ) : (
               <p className="mt-1 text-sm font-bold text-muted">Cargá un objetivo para ver la barra.</p>
@@ -200,9 +200,9 @@ export function MealsScreen() {
           </div>
         </div>
         <div className="mt-4 grid grid-cols-3 gap-3">
-          <MacroStat label="Carbos" text={`${formatAmount(totals.carbs)} g`} percent={proteinPercent(totals.carbs, goals.carbsG)} color="var(--color-warn)" />
-          <MacroStat label="Grasas" text={`${formatAmount(totals.fat)} g`} percent={proteinPercent(totals.fat, goals.fatG)} color="var(--color-warn-soft)" />
-          <MacroStat label="kcal" text={formatAmount(totals.kcal)} percent={proteinPercent(totals.kcal, goals.kcal)} color="var(--color-sage-light)" />
+          <MacroStat label="Carbos" text={`${formatAmount(totals.carbs)} g`} percent={proteinPercent(totals.carbs, goals.carbsG)} color="var(--color-mostaza)" />
+          <MacroStat label="Grasas" text={`${formatAmount(totals.fat)} g`} percent={proteinPercent(totals.fat, goals.fatG)} color="var(--color-mostaza-claro)" />
+          <MacroStat label="kcal" text={formatAmount(totals.kcal)} percent={proteinPercent(totals.kcal, goals.kcal)} color="var(--color-salvia)" />
         </div>
       </section>
       <h2 className="mb-2 px-1 text-sm font-bold text-muted">Lo que comiste</h2>
@@ -213,10 +213,10 @@ export function MealsScreen() {
         if (items.length === 0) return null
         return (
           <section key={type} className="mb-2">
-            <h3 className="mb-1.5 px-1 text-sm font-extrabold text-primary">{MEAL_LABEL[type]}</h3>
+            <h3 className="mb-1.5 px-1 text-sm font-extrabold text-mostaza-ink">{MEAL_LABEL[type]}</h3>
             <ul>
               {items.map((meal) => (
-                <li key={meal.id} className="mb-2 flex min-h-16 items-center gap-3 rounded-[22px] bg-card px-3 py-2 shadow-card">
+                <li key={meal.id} className="mb-2 flex min-h-16 items-center gap-3 rounded-[22px] bg-card px-3 py-2 border-2 border-azul-ink">
                   <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl ${MEAL_TONE[meal.mealType]}`}>
                     <AppIcon name={MEAL_ICON[meal.mealType]} />
                   </span>
@@ -247,7 +247,7 @@ export function MealsScreen() {
         </span>
         <span className="font-extrabold text-muted">Nueva comida</span>
       </button>
-      {error ? <p className="mt-3 text-center text-sm font-bold text-alert-ink">{error}</p> : null}
+      {error ? <p className="mt-3 text-center text-sm font-bold text-tinta">{error}</p> : null}
       <MealSheet
         open={mealOpen}
         ownerId={profile.id}
@@ -421,13 +421,13 @@ function MealSheet({
       {saved.length > 0 ? (
         <div className="mb-3">
           <p className="mb-1.5 text-sm font-bold text-muted">Frecuentes</p>
-          <div className="flex gap-2 overflow-x-auto pb-1">
+          <div className="flex flex-wrap gap-2 pb-1">
             {saved.map((food) => (
               <button
                 key={food.id}
                 type="button"
                 onClick={() => applySaved(food)}
-                className="min-h-11 shrink-0 rounded-2xl bg-copper-soft px-3 text-sm font-extrabold text-alert-ink"
+                className="min-h-11 shrink-0 rounded-2xl bg-rosa-claro px-3 text-sm font-extrabold text-tinta"
               >
                 {food.name}
               </button>
@@ -455,7 +455,7 @@ function MealSheet({
         <span className="text-base font-extrabold">Guardar como frecuente</span>
         <ModuleSwitch on={frequent} label="Guardar como frecuente" onToggle={() => setFrequent((current) => !current)} />
       </div>
-      {formError ? <p className="mt-3 text-sm font-bold text-alert-ink">{formError}</p> : null}
+      {formError ? <p className="mt-3 text-sm font-bold text-tinta">{formError}</p> : null}
     </Sheet>
   )
 }
@@ -532,7 +532,7 @@ function GoalsSheet({
       <MacroField label="Carbos (g)" value={carbs} onChange={setCarbs} numeric />
       <MacroField label="Grasas (g)" value={fat} onChange={setFat} numeric />
       <MacroField label="Calorías" value={kcal} onChange={setKcal} numeric />
-      {formError ? <p className="text-sm font-bold text-alert-ink">{formError}</p> : null}
+      {formError ? <p className="text-sm font-bold text-tinta">{formError}</p> : null}
     </Sheet>
   )
 }
