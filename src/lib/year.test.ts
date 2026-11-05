@@ -36,7 +36,7 @@ const months: YearMonth[] = [
 describe('balance anual', () => {
   it('un mes sin movimientos no se muestra como cero', () => {
     expect(yearCell(null)).toBe('—')
-    expect(yearCell(0)).toBe('$ 0,00')
+    expect(yearCell(0)).toBe('$ 0,00')
   })
 
   it('los meses futuros no suman y un extra vacío no es cero', () => {
@@ -50,7 +50,7 @@ describe('balance anual', () => {
 
   it('marca el cambio de sueldo a mitad de año', () => {
     expect(salaryChanges(months)).toEqual([{ month: 7, from: 1_500_000, to: 1_800_000 }])
-    expect(incomeCaption(months, 2026, today)).toContain('pasó de $ 1.500.000,00 a $ 1.800.000,00 en julio')
+    expect(incomeCaption(months, 2026, today)).toContain('pasó de $ 1.500.000,00 a $ 1.800.000,00 en julio')
     expect(incomeCaption(months, 2026, today)).toContain('Diciembre todavía no llegó')
   })
 
@@ -107,7 +107,7 @@ describe('balance anual', () => {
     const moments = yearMoments(report, today)
     expect(moments).toHaveLength(3)
     expect(moments.map((moment) => moment.text).join(' ')).not.toMatch(/culpa|demasiado|te pasaste|mal/)
-    expect(highlightSentence(report.highlight)).toBe('Tu incentivo de agosto ($ 1.040.000,00) fue directo a Lollapalooza.')
+    expect(highlightSentence(report.highlight)).toBe('Tu incentivo de agosto ($ 1.040.000,00) fue directo a Lollapalooza.')
     expect(duesSentence(9, 10)).toBe('Quedaron pagos a tiempo 9 de 10 vencimientos. ¡Bien ahí!')
     expect(gustosSentence(40_000, 450_000, 300_000)).toContain('67%')
     expect(yearHasData(report, today)).toBe(true)

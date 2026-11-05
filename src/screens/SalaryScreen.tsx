@@ -174,7 +174,7 @@ export function SalaryScreen() {
       <SectionHeader lead="back" backTo={isHubHome(enabled) ? '/finanzas' : '/'} title="Mi sueldo" screenTitle />
       <Card>
         <p className="text-sm font-semibold text-muted">Sueldo vigente</p>
-        <p className="font-display text-3xl font-bold">{formatMoney(current)}</p>
+        <p className="font-display text-3xl font-semibold">{formatMoney(current)}</p>
         {vigente ? (
           <p className="mt-1 text-sm font-semibold text-muted">desde {sinceLabel(vigente.effectiveFrom)}</p>
         ) : (

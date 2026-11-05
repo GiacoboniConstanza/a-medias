@@ -168,7 +168,7 @@ export function MealsScreen() {
         >
           <AppIcon name="chevron-left" />
         </button>
-        <h1 className="text-center font-display text-[1.75rem] font-bold leading-tight">{DAY_LABEL[offset]}</h1>
+        <h1 className="text-center font-display text-[1.75rem] font-semibold leading-tight">{DAY_LABEL[offset]}</h1>
         <button
           type="button"
           aria-label="Día siguiente"
@@ -184,7 +184,7 @@ export function MealsScreen() {
           <Sprout module="comidas" size={64} />
           <div className="min-w-0 flex-1">
             <p className="text-sm font-bold text-muted">Proteína</p>
-            <p className="font-display text-[1.7rem] font-bold leading-tight">
+            <p className="font-display text-[1.7rem] font-semibold leading-tight">
               {formatAmount(totals.protein)}{' '}
               <span className="font-sans text-base font-bold text-muted">
                 {proteinGoal != null && proteinGoal > 0 ? `de ${formatAmount(proteinGoal)} g` : 'g'}

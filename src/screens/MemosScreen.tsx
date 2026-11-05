@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { AppIcon } from '../components/AppIcon.tsx'
+import { Plantita } from '../components/Adornos.tsx'
+import { Fab, FabSpace } from '../components/Fab.tsx'
 import { ModuleTitle } from '../components/ModulePill.tsx'
 import { ModuleSwitch } from '../components/ModuleSwitch.tsx'
-import { Sprout } from '../components/Sprout.tsx'
 import { Sheet } from '../components/Sheet.tsx'
 import { Button } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
 import { useModules } from '../context/ModulesProvider.tsx'
 import { partnerId } from '../lib/derive.ts'
-import { checkedThisWeek, groupMemos, weekCheer, type MemoItem } from '../lib/memos.ts'
+import { groupMemos, type MemoItem } from '../lib/memos.ts'
 import { supabase } from '../lib/supabase.ts'
 
 const EMPTY: MemoItem[] = []
@@ -62,7 +63,6 @@ export function MemosScreen() {
   const otherId = data ? partnerId(data, profile.id) : null
   const partnerName = (otherId && data?.names[otherId]) || 'tu compañera'
   const groups = groupMemos(memos, profile.id)
-  const cheer = weekCheer(checkedThisWeek(memos, profile.id))
 
   async function toggleDone(memo: MemoItem) {
     const next = !memo.done
@@ -88,26 +88,20 @@ export function MemosScreen() {
       <header className="mb-4 flex min-h-11 items-center">
         <ModuleTitle module="memos" />
       </header>
-      <h1 className="font-display text-[1.8rem] font-bold leading-tight">Mis memos</h1>
-      <div className="mb-1 mt-2 flex items-center gap-2 text-sm font-bold text-title">
-        <Sprout module="memos" size={30} />
-        <span>{cheer}</span>
+      <h1 className="mt-2 font-display text-[34px] font-semibold leading-tight">Mis memos</h1>
+      <div className="mb-1 mt-2 flex items-center gap-3 text-sm font-medium text-gris">
+        <Plantita width={46} height={60} />
+        <span>Cuando taches uno, tu plantita florece.</span>
       </div>
       {loading ? <p className="py-8 text-center font-semibold text-muted">Cargando memos…</p> : null}
       {!loading && groups.shared.length === 0 && groups.solo.length === 0 ? (
         <p className="py-8 text-center font-semibold text-muted">Todavía no hay memos.</p>
       ) : null}
-      <MemoGroup title={`Con ${partnerName}`} memos={groups.shared} meId={profile.id} partnerName={partnerName} onToggle={toggleDone} />
-      <MemoGroup title="Solo vos" memos={groups.solo} meId={profile.id} partnerName={partnerName} onToggle={toggleDone} />
+      <MemoGroup title="Con" accent={partnerName} accentClass="text-salvia-ink" memos={groups.shared} meId={profile.id} partnerName={partnerName} onToggle={toggleDone} />
+      <MemoGroup title="Solo" accent="vos" accentClass="text-rosa-texto" memos={groups.solo} meId={profile.id} partnerName={partnerName} onToggle={toggleDone} />
       {error ? <p className="text-center text-sm font-bold text-tinta">{error}</p> : null}
-      <button
-        type="button"
-        aria-label="Nuevo memo"
-        onClick={() => setOpen(true)}
-        className="fixed bottom-24 right-[max(1.25rem,calc(50vw-190px))] z-30 grid h-[58px] w-[58px] place-items-center rounded-full bg-mostaza text-2xl text-tinta "
-      >
-        <AppIcon name="plus" />
-      </button>
+      <FabSpace />
+      <Fab label="Nuevo memo" onClick={() => setOpen(true)} />
       <NewMemoSheet
         open={open}
         partnerName={partnerName}
@@ -123,12 +117,16 @@ export function MemosScreen() {
 
 function MemoGroup({
   title,
+  accent,
+  accentClass,
   memos,
   meId,
   partnerName,
   onToggle,
 }: {
   title: string
+  accent: string
+  accentClass: string
   memos: MemoItem[]
   meId: string
   partnerName: string
@@ -137,13 +135,13 @@ function MemoGroup({
   if (memos.length === 0) return null
   return (
     <section>
-      <h2 className="mb-2 ml-1 mt-4 text-sm font-bold text-muted">{title}</h2>
-      {memos.map((memo) => (
+      <h2 className="mb-2 mt-[18px] text-sm font-bold text-gris">
+        {title} <span className={accentClass}>{accent}</span>
+      </h2>
+      {memos.map((memo, index) => (
         <article
           key={memo.id}
-          className={`mb-2.5 flex items-center gap-1 rounded-[22px] py-1 pl-1 pr-3.5 border-2 border-azul-ink ${
-            memo.shared ? 'bg-azul-claro shadow-[inset_4px_0_0_var(--color-azul)] shadow-soft' : 'bg-card'
-          } ${memo.done ? 'text-muted' : ''}`}
+          className={`flex h-[86px] items-center gap-2 border-t-[1.5px] border-dashed px-0 ${index === 0 ? 'border-transparent' : 'border-line'}`}
         >
           <button
             type="button"
@@ -153,24 +151,28 @@ function MemoGroup({
             onClick={() => onToggle(memo)}
           >
             <span
-              className={`grid h-7 w-7 place-items-center rounded-full border-[2.5px] text-sm text-tinta ${
-                memo.done ? 'border-mostaza-ink bg-mostaza' : 'border-line'
+              className={`grid h-[var(--alto-casilla)] w-[var(--alto-casilla)] place-items-center rounded-[var(--radio-casilla)] border-2 border-azul-ink text-sm text-azul-ink ${
+                memo.done ? 'bg-azul-claro' : 'bg-transparent'
               }`}
             >
               {memo.done ? <AppIcon name="check" /> : null}
             </span>
           </button>
-          <div className="min-w-0 flex-1 py-2">
-            <p className={`text-[15.5px] font-bold leading-snug ${memo.done ? 'line-through' : ''}`}>{memo.text}</p>
+          <div className="min-w-0 flex-1">
+            <p className={`text-lg font-medium leading-snug ${memo.done ? 'text-gris line-through' : 'text-tinta'}`}>{memo.text}</p>
             {memo.shared || memo.done ? (
-              <p className="mt-0.5 text-sm font-semibold text-muted">
+              <p className="mt-1 flex flex-wrap items-center gap-2 text-sm font-medium text-gris">
                 {memo.shared ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-azul-claro px-2 py-0.5 text-sm font-semibold text-azul-ink">
+                  <span className="inline-flex h-[var(--alto-chip)] items-center gap-1.5 rounded-full bg-azul-claro px-2.5 text-sm font-semibold text-azul-ink">
                     <AppIcon name="user-group" /> Las dos
                   </span>
                 ) : null}
-                {memo.done ? <span className={memo.shared ? 'ml-2' : ''}>Hecho</span> : null}
-                {memo.shared && memo.ownerId !== meId ? <span className="ml-2">De {partnerName}</span> : null}
+                {memo.done ? <span>Hecho</span> : null}
+                {memo.shared && memo.ownerId !== meId ? (
+                  <span className="inline-flex h-[var(--alto-chip)] items-center rounded-full bg-azul-claro px-2.5 text-sm font-semibold text-azul-ink">
+                    De <span className="ml-1 font-bold text-salvia-ink">{partnerName}</span>
+                  </span>
+                ) : null}
               </p>
             ) : null}
           </div>

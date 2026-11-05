@@ -29,7 +29,7 @@ export function ModulesScreen() {
           <AppIcon name="xmark" />
         </Link>
       </header>
-      <h1 className="font-display text-[1.8rem] font-bold leading-tight">Mis módulos</h1>
+      <h1 className="font-display text-[1.8rem] font-semibold leading-tight">Mis módulos</h1>
       <section className="mb-3 mt-3.5 flex items-center gap-3 rounded-2xl bg-gradient-to-br from-card to-[var(--color-salvia-claro)] p-3 border-2 border-azul-ink">
         <Planter />
         <p className="text-sm font-bold leading-snug">
@@ -81,7 +81,7 @@ export function ComingSoonScreen({ module }: { module: ModuleId }) {
       <div className="mb-4 flex justify-center">
         <Sprout module={module} muted />
       </div>
-      <h1 className="font-display text-[1.8rem] font-bold">{meta.label}</h1>
+      <h1 className="font-display text-[1.8rem] font-semibold">{meta.label}</h1>
       <p className="mt-2 font-bold text-muted">Próximamente</p>
       <Link to="/" className="mt-6 inline-flex min-h-11 items-center justify-center rounded-2xl bg-mostaza px-5 font-semibold text-tinta">
         Volver al inicio

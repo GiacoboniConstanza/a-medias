@@ -150,7 +150,7 @@ export function HabitsScreen() {
         <button type="button" aria-label="Semana anterior" onClick={() => setWeekStart((current) => addDays(current, -7))} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-card text-mostaza-ink shadow-soft">
           <AppIcon name="chevron-left" />
         </button>
-        <h1 className="text-center font-display text-[1.75rem] font-bold leading-tight">{weekTitle(weekStart, today)}</h1>
+        <h1 className="text-center font-display text-[1.75rem] font-semibold leading-tight">{weekTitle(weekStart, today)}</h1>
         <button type="button" aria-label="Semana siguiente" onClick={() => setWeekStart((current) => addDays(current, 7))} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-card text-mostaza-ink shadow-soft">
           <AppIcon name="chevron-right" />
         </button>

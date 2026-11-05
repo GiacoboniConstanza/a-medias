@@ -99,7 +99,7 @@ export function YearScreen() {
         <button type="button" className={ARROW} aria-label="Año anterior" disabled={year <= 2000} onClick={() => setYear((value) => value - 1)}>
           <AppIcon name="chevron-left" />
         </button>
-        <p className="font-display text-[2rem] font-bold leading-none">{year}</p>
+        <p className="font-display text-[2rem] font-semibold leading-none">{year}</p>
         <button type="button" className={ARROW} aria-label="Año siguiente" disabled={year >= 2100} onClick={() => setYear((value) => value + 1)}>
           <AppIcon name="chevron-right" />
         </button>
@@ -202,7 +202,7 @@ function FriendlyView({
             <AppIcon name="trophy" />
           </span>
           <p className="mt-2 text-sm text-muted">Tu mejor mes</p>
-          <p className="font-display text-xl font-bold">{best ? monthHeading(best.month) : '—'}</p>
+          <p className="font-display text-xl font-semibold">{best ? monthHeading(best.month) : '—'}</p>
           <p className="text-sm text-muted">{best?.saved != null ? `Ahorraste ${formatMoney(best.saved)}` : 'Todavía no hay un mes para comparar'}</p>
         </Card>
         <Card className="year-rise mb-0 flex-1 bg-rosa-claro">
@@ -210,7 +210,7 @@ function FriendlyView({
             <AppIcon name="fire" />
           </span>
           <p className="mt-2 text-sm text-muted">El mes más gastador</p>
-          <p className="font-display text-xl font-bold">{spender ? monthHeading(spender.month) : '—'}</p>
+          <p className="font-display text-xl font-semibold">{spender ? monthHeading(spender.month) : '—'}</p>
           <p className="text-sm text-muted">{spender?.expenses != null ? `Gastaste ${formatMoney(spender.expenses)}` : 'Cuando anotes gastos, va a aparecer acá'}</p>
         </Card>
       </div>
@@ -256,7 +256,7 @@ function FriendlyView({
           <AppIcon name="bag-shopping" className="text-tinta" /> Tus gustos del año
         </h2>
         {report.gustosSpent !== null && report.gustosSpent > 0 ? (
-          <p className="font-display text-[26px] font-bold text-tinta">{formatMoney(report.gustosSpent)}</p>
+          <p className="font-display text-[26px] font-semibold text-tinta">{formatMoney(report.gustosSpent)}</p>
         ) : null}
         <p className="text-sm text-muted">{gustosSentence(report.gustosSpent, report.extrasTotal, report.extrasSaved)}</p>
       </Card>
@@ -587,7 +587,7 @@ function CategoryDetail({
   const max = Math.max(...category.months.map((amount) => amount ?? 0), 0)
   return (
     <>
-      <p className="mb-3 font-display text-2xl font-bold">{formatMoney(category.total)}</p>
+      <p className="mb-3 font-display text-2xl font-semibold">{formatMoney(category.total)}</p>
       <ul>
         {category.months.map((amount, index) => {
           const future = isFutureMonth(year, index + 1, today)
@@ -699,7 +699,7 @@ function Stat({
       <p className="text-sm text-muted">
         <AppIcon name={icon} /> {label}
       </p>
-      <p className={`mt-0.5 font-display text-[14.5px] font-bold leading-tight ${valueClass}`}>{yearCell(value)}</p>
+      <p className={`mt-0.5 font-display text-[14.5px] font-semibold leading-tight ${valueClass}`}>{yearCell(value)}</p>
     </div>
   )
 }

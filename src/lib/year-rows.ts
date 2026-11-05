@@ -59,7 +59,7 @@ export function abbreviateMoney(value: number): string {
   const abs = Math.abs(value)
   if (abs < 10_000) return full
   const sign = value < 0 ? '-' : ''
-  const short = abs >= 1_000_000 ? `${sign}$ ${trimScaled(abs / 1_000_000)} M` : `${sign}$ ${trimScaled(abs / 1_000)} mil`
+  const short = abs >= 1_000_000 ? `${sign}$\u00a0${trimScaled(abs / 1_000_000)} M` : `${sign}$\u00a0${trimScaled(abs / 1_000)} mil`
   return short.length < full.length ? short : full
 }
 

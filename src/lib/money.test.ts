@@ -21,8 +21,8 @@ describe('reparto del boceto', () => {
   })
 
   it('dice quién le debe a quién', () => {
-    expect(debtSentence('coty', result)).toBe('Maru te debe $ 84.000,00')
-    expect(debtSentence('maru', result)).toBe('Le debés $ 84.000,00 a Coty')
+    expect(debtSentence('coty', result)).toBe('Maru te debe $ 84.000,00')
+    expect(debtSentence('maru', result)).toBe('Le debés $ 84.000,00 a Coty')
   })
 })
 
@@ -87,9 +87,9 @@ describe('inicio del mes', () => {
 
 describe('plata', () => {
   it('usa formato es-AR con centavos', () => {
-    expect(formatMoney(186_400)).toBe('$ 186.400,00')
-    expect(formatMoney(-1500)).toBe('-$ 1.500,00')
-    expect(formatMoney(12_345.5)).toBe('$ 12.345,50')
+    expect(formatMoney(186_400)).toBe('$ 186.400,00')
+    expect(formatMoney(-1500)).toBe('-$ 1.500,00')
+    expect(formatMoney(12_345.5)).toBe('$ 12.345,50')
   })
 
   it('lee montos con coma y el punto decimal del teclado', () => {

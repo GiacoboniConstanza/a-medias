@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { Plantita } from '../components/Adornos.tsx'
-import { Fab } from '../components/Fab.tsx'
+import { Fab, FabSpace } from '../components/Fab.tsx'
 import { MonthSwitcher } from '../components/MonthSwitcher.tsx'
 import { NotificationBell } from '../components/NotificationBell.tsx'
 import { PartnerMemos } from '../components/PartnerMemos.tsx'
@@ -141,7 +141,7 @@ export function HomeScreen() {
           <div className="flex items-start gap-2">
             <HomePot />
             <div className="min-w-0">
-              <h2 className="flex items-center gap-1.5 font-display text-base font-medium text-title">
+              <h2 className="flex items-center gap-1.5 font-display text-base font-semibold text-title">
                 <AppIcon name="seedling" className="text-mostaza-ink" /> Me queda
               </h2>
               {jar.tone === 'empty' ? (
@@ -157,7 +157,7 @@ export function HomeScreen() {
         ) : (
           <>
             <div className="flex items-start justify-between gap-3">
-              <h2 className="font-display text-xl font-medium text-title">Me queda</h2>
+              <h2 className="font-display text-xl font-semibold text-title">Me queda</h2>
               <HomePot />
             </div>
             <p className={`mt-1 font-display text-[clamp(1.75rem,8vw,2.375rem)] font-semibold leading-none whitespace-nowrap ${amountTone}`}>{card.remainingText}</p>
@@ -207,7 +207,7 @@ export function HomeScreen() {
       {showBanner ? (
         <div className="mb-3 flex h-14 items-center gap-1 rounded-2xl border border-line bg-sand-soft pl-3 pr-1">
           <AppIcon name="chart-pie" className="shrink-0 text-mostaza-ink" />
-          <p className="min-w-0 flex-1 font-display text-base font-medium text-title">Tu balance {year} está listo</p>
+          <p className="min-w-0 flex-1 font-display text-base font-semibold text-title">Tu balance {year} está listo</p>
           <Link to="/mi-anio" className="grid h-12 w-12 place-items-center text-base font-bold text-mostaza-ink">
             Ver
           </Link>
@@ -237,6 +237,7 @@ export function HomeScreen() {
 
       {error ? <p className="text-center text-sm font-semibold text-tinta">{error}</p> : null}
 
+      <FabSpace />
       <Fab to="/cargar" label="Nuevo gasto" state={{ from: hub ? '/finanzas' : '/' }} />
       <Toast aboveFab onDone={() => setToast('')}>
         {toast}

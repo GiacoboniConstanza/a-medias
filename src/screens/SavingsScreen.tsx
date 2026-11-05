@@ -244,11 +244,12 @@ export function SavingsScreen() {
                 <PotPlant variant="fondo" progress={percent} className="h-11 w-11 shrink-0" />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2">
-                    <h2 className="min-w-0 text-base font-semibold">{row.name}</h2>
+                    <h2 className="min-w-0 font-display text-lg font-semibold">{row.name}</h2>
                     <ScopeTag shared={row.shared} />
                   </div>
-                  <p className="whitespace-nowrap text-base font-semibold">
-                    {formatMoney(row.saved)} de {formatMoney(row.target)}
+                  <p className="mt-2 whitespace-nowrap text-sm font-medium text-gris">
+                    <span className="font-display text-lg font-semibold text-tinta">{formatMoney(row.saved)}</span> de{' '}
+                    <span className="font-display text-sm font-semibold">{formatMoney(row.target)}</span>
                   </p>
                   <p className="text-base text-muted">
                     {row.shared ? goalPhrase(row.saved, row.target) : `Vas por el ${percent}%.`}
@@ -345,30 +346,22 @@ export function SavingsScreen() {
 
       {showPrivateActions ? (
         <div className="mt-3 rounded-2xl bg-sand-soft p-4">
-          <p className="text-base text-muted">
-            {data.gustosPool > 0
-              ? `Para gustos te quedan ${formatMoney(Math.max(data.gustosFree, 0))}.`
-              : 'Cuando un extra no va a un fondo, queda para gustos.'}
+          <p className="text-sm font-medium text-tinta">
+            Para gustos te quedan <span className="whitespace-nowrap font-display font-semibold">{formatMoney(Math.max(data.gustosFree, 0))}</span>.
           </p>
-          <button type="button" className="block min-h-11 text-base font-semibold text-mostaza-ink" onClick={() => setExtraOpen(true)}>
+          <button type="button" className="mt-0.5 block min-h-11 text-sm font-bold text-mostaza-ink" onClick={() => setExtraOpen(true)}>
             Cargar un extra
           </button>
-          <button
-            type="button"
-            className="block min-h-11 text-base font-semibold text-mostaza-ink disabled:opacity-50"
-            disabled={data.gustosFree <= 0}
+          <GustosAction
+            label="Me di un gusto"
+            reason={data.gustosFree <= 0 ? 'No te queda plata para gustos.' : ''}
             onClick={() => setGustoOpen(true)}
-          >
-            Me di un gusto
-          </button>
-          <button
-            type="button"
-            className="block min-h-11 text-base font-semibold text-mostaza-ink disabled:opacity-50"
-            disabled={data.gustosFree <= 0 || activeFunds.length === 0}
+          />
+          <GustosAction
+            label="Pasar a un fondo"
+            reason={data.gustosFree <= 0 ? 'No te queda plata para gustos.' : activeFunds.length === 0 ? 'Primero creá un fondo.' : ''}
             onClick={() => openMove('to_fund', null)}
-          >
-            Pasar a un fondo
-          </button>
+          />
         </div>
       ) : null}
       {showPrivateActions && gustos.level === 'low' ? (
@@ -621,11 +614,34 @@ function ContributionList({
   )
 }
 
+function GustosAction({ label, reason, onClick }: { label: string; reason: string; onClick: () => void }) {
+  const off = reason !== ''
+  return (
+    <div className="mt-2">
+      <button
+        type="button"
+        aria-disabled={off}
+        onClick={() => {
+          if (!off) onClick()
+        }}
+        className={
+          off
+            ? 'flex min-h-11 w-full items-center justify-center rounded-full border-[1.5px] border-dashed border-gris-claro bg-fondo-desactivado px-4 text-lg font-semibold text-gris'
+            : 'block min-h-11 text-sm font-bold text-mostaza-ink'
+        }
+      >
+        {label}
+      </button>
+      {off ? <p className="mt-1.5 text-sm font-medium text-gris">{reason}</p> : null}
+    </div>
+  )
+}
+
 function ScopeTag({ shared }: { shared: boolean }) {
   return (
     <span
-      className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2 py-0.5 text-base font-semibold ${
-        shared ? 'bg-azul-claro text-title' : 'bg-mostaza-claro text-title'
+      className={`inline-flex h-[var(--alto-chip)] shrink-0 items-center whitespace-nowrap rounded-full px-2.5 text-sm font-semibold ${
+        shared ? 'bg-azul-claro text-azul-ink' : 'bg-ciruela-claro text-tinta'
       }`}
     >
       {shared ? 'Compartido' : 'Privado'}

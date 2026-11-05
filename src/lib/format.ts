@@ -24,7 +24,7 @@ const moneyFormatter = new Intl.NumberFormat('es-AR', {
 export function formatMoney(value: number): string {
   const amount = money(value)
   const formatted = moneyFormatter.format(Math.abs(amount)).replace(/[\u00a0\u202f]/g, ' ')
-  return `${amount < 0 ? '-' : ''}$ ${formatted}`
+  return `${amount < 0 ? '-' : ''}$\u00a0${formatted}`
 }
 
 export function formatPercent(value: number): string {

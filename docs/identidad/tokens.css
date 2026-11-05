@@ -35,7 +35,7 @@
   --texto-titulo-y-boton:18px;
   --texto-titulo-de-pantalla:34px;
   --texto-monto-grande:36px;
-  --texto-aviso:16px;
+  --texto-aviso:14px;
   --texto-barra-inferior:14px;
   --texto-icono-chico:14px;
   --texto-icono:18px;
@@ -61,7 +61,7 @@
   --alto-circulo-icono-selector:26px;
   --alto-contador:24px;
   --alto-segmentos:8px;
-  --alto-progreso:10px;
+  --alto-progreso:12px;
   --alto-barra-reparto:12px;
   --alto-fila-de-gasto:62px;
   --alto-aviso:52px;
@@ -76,6 +76,28 @@
   --aviso-duracion:6000ms;
   --sombra-aviso:0 2px 8px rgb(47 74 56 / 14%);
   --feston-radio:12.5px; --feston-borde:13px; --feston-ancho:26px; --feston-alto:13px;
+  --ancho-columna:430px;
+  --alto-chip:27px;
+  --alto-fab:52px;
+  --espacio-fab-abajo:105px;
+  --espacio-final-con-fab:84px;
+  --ancho-plantita:46px; --alto-plantita:60px;
+  --alto-maceta-fila:44px;
+  --ancho-estrella-mes:30px; --alto-estrella-mes:33px; --espacio-estrella-mes:10px;
+  --burbuja-espacio:8px;
+  --alto-enlace-accion:44px;
+  --alto-fila-aviso:72px;
+  --alto-casilla:28px; --radio-casilla:8px;
+  --color-fondo-desactivado:#F1E8DC;
+  --color-gris-claro:#A9A49D;
+  --borde-desactivado:1.5px dashed var(--color-gris-claro);
+  --alto-franja-fab:100px;
+  --color-linea-fila:rgba(27,36,46,.3);
+  --color-cat-menta:#BBE0C7; --color-cat-menta-ink:#386348;
+  --color-cat-agua:#A8E1E5; --color-cat-agua-ink:#08646A;
+  --color-cat-durazno:#E6C3AA; --color-cat-durazno-ink:#6B4A2F;
+  --color-cat-lila:#E0D1F4; --color-cat-lila-ink:#625379;
+  --color-cat-avellana:#BEA889; --color-cat-avellana-ink:#4C3918;
 }
 /* Festón: solo bajo el bloque superior (.scallop-b) y sobre la barra inferior (.scallop-t). --sc es el color del bloque. */
 .scallop-b{position:relative}

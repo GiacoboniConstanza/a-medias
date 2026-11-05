@@ -14,10 +14,10 @@ export type NavItem = {
 }
 
 export const MODULE_META: Record<ModuleId, { label: string; detail: string; icon: string; to: string; tone: string; ink: string }> = {
-  finanzas: { label: 'Finanzas', detail: 'Gastos y ahorros', icon: 'wallet', to: '/finanzas', tone: 'bg-mostaza-claro', ink: 'text-mostaza-ink' },
-  habitos: { label: 'Hábitos', detail: 'Lo que querés hacer cada día', icon: 'seedling', to: '/habitos', tone: 'bg-salvia-claro', ink: 'text-salvia-ink' },
-  comidas: { label: 'Comidas', detail: 'Proteína y lo que comés', icon: 'bowl-food', to: '/comidas', tone: 'bg-rosa-claro', ink: 'text-tinta' },
-  memos: { label: 'Memos', detail: 'Notas y cosas para acordarte', icon: 'note-sticky', to: '/memos', tone: 'bg-azul-claro', ink: 'text-azul-ink' },
+  finanzas: { label: 'Finanzas', detail: 'Gastos y ahorros', icon: 'wallet', to: '/finanzas', tone: 'bg-mostaza', ink: 'text-tinta' },
+  habitos: { label: 'Hábitos', detail: 'Lo que querés hacer cada día', icon: 'seedling', to: '/habitos', tone: 'bg-salvia', ink: 'text-tinta' },
+  comidas: { label: 'Comidas', detail: 'Proteína y lo que comés', icon: 'bowl-food', to: '/comidas', tone: 'bg-rosa', ink: 'text-tinta' },
+  memos: { label: 'Memos', detail: 'Notas y cosas para acordarte', icon: 'note-sticky', to: '/memos', tone: 'bg-azul', ink: 'text-tinta' },
 }
 
 export const FINANCE_ROUTES = {

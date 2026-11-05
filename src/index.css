@@ -1,6 +1,53 @@
 @import 'tailwindcss';
 @config '../tailwind.config.ts';
 
+@theme {
+  --color-bg: #fef4e8;
+  --color-crema: #fef4e8;
+  --color-shell: #fef4e8;
+  --color-card: #fffaf3;
+  --color-tarjeta: #fffaf3;
+  --color-sand: #dfe2ec;
+  --color-sand-soft: #fef4e8;
+  --color-line: rgb(27 36 46 / 30%);
+  --color-line-strong: rgb(27 36 46 / 45%);
+  --color-title: #1b242e;
+  --color-tinta: #1b242e;
+  --color-muted: #5f6266;
+  --color-gris: #5f6266;
+  --color-gris-claro: #a9a49d;
+  --color-fondo-desactivado: #f1e8dc;
+  --color-azul: #7d8bb2;
+  --color-azul-ink: #4c5a80;
+  --color-azul-claro: #dfe2ec;
+  --color-mostaza: #e6a940;
+  --color-mostaza-ink: #7e5611;
+  --color-mostaza-claro: #f6e1bb;
+  --color-rosa: #e8a198;
+  --color-rosa-hondo: #b96d64;
+  --color-rosa-claro: #f6d9d5;
+  --color-rosa-texto: #a25b53;
+  --color-salvia: #a6a066;
+  --color-salvia-ink: #5a5735;
+  --color-salvia-claro: #e3e1cf;
+  --color-ciruela: #9c7092;
+  --color-ciruela-ink: #86607f;
+  --color-ciruela-claro: #e6d8db;
+  --color-aviso: #2f4a38;
+  --color-aviso-texto: #fffaf4;
+  --color-aviso-accion: #e3eed4;
+  --color-cat-menta: #bbe0c7;
+  --color-cat-menta-ink: #386348;
+  --color-cat-agua: #a8e1e5;
+  --color-cat-agua-ink: #08646a;
+  --color-cat-durazno: #e6c3aa;
+  --color-cat-durazno-ink: #6b4a2f;
+  --color-cat-lila: #e0d1f4;
+  --color-cat-lila-ink: #625379;
+  --color-cat-avellana: #bea889;
+  --color-cat-avellana-ink: #4c3918;
+}
+
 html,
 body,
 #root {
@@ -32,6 +79,25 @@ input {
 }
 
 :root {
+  --ancho-columna: 430px;
+  --alto-chip: 27px;
+  --alto-fab: 52px;
+  --espacio-fab-abajo: 105px;
+  --espacio-final-con-fab: 84px;
+  --ancho-plantita: 46px;
+  --alto-plantita: 60px;
+  --alto-maceta-fila: 44px;
+  --ancho-estrella-mes: 30px;
+  --alto-estrella-mes: 33px;
+  --espacio-estrella-mes: 10px;
+  --burbuja-espacio: 8px;
+  --alto-enlace-accion: 44px;
+  --alto-fila-aviso: 72px;
+  --alto-casilla: 28px;
+  --radio-casilla: 8px;
+  --borde-desactivado: 1.5px dashed var(--color-gris-claro);
+  --alto-franja-fab: 100px;
+  --alto-barra-reparto: 12px;
   --feston-radio: 12.5px;
   --feston-borde: 13px;
   --feston-ancho: 26px;

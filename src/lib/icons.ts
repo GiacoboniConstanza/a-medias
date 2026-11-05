@@ -29,7 +29,10 @@ import {
   faChevronRight,
   faCouch,
   faDeleteLeft,
+  faArrowRightFromBracket,
+  faArrowRightToBracket,
   faDownload,
+  faFileExport,
   faDumbbell,
   faEllipsis,
   faFire,
@@ -144,6 +147,9 @@ const ICONS: Record<string, IconDefinition> = {
   couch: faCouch,
   'delete-left': faDeleteLeft,
   download: faDownload,
+  'file-export': faFileExport,
+  'arrow-right-from-bracket': faArrowRightFromBracket,
+  'arrow-right-to-bracket': faArrowRightToBracket,
   ellipsis: faEllipsis,
   dumbbell: faDumbbell,
   fire: faFire,
@@ -207,28 +213,20 @@ export function iconByName(name: string | null | undefined): IconDefinition {
   return ICONS[DEFAULT_ICON] ?? faTag
 }
 
-const SAGE_SURFACE = { background: 'var(--color-salvia-claro)', color: 'var(--color-salvia-ink)' }
-const COPPER_SURFACE = { background: 'var(--color-rosa-claro)', color: 'var(--color-tinta)' }
-const GOLD_SURFACE = { background: 'var(--color-mostaza-claro)', color: 'var(--color-mostaza-ink)' }
-const BLUE_SURFACE = { background: 'var(--color-azul-claro)', color: 'var(--color-azul-ink)' }
-const AZUL_SURFACE = { background: 'var(--color-azul-claro)', color: 'var(--color-azul-ink)' }
+type IconSurface = { background: string; color: string; border: string }
 
-const ICON_SURFACES: Record<string, { background: string; color: string }> = {
-  wifi: BLUE_SURFACE,
-  laptop: BLUE_SURFACE,
-  lightbulb: GOLD_SURFACE,
-  bolt: GOLD_SURFACE,
-  fire: COPPER_SURFACE,
-  'gas-pump': COPPER_SURFACE,
-  heart: COPPER_SURFACE,
-  pills: COPPER_SURFACE,
-  stethoscope: COPPER_SURFACE,
-  book: AZUL_SURFACE,
-  'graduation-cap': AZUL_SURFACE,
-  music: AZUL_SURFACE,
-  star: AZUL_SURFACE,
-}
+const MENTA: IconSurface = { background: 'var(--color-cat-menta)', color: 'var(--color-tinta)', border: 'var(--color-cat-menta-ink)' }
+const AGUA: IconSurface = { background: 'var(--color-cat-agua)', color: 'var(--color-tinta)', border: 'var(--color-cat-agua-ink)' }
+const DURAZNO: IconSurface = { background: 'var(--color-cat-durazno)', color: 'var(--color-tinta)', border: 'var(--color-cat-durazno-ink)' }
+const LILA: IconSurface = { background: 'var(--color-cat-lila)', color: 'var(--color-tinta)', border: 'var(--color-cat-lila-ink)' }
+const AVELLANA: IconSurface = { background: 'var(--color-cat-avellana)', color: 'var(--color-tinta)', border: 'var(--color-cat-avellana-ink)' }
 
-export function iconSurface(name: string): { background: string; color: string } {
-  return ICON_SURFACES[name] ?? SAGE_SURFACE
+const ICON_SURFACES: Record<string, IconSurface> = {}
+for (const name of ['pizza-slice', 'utensils', 'bowl-food', 'mug-hot', 'burger']) ICON_SURFACES[name] = MENTA
+for (const name of ['cart-shopping', 'basket-shopping', 'house', 'lightbulb', 'bolt', 'fire', 'wifi', 'laptop']) ICON_SURFACES[name] = AGUA
+for (const name of ['gas-pump', 'car', 'bus', 'taxi', 'plane']) ICON_SURFACES[name] = DURAZNO
+for (const name of ['champagne-glasses', 'music', 'star', 'gift', 'book', 'graduation-cap', 'film']) ICON_SURFACES[name] = LILA
+
+export function iconSurface(name: string): IconSurface {
+  return ICON_SURFACES[name] ?? AVELLANA
 }

@@ -29,7 +29,7 @@ export function ModuleCrumb({ module = 'finanzas' }: { module?: ModuleId }) {
           <span className={`hidden h-[26px] w-[26px] place-items-center rounded-full max-[359px]:grid min-[390px]:grid ${meta.tone}`}>
             <AppIcon name={meta.icon} className={`text-sm ${meta.ink}`} />
           </span>
-          <span className="font-display text-base font-medium text-title max-[359px]:hidden">{meta.label}</span>
+          <span className="font-display text-base font-semibold text-title max-[359px]:hidden">{meta.label}</span>
           <AppIcon name="chevron-down" className="text-sm text-muted" />
         </button>
       </div>
@@ -53,7 +53,7 @@ export function ModuleCrumb({ module = 'finanzas' }: { module?: ModuleId }) {
                     <AppIcon name={item.icon} className={`text-lg ${item.ink}`} />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block font-display text-lg font-medium text-title">{item.label}</span>
+                    <span className="block font-display text-lg font-semibold text-title">{item.label}</span>
                     <span className="block text-sm font-semibold text-muted">{item.detail}</span>
                   </span>
                   {current ? <AppIcon name="check" className="text-mostaza-ink" /> : null}
@@ -78,7 +78,7 @@ export function ModuleTitle({ module }: { module: ModuleId }) {
       <span className={`grid h-[30px] w-[30px] shrink-0 place-items-center rounded-full ${meta.tone}`}>
         <AppIcon name={meta.icon} className={`text-base ${meta.ink}`} />
       </span>
-      <span className="font-display text-xl font-medium text-title">{meta.label}</span>
+      <span className="font-display text-xl font-semibold text-title">{meta.label}</span>
     </p>
   )
 }

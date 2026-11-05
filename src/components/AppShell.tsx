@@ -11,7 +11,7 @@ export function AppShell() {
   const hideNav = pathname === '/cargar'
   return (
     <div className="min-h-dvh bg-shell text-title">
-      <div className={`mx-auto min-h-dvh max-w-[430px] bg-bg px-5 pt-6 ${hideNav ? 'pb-6' : 'pb-44'}`}>
+      <div className={`mx-auto min-h-dvh max-w-[var(--ancho-columna)] bg-bg px-4 pt-6 ${hideNav ? 'pb-6' : 'pb-[calc(89px+env(safe-area-inset-bottom))]'}`}>
         <Outlet />
       </div>
       {hideNav ? null : <BottomNav />}

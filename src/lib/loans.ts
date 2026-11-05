@@ -85,8 +85,8 @@ export function friendlyLoanSummary(partnerName: string | null, signed: number):
   if (!partnerName) return 'Cuando se sume tu compañera, van a poder prestarse.'
   const amount = normalizeMoney(signed)
   if (amount > 0) return `${partnerName} te debe ${formatMoney(amount)} en préstamos`
-  if (amount < 0) return `Le debés ${formatMoney(-amount)} a ${partnerName}`
-  return 'No hay préstamos pendientes'
+  if (amount < 0) return `Le debés ${formatMoney(-amount)} a ${partnerName}.`
+  return 'Están a mano.'
 }
 
 export function homeLoanLine(signed: number): string | null {

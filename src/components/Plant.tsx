@@ -38,5 +38,5 @@ export function PotPlant({
 }) {
   void variant
   void potStage(progress)
-  return <Plantita width={46} height={60} className={className} />
+  return <Plantita width={44} height={44} className={className} />
 }

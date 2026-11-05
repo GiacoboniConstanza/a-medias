@@ -14,17 +14,20 @@ export function Button({
   className = '',
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'alt' | 'pink' | 'danger'; tall?: boolean }) {
-  const tone = {
-    primary: 'border-[1.5px] border-tinta bg-mostaza text-tinta',
-    alt: 'border-[1.5px] border-azul bg-card text-tinta',
-    pink: 'border-[1.5px] border-tinta bg-mostaza text-tinta',
-    danger: 'border-[1.5px] border-tinta bg-card text-tinta',
-  }[variant]
+  const off = Boolean(props.disabled || props['aria-disabled'])
+  const tone = off
+    ? 'border-[1.5px] border-dashed border-gris-claro bg-fondo-desactivado text-gris'
+    : {
+        primary: 'border-[1.5px] border-tinta bg-mostaza text-tinta',
+        alt: 'border-[1.5px] border-azul-ink bg-card text-tinta',
+        pink: 'border-[1.5px] border-tinta bg-mostaza text-tinta',
+        danger: 'border-[1.5px] border-tinta bg-card text-tinta',
+      }[variant]
   const main = variant === 'primary' || variant === 'pink'
   const height = main || tall ? 'min-h-[52px]' : 'min-h-11'
   return (
     <button
-      className={`block w-full rounded-full px-4 py-3 text-center font-semibold disabled:opacity-50 ${main ? 'text-lg' : 'text-base'} ${height} ${tone} ${className}`}
+      className={`block w-full rounded-full px-4 py-3 text-center font-semibold ${main ? 'text-lg' : 'text-base'} ${height} ${tone} ${className}`}
       {...props}
     />
   )
@@ -68,8 +71,8 @@ export function Chip({
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-2xl px-3 text-sm font-semibold ${
-        active ? 'border-[1.5px] border-tinta bg-mostaza text-tinta' : 'border-[1.5px] border-azul bg-card text-title'
+      className={`inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-full px-3.5 text-sm ${
+        active ? 'border-[1.5px] border-azul-ink bg-azul-claro font-bold text-tinta' : 'border-[1.5px] border-azul bg-card font-semibold text-tinta'
       } ${className}`}
     >
       {active ? <AppIcon name="check" /> : null}
@@ -81,7 +84,7 @@ export function Chip({
 export function Progress({ value, color }: { value: number; color: string }) {
   const width = Math.max(0, Math.min(100, value))
   return (
-    <div className="h-2.5 overflow-hidden rounded-full border-[1.5px] border-azul-ink bg-azul-claro">
+    <div className="h-3 overflow-hidden rounded-full border-[1.5px] border-tinta bg-azul-claro">
       <div className="h-full rounded-full" style={{ width: `${width}%`, background: color }} />
     </div>
   )

@@ -98,10 +98,14 @@ export function SharedScreen() {
   const headlineAmount = settled ? settled.amount : plan.amount
   const creditorId = settled ? settled.creditorId : plan.creditorId
   const favor = headlineAmount > 0 && creditorId === meId
-  const visible = payerFilter === 'all' ? shared : shared.filter((expense) => expense.payerId === payerFilter)
+  const friendly = profile.viewMode === 'friendly'
+  const visible = friendly || payerFilter === 'all' ? shared : shared.filter((expense) => expense.payerId === payerFilter)
   const filters = [
-    { id: 'all', label: 'Todos' },
-    ...people.map((row) => ({ id: row.id, label: `Pagó ${row.name}` })),
+    { id: 'all', label: `Todos (${shared.length})` },
+    ...people.map((row) => ({
+      id: row.id,
+      label: `${row.id === meId ? 'Pagaste vos' : `Pagó ${row.name}`} (${shared.filter((expense) => expense.payerId === row.id).length})`,
+    })),
   ]
 
   async function changeMode(mode: ViewMode) {
@@ -178,100 +182,139 @@ export function SharedScreen() {
       />
       <MonthSwitcher heading />
 
-      <section className="scallop-b -mx-5 mb-6 bg-azul px-5 pb-5 pt-4 text-tinta">
-        <div className="flex items-start justify-between gap-3">
-          <h2 className="inline-flex items-center gap-1.5 font-display text-lg font-semibold text-tinta">
-            <AppIcon name="scale-balanced" /> Total a saldar
-          </h2>
-          <span
-            className={`inline-flex h-[27px] shrink-0 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-tinta ${
-              settled ? 'bg-salvia-claro' : 'bg-mostaza'
-            }`}
-          >
-            <AppIcon name="circle" />
-            {settled ? 'Saldado' : 'Sin saldar'}
-          </span>
-        </div>
-        {headlineAmount === 0 || !partner ? (
-          <div className="mt-3 flex items-end justify-between gap-3">
-            <p className="min-w-0 font-display text-[36px] font-semibold text-tinta">Están a mano</p>
-            <Plantita width={46} height={60} />
-          </div>
-        ) : (
-          <>
-            <p className="mt-3 text-base font-semibold text-tinta">{favor ? `${partner.name} te debe` : `Le debés a ${partner.name}`}</p>
-            <div className="flex items-end justify-between gap-3">
-              <p className="min-w-0 font-display text-[36px] font-semibold whitespace-nowrap tabular-nums text-tinta">{formatMoney(headlineAmount)}</p>
-              <Plantita width={46} height={60} />
-            </div>
-          </>
-        )}
-        <SplitBar expense={expenseAmount} loans={loanAmount} />
-        <MoneyRow label="Por gastos" amount={formatMoney(expenseAmount)} dotClass="border-rosa-hondo bg-rosa" />
-        <MoneyRow label="Por préstamos" amount={formatMoney(loanAmount)} dotClass="border-ciruela-ink bg-ciruela" />
-        {settled ? (
-          <Button type="button" variant="alt" className="mt-3" onClick={() => setConfirm('undo')} disabled={saving}>
-            Deshacer
-          </Button>
-        ) : (
-          <>
-            <Button type="button" className="mt-3" onClick={() => setConfirm('settle')} disabled={saving || !plan.canSettle}>
-              <span className="inline-flex items-center justify-center gap-2">
-                <AppIcon name="check" /> Saldar mes
-              </span>
-            </Button>
-            {plan.blockedReason ? <p className="mt-2 text-center text-sm font-semibold text-tinta">{plan.blockedReason}</p> : null}
-          </>
-        )}
-      </section>
-
-      <Card>
-        <h2 className="inline-flex items-center gap-1.5 font-display text-lg font-semibold text-tinta">
-          <AppIcon name="chart-column" /> Cómo se reparte
-        </h2>
-        <p className="mt-1 text-sm font-semibold text-muted">{shareCaption(split, people)}</p>
-        <ul className="mt-2">
-          {people.map((row) => (
-            <PersonShare key={row.id} row={row} />
-          ))}
-        </ul>
-      </Card>
-
-      <section className="mb-3 rounded-2xl border-2 border-azul-ink bg-card px-4 py-3">
-        <div className="mb-1 flex items-center justify-between gap-3">
-          <h2 className="inline-flex min-w-0 items-center gap-2 font-display text-lg font-semibold text-tinta">
-            <ListFlower /> Gastos compartidos
-          </h2>
-          <p className="shrink-0 whitespace-nowrap font-display text-lg font-semibold tabular-nums text-tinta">{formatMoney(split.total)}</p>
-        </div>
-      <FilterBar label="Quién pagó" options={filters} value={payerFilter} onChange={setPayerFilter} />
-      {visible.length === 0 ? (
-        <p className="mb-3 text-base font-semibold text-muted">Este mes no hay gastos compartidos.</p>
+      {shared.length === 0 ? (
+        <p className="py-8 text-center text-sm font-medium text-gris">Este mes no hay gastos compartidos.</p>
       ) : (
-        <ul className="mb-3">
-          {visible.map((expense) => {
-            const category = data.categories.find((item) => item.id === expense.categoryId)
-            return (
-              <li key={expense.id} className="border-b border-dashed border-line last:border-0">
-                <ExpenseLine
-                  expense={expense}
-                  categoryName={category?.name ?? 'Otros'}
-                  categoryIcon={category?.icon || DEFAULT_ICON}
-                  payerName={data.names[expense.payerId] ?? 'Sin nombre'}
-                  onOpen={() => setOpenExpense(expense)}
-                />
-              </li>
-            )
-          })}
-        </ul>
-      )}
-      </section>
+        <>
+          <section
+            className="relative left-1/2 mb-6 w-screen -translate-x-1/2 bg-azul py-4 text-tinta"
+            style={{ paddingInline: 'max(16px, calc((100vw - var(--ancho-columna)) / 2 + 16px))' }}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <h2 className="inline-flex items-center gap-1.5 font-display text-lg font-semibold text-tinta">
+                <AppIcon name="scale-balanced" /> Total a saldar
+              </h2>
+              <span
+                className={`inline-flex h-[var(--alto-chip)] shrink-0 items-center gap-1.5 rounded-full border-[1.5px] border-tinta px-2.5 text-sm font-semibold ${
+                  settled ? 'bg-azul-claro text-azul-ink' : 'bg-crema text-tinta'
+                }`}
+              >
+                {settled ? <AppIcon name="check" /> : <span className="inline-block h-3 w-3 rounded-full border-[1.5px] border-tinta bg-crema" />}
+                {settled ? 'Saldado' : 'Sin saldar'}
+              </span>
+            </div>
+            {headlineAmount === 0 || !partner ? (
+              <div className="mt-3 flex items-end justify-between gap-3">
+                <p className="min-w-0 font-display text-[36px] font-semibold leading-none text-tinta">Están a mano</p>
+                <Plantita width={46} height={60} />
+              </div>
+            ) : (
+              <>
+                <p className="mt-3 text-lg font-medium text-tinta">
+                  {settled ? (
+                    favor ? (
+                      <>
+                        <NameOnBlue name={partner.name} /> te pasó
+                      </>
+                    ) : (
+                      <>
+                        Le pasaste a <NameOnBlue name={partner.name} />
+                      </>
+                    )
+                  ) : favor ? (
+                    <>
+                      <NameOnBlue name={partner.name} /> te debe
+                    </>
+                  ) : (
+                    <>
+                      Le debés a <NameOnBlue name={partner.name} />
+                    </>
+                  )}
+                </p>
+                <div className="mt-1 flex items-end justify-between gap-3">
+                  <p className="min-w-0 font-display text-[36px] font-semibold leading-none whitespace-nowrap text-tinta">{formatMoney(headlineAmount)}</p>
+                  <Plantita width={46} height={60} />
+                </div>
+              </>
+            )}
+            <SplitBar expense={expenseAmount} loans={loanAmount} />
+            <MoneyRow label="Por gastos" amount={formatMoney(expenseAmount)} dotClass="border-tinta bg-azul" />
+            <MoneyRow label="Por préstamos" amount={formatMoney(loanAmount)} dotClass="border-tinta bg-ciruela" />
+            {settled ? (
+              <p className="mt-3 rounded-2xl border-[1.5px] border-tinta bg-azul-claro px-[18px] py-2.5 text-sm font-medium text-tinta">
+                Mes saldado por <span className="whitespace-nowrap font-display text-sm font-semibold">{formatMoney(headlineAmount)}</span>
+              </p>
+            ) : null}
+            {settled ? (
+              <Button type="button" variant="alt" className="mt-2.5" onClick={() => setConfirm('undo')} disabled={saving}>
+                Deshacer saldo
+              </Button>
+            ) : (
+              <>
+                <Button type="button" className="mt-2.5" onClick={() => setConfirm('settle')} disabled={saving || !plan.canSettle}>
+                  Saldar mes
+                </Button>
+                {plan.blockedReason ? <p className="mt-1.5 text-sm font-medium text-tinta">{plan.blockedReason}</p> : null}
+              </>
+            )}
+          </section>
 
-      <Button type="button" variant="alt" onClick={exportCsv}>
-        <span className="inline-flex items-center justify-center gap-2">
-          <AppIcon name="download" /> Exportar a planilla
-        </span>
-      </Button>
+          {friendly ? (
+            <WhoPaid people={people} total={split.total} meId={meId} />
+          ) : (
+            <Card>
+              <h2 className="font-display text-lg font-semibold text-tinta">Cómo se reparte</h2>
+              <p className="mt-1 text-sm font-medium text-gris">{shareCaption(split, people)}</p>
+              <ul className="mt-2">
+                {people.map((row) => (
+                  <PersonShare key={row.id} row={row} scale={shareScale(people)} />
+                ))}
+              </ul>
+            </Card>
+          )}
+
+          {!friendly ? (
+            <p className="mb-3 flex h-[52px] items-center justify-between rounded-2xl bg-azul-claro px-[18px] text-sm font-medium text-tinta">
+              Total del mes
+              <span className="whitespace-nowrap font-display text-lg font-semibold">{formatMoney(split.total)}</span>
+            </p>
+          ) : null}
+          {!friendly ? <FilterBar label="Quién pagó" options={filters} value={payerFilter} onChange={setPayerFilter} /> : null}
+
+          <div className="mb-1 mt-4 flex items-center justify-between gap-3">
+            <h2 className="inline-flex min-w-0 items-center gap-2 font-display text-lg font-semibold text-tinta">
+              <AppIcon name="receipt" /> <ListFlower /> Gastos compartidos
+            </h2>
+            <p className="shrink-0 text-sm font-medium text-gris">{shared.length} gastos</p>
+          </div>
+          {visible.length === 0 ? (
+            <p className="mb-3 text-sm font-medium text-gris">Este mes no hay gastos compartidos.</p>
+          ) : (
+            <ul className="mb-3">
+              {visible.map((expense) => {
+                const category = data.categories.find((item) => item.id === expense.categoryId)
+                const mine = expense.payerId === meId
+                return (
+                  <li key={expense.id} className="border-t-[1.5px] border-dashed border-line first:border-t-0">
+                    <ExpenseLine
+                      expense={expense}
+                      categoryName={category?.name ?? 'Otros'}
+                      categoryIcon={category?.icon || DEFAULT_ICON}
+                      whoPaid={mine ? 'me' : 'partner'}
+                      personName={mine ? (data.names[meId] ?? 'vos') : (data.names[expense.payerId] ?? 'Sin nombre')}
+                      onOpen={() => setOpenExpense(expense)}
+                    />
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+
+          <button type="button" onClick={exportCsv} className="mx-auto flex min-h-[52px] items-center justify-center gap-2 text-lg font-semibold text-mostaza-ink">
+            <AppIcon name="file-export" /> Exportar a planilla
+          </button>
+        </>
+      )}
       <ErrorText>{message}</ErrorText>
 
       <Toast
@@ -305,8 +348,8 @@ export function SharedScreen() {
             <p className="font-display text-2xl font-semibold whitespace-nowrap text-title">
               {passPhrase(partner.name, plan.creditorId === meId, plan.amount)}
             </p>
-            <MoneyRow label="Por gastos" amount={formatMoney(plan.expenseAmount)} amountClass="text-rosa-texto" dotClass="border-rosa-hondo bg-rosa" />
-            <MoneyRow label="Por préstamos" amount={formatMoney(plan.loanAmount)} amountClass="text-ciruela-ink" dotClass="border-ciruela-ink bg-ciruela" />
+            <MoneyRow label="Por gastos" amount={formatMoney(plan.expenseAmount)} dotClass="border-tinta bg-azul" />
+            <MoneyRow label="Por préstamos" amount={formatMoney(plan.loanAmount)} dotClass="border-tinta bg-ciruela" />
             <p className="mt-3 text-base font-semibold text-muted">
               Los gastos y préstamos de {monthName(month)} quedan marcados como saldados. Si te equivocás, lo podés deshacer.
             </p>
@@ -409,14 +452,62 @@ function helpBlocks(split: SplitResult, people: SplitRow[], monthLabel: string):
   ]
 }
 
+function shareScale(people: SplitRow[]): number {
+  return Math.max(0, ...people.flatMap((row) => [row.paid, row.share]))
+}
+
+function NameOnBlue({ name }: { name: string }) {
+  const maru = name.trim().toLowerCase() === 'maru'
+  return (
+    <span className="inline-flex items-center gap-1.5 font-bold text-tinta">
+      <span className={`inline-block h-3 w-3 rounded-full border-[1.5px] border-tinta ${maru ? 'bg-salvia' : 'bg-rosa'}`} aria-hidden="true" />
+      {name}
+    </span>
+  )
+}
+
+function WhoPaid({ people, total, meId }: { people: SplitRow[]; total: number; meId: string }) {
+  return (
+    <Card>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="inline-flex items-center gap-1.5 font-display text-lg font-semibold text-tinta">
+          <AppIcon name="wallet" /> Quién pagó
+        </h2>
+        <p className="whitespace-nowrap font-display text-lg font-semibold text-tinta">{formatMoney(total)}</p>
+      </div>
+      <div className="mt-2 flex h-3 overflow-hidden rounded-full border-[1.5px] border-tinta" role="img" aria-label="Quién pagó">
+        {people.map((row) => (
+          <div
+            key={row.id}
+            className={`h-full ${row.name.trim().toLowerCase() === 'maru' ? 'bg-salvia' : 'bg-rosa'}`}
+            style={{ width: `${total > 0 ? (row.paid / total) * 100 : 0}%` }}
+          />
+        ))}
+      </div>
+      {people.map((row) => {
+        const maru = row.name.trim().toLowerCase() === 'maru'
+        return (
+          <div key={row.id} className="mt-2 flex min-h-[34px] items-center justify-between gap-3 border-t-[1.5px] border-dashed border-line text-sm first:border-t-0">
+            <span className="inline-flex min-w-0 items-center gap-1.5">
+              <span className={`inline-block h-3 w-3 shrink-0 rounded-full border-[1.5px] border-tinta ${maru ? 'bg-salvia' : 'bg-rosa'}`} aria-hidden="true" />
+              <span className={`font-bold ${maru ? 'text-salvia-ink' : 'text-rosa-texto'}`}>{row.id === meId ? 'Pagaste vos' : `Pagó ${row.name}`}</span>
+            </span>
+            <span className="whitespace-nowrap font-display text-sm font-semibold text-tinta">{formatMoney(row.paid)}</span>
+          </div>
+        )
+      })}
+    </Card>
+  )
+}
+
 function SplitBar({ expense, loans }: { expense: number; loans: number }) {
   const total = expense + loans
   const expenseWidth = total > 0 ? (expense / total) * 100 : 0
   const loanWidth = total > 0 ? (loans / total) * 100 : 0
   return (
-    <div className="mt-3 flex h-3 overflow-hidden rounded-full border-[1.5px] border-tinta bg-azul-claro" role="img" aria-label="Gastos y préstamos">
-      <div className="h-full border-r-[1.5px] border-rosa-hondo bg-rosa" style={{ width: `${expenseWidth}%` }} />
-      <div className="h-full bg-ciruela" style={{ width: `${loanWidth}%` }} />
+    <div className="mt-3 flex h-3 overflow-hidden rounded-full border-[1.5px] border-tinta" role="img" aria-label="Gastos y préstamos">
+      <div className="h-full bg-azul" style={{ width: `${expenseWidth}%` }} />
+      {loanWidth > 0 ? <div className="h-full border-l-2 border-tinta bg-ciruela" style={{ width: `${loanWidth}%` }} /> : null}
     </div>
   )
 }
@@ -443,37 +534,31 @@ function MoneyRow({
   )
 }
 
-function PersonShare({ row }: { row: SplitRow }) {
+function PersonShare({ row, scale }: { row: SplitRow; scale: number }) {
   const key = row.name.trim().toLowerCase()
   const maru = key === 'maru'
   const nameClass = maru ? 'text-salvia-ink' : key === 'coty' ? 'text-rosa-texto' : 'text-tinta'
   const debt = row.balance < 0
   const favor = row.balance > 0
   const chip = debt
-    ? { label: `Debe ${formatMoney(-row.balance)}`, className: 'bg-rosa-claro text-tinta', icon: 'arrow-down' }
+    ? { label: `Debe ${formatMoney(-row.balance)}`, icon: 'arrow-right-from-bracket' }
     : favor
-      ? { label: `A favor ${formatMoney(row.balance)}`, className: 'bg-salvia-claro text-salvia-ink', icon: 'arrow-up' }
-      : { label: 'A mano', className: 'bg-sand text-muted', icon: '' }
-  const scale = Math.max(row.paid, row.share)
+      ? { label: `A favor ${formatMoney(row.balance)}`, icon: 'arrow-right-to-bracket' }
+      : { label: 'A mano', icon: '' }
   const paidWidth = scale > 0 ? (row.paid / scale) * 100 : 0
   const shareWidth = scale > 0 ? (row.share / scale) * 100 : 0
+  const tone = maru ? 'var(--color-salvia)' : 'var(--color-rosa)'
   return (
-    <li className="border-t border-dashed border-line py-3 first:border-t-0">
+    <li className="border-t-[1.5px] border-dashed border-line py-2.5 first:border-t-0">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className={`font-display text-xl font-semibold ${nameClass}`}>{row.name}</p>
-        <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1 text-sm font-bold whitespace-nowrap ${chip.className}`}>
+        <p className={`font-display text-lg font-semibold ${nameClass}`}>{row.name}</p>
+        <span className="inline-flex h-[var(--alto-chip)] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-azul-claro px-2.5 text-sm font-semibold text-azul-ink">
           {chip.icon ? <AppIcon name={chip.icon} /> : null}
           {chip.label}
         </span>
       </div>
-      <BarLine label="Pagó" amount={formatMoney(row.paid)} width={paidWidth} className={maru ? 'border-[1.5px] border-salvia-ink bg-salvia' : 'border-[1.5px] border-rosa-hondo bg-rosa'} />
-      <BarLine
-        label={`Su parte (${row.percent}%)`}
-        amount={formatMoney(row.share)}
-        width={shareWidth}
-        className={maru ? '' : 'bg-rosa-claro'}
-        hatch={maru}
-      />
+      <BarLine label="Pagó" amount={formatMoney(row.paid)} width={paidWidth} color={tone} />
+      <BarLine label={`Su parte (${row.percent}%)`} amount={formatMoney(row.share)} width={shareWidth} color={tone} hatch />
     </li>
   )
 }
@@ -482,32 +567,27 @@ function BarLine({
   label,
   amount,
   width,
-  className,
+  color,
   hatch = false,
 }: {
   label: string
   amount: string
   width: number
-  className: string
+  color: string
   hatch?: boolean
 }) {
   return (
-    <div className="mt-2">
-      <div className="flex items-baseline justify-between gap-3 text-sm font-semibold text-muted">
+    <div className="mt-1.5">
+      <div className="flex items-baseline justify-between gap-3 text-sm font-medium text-gris">
         <span className="min-w-0">{label}</span>
-        <span className="shrink-0 whitespace-nowrap text-base font-bold text-title">{amount}</span>
+        <span className="shrink-0 whitespace-nowrap font-display text-sm font-semibold text-tinta">{amount}</span>
       </div>
-      <div className="mt-1 h-2.5 overflow-hidden rounded-full bg-sand">
+      <div className="mt-1 h-3 overflow-hidden rounded-full border-[1.5px] border-tinta bg-card">
         <div
-          className={`h-full rounded-full ${className}`}
+          className="h-full"
           style={{
             width: `${width}%`,
-            ...(hatch
-              ? {
-                  backgroundImage:
-                    'repeating-linear-gradient(-45deg, var(--color-salvia) 0 5px, var(--color-salvia-claro) 5px 9px)',
-                }
-              : {}),
+            background: hatch ? `repeating-linear-gradient(45deg, ${color} 0 3px, var(--color-tarjeta) 3px 6px)` : color,
           }}
         />
       </div>

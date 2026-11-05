@@ -14,12 +14,12 @@ describe('saldo compartido', () => {
   it('arma la frase y lo pagado de cada una con el mismo reparto', () => {
     expect(pairBalance('coty', owed)).toEqual({
       even: false,
-      sentence: 'Maru te debe $ 12.500,00',
+      sentence: 'Maru te debe $ 12.500,00',
       myPaid: 25_000,
       partnerPaid: 0,
       partnerName: 'Maru',
     })
-    expect(pairBalance('maru', owed).sentence).toBe('Le debés $ 12.500,00 a Coty')
+    expect(pairBalance('maru', owed).sentence).toBe('Le debés $ 12.500,00 a Coty')
   })
 
   it('dice que están a mano cuando el saldo es cero', () => {
@@ -42,12 +42,12 @@ describe('mitad de un gasto', () => {
   it('parte el monto con el mismo redondeo del reparto', () => {
     expect(sharedHalf(12_500)).toBe(6_250)
     expect(sharedHalf(12_501)).toBe(6_250.5)
-    expect(paidHalfCaption('Coty', 12_500)).toBe('Pagó Coty, mitad: $ 6.250,00')
+    expect(paidHalfCaption('Coty', 12_500)).toBe('Pagó Coty, mitad: $ 6.250,00')
   })
 
   it('deja el centavo impar en quien pagó', () => {
     expect(sharedHalf(10.01)).toBe(5.01)
     expect(shareAmounts(10.01, [1, 1])).toEqual([5, 5.01])
-    expect(paidHalfCaption('Coty', 10.01)).toBe('Pagó Coty, mitad: $ 5,01')
+    expect(paidHalfCaption('Coty', 10.01)).toBe('Pagó Coty, mitad: $ 5,01')
   })
 })

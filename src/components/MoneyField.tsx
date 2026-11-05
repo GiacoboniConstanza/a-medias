@@ -28,7 +28,7 @@ export function MoneyField({
           onDraft={onDraft}
           readOnly={readOnly}
           label={label}
-          className={`min-h-11 w-full max-w-[16rem] bg-transparent text-center font-display outline-none ${hero ? 'font-semibold' : 'font-bold'}`}
+          className="min-h-11 w-full max-w-[16rem] bg-transparent text-center font-display font-semibold outline-none"
         />
       </div>
       {error ? <p className="mt-1 text-base font-bold text-tinta">{error}</p> : null}

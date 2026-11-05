@@ -88,7 +88,7 @@ export function DonutBreakdown({
         </svg>
         <div className="pointer-events-none absolute top-1/2 left-1/2 flex w-[6.4rem] -translate-x-1/2 -translate-y-1/2 flex-col items-center text-center">
           <p className="text-sm font-semibold leading-none text-muted">{center.kicker}</p>
-          <p className="mt-1 font-display text-[17px] font-bold leading-none">{center.value}</p>
+          <p className="mt-1 font-display text-[17px] font-semibold leading-none">{center.value}</p>
           {center.hint ? <p className="mt-1 text-sm font-semibold leading-none text-muted">{center.hint}</p> : null}
         </div>
       </div>

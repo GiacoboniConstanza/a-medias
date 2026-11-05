@@ -14,6 +14,7 @@ export function SectionHeader({
   backTo = '/',
   module = 'finanzas',
   screenTitle = false,
+  asideGap = '10',
 }: {
   icon?: string
   title?: string
@@ -24,6 +25,7 @@ export function SectionHeader({
   backTo?: string
   module?: ModuleId
   screenTitle?: boolean
+  asideGap?: '4' | '10'
 }) {
   if (!lead) {
     return (
@@ -42,7 +44,7 @@ export function SectionHeader({
   else if (lead === 'title') left = <ModuleTitle module={module} />
   else if (lead === 'greeting') {
     left = (
-      <p className="min-w-0 font-display text-xl font-medium text-title">
+      <p className="min-w-0 font-display text-lg font-semibold text-title">
         <AppIcon name="house" className="mr-1.5 text-tinta" />
         Hola, {name}
       </p>
@@ -56,7 +58,7 @@ export function SectionHeader({
         {screenTitle && title ? (
           <h1 className="min-w-0 truncate font-display text-[26px] font-semibold leading-tight text-title">{title}</h1>
         ) : icon && title ? (
-          <h1 className="inline-flex min-w-0 items-center gap-1.5 font-display text-xl font-medium text-title">
+          <h1 className="inline-flex min-w-0 items-center gap-2 font-display text-lg font-semibold text-title">
             <AppIcon name={icon} />
             {title}
           </h1>
@@ -68,7 +70,7 @@ export function SectionHeader({
   return (
     <header className={`mb-4 flex items-center justify-between gap-1 ${className}`}>
       {left}
-      {aside ? <div className="flex shrink-0 items-center">{aside}</div> : null}
+      {aside ? <div className={`flex shrink-0 items-center ${asideGap === '4' ? 'gap-1' : 'gap-2.5'}`}>{aside}</div> : null}
     </header>
   )
 }

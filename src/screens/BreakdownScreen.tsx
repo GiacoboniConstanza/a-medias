@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AppIcon } from '../components/AppIcon.tsx'
-import { Bubbles } from '../components/Bubbles.tsx'
+import { Bubbles, type BubbleItem } from '../components/Bubbles.tsx'
+import { Fab, FabSpace } from '../components/Fab.tsx'
 import { FilterSheet, PERIODS, type ExpenseFilters } from '../components/FilterSheet.tsx'
 import { ScopeChips } from '../components/ScopeChips.tsx'
 import { MonthSwitcher } from '../components/MonthSwitcher.tsx'
@@ -18,7 +19,7 @@ import { monthSplit } from '../lib/derive.ts'
 import { expenseSpan } from '../lib/expense-range.ts'
 import { filterByScopeAndCategory, type ScopeFilter } from '../lib/finance-filters.ts'
 import { formatMoney } from '../lib/format.ts'
-import { DEFAULT_ICON } from '../lib/icons.ts'
+import { DEFAULT_ICON, iconSurface } from '../lib/icons.ts'
 import { monthEnd, monthName, shortDate } from '../lib/month.ts'
 import { sumPaidBy } from '../lib/period.ts'
 import type { ViewMode } from '../types/database.ts'
@@ -85,17 +86,38 @@ export function BreakdownScreen() {
   const source = listLoading ? [] : expenses
   const visible = filterByScopeAndCategory(source, { scope, categoryIds: friendly ? [] : categoryIds })
   const paidByMe = visible.filter((expense) => expense.payerId === me.id)
-  const bubbles = [...paidByMe.reduce((map, expense) => {
+  const rankedBubbles: BubbleItem[] = [...paidByMe.reduce((map, expense) => {
     const category = data.categories.find((item) => item.id === expense.categoryId)
+    const icon = category?.icon || DEFAULT_ICON
+    const surface = iconSurface(icon)
     const current = map.get(expense.categoryId) ?? {
-      icon: category?.icon || DEFAULT_ICON,
+      icon,
       label: category?.name ?? 'Otros',
       amount: 0,
+      fill: surface.background,
+      border: surface.border,
     }
     current.amount += expense.amount
     map.set(expense.categoryId, current)
     return map
-  }, new Map<string, { icon: string; label: string; amount: number }>()).entries()].map(([id, item]) => ({ id, ...item }))
+  }, new Map<string, Omit<BubbleItem, 'id'>>()).entries()]
+    .map(([id, item]) => ({ id, ...item }))
+    .sort((a, b) => b.amount - a.amount)
+  const otrasIds = rankedBubbles.length > 6 ? rankedBubbles.slice(5).map((item) => item.id) : []
+  const bubbles: BubbleItem[] =
+    rankedBubbles.length > 6
+      ? [
+          ...rankedBubbles.slice(0, 5),
+          {
+            id: 'otras',
+            icon: 'ellipsis',
+            label: 'Otras',
+            amount: rankedBubbles.slice(5).reduce((sum, item) => sum + item.amount, 0),
+            fill: 'var(--color-cat-avellana)',
+            border: 'var(--color-cat-avellana-ink)',
+          },
+        ]
+      : rankedBubbles
   const shared = sumPaidBy(
     visible.filter((expense) => expense.isShared),
     me.id,
@@ -158,6 +180,7 @@ export function BreakdownScreen() {
     <>
       <SectionHeader
         lead="crumb"
+        asideGap="4"
         aside={
           <>
             <NotificationBell />
@@ -174,13 +197,11 @@ export function BreakdownScreen() {
           aria-haspopup="dialog"
           aria-expanded={sheetOpen}
           aria-label={activeCount > 0 ? `Filtros, ${activeCount} activos` : 'Filtros'}
-          className={`relative grid h-11 w-11 shrink-0 place-items-center rounded-full border text-lg ${
-            activeCount > 0 ? 'border-mostaza-ink border-[1.5px] border-tinta bg-mostaza text-tinta' : 'border-line bg-card text-mostaza-ink'
-          }`}
+          className="relative grid h-11 w-11 shrink-0 place-items-center rounded-full border-[1.5px] border-azul bg-card text-lg text-mostaza-ink"
         >
           <AppIcon name="sliders" />
           {activeCount > 0 ? (
-            <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-card px-1 text-sm font-bold text-mostaza-ink ring-2 ring-mostaza-ink">
+            <span className="absolute -right-1 -top-1 grid h-6 min-w-6 place-items-center rounded-full border-2 border-crema bg-tinta px-1 text-sm font-bold text-crema">
               {activeCount}
             </span>
           ) : null}
@@ -205,18 +226,17 @@ export function BreakdownScreen() {
             <p className="mt-2 font-bold text-muted">Cargando…</p>
           ) : (
             <>
-              <p className="mt-1 font-display text-[38px] font-semibold leading-none text-title">{formatMoney(total)}</p>
-              <div className="my-2 flex h-3.5 overflow-hidden rounded-full border-[1.5px] border-azul-ink" aria-hidden="true">
-                <i className="h-full bg-azul" style={{ width: `${sharedWidth}%` }} />
-                <i className="h-full border-l-[1.5px] border-mostaza-ink bg-mostaza" style={{ width: `${privateWidth}%` }} />
-              </div>
-              <div className="flex flex-wrap justify-between gap-x-3 gap-y-1 text-sm font-semibold text-muted">
-                <span className="inline-flex items-center gap-1">
-                  <AppIcon name="circle" className="text-sm text-azul-ink" /> Compartidos {formatMoney(shared)}
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <AppIcon name="circle" className="text-sm text-mostaza-ink" /> Privados {formatMoney(privateSpent)}
-                </span>
+              <p className="mt-1 font-display text-[36px] font-semibold leading-none whitespace-nowrap text-title">{formatMoney(total)}</p>
+              <SpendBar sharedWidth={sharedWidth} privateWidth={privateWidth} />
+              <div className="mt-2 space-y-1 text-sm font-medium text-tinta">
+                <p className="flex items-center justify-between gap-3">
+                  <span className="inline-flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded-full border-[1.5px] border-tinta bg-azul" /> Compartidos</span>
+                  <span className="whitespace-nowrap font-display text-sm font-semibold">{formatMoney(shared)}</span>
+                </p>
+                <p className="flex items-center justify-between gap-3">
+                  <span className="inline-flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded-full border-[1.5px] border-tinta bg-ciruela-claro" /> Privados</span>
+                  <span className="whitespace-nowrap font-display text-sm font-semibold">{formatMoney(privateSpent)}</span>
+                </p>
               </div>
               <p className="mt-1 text-sm font-semibold text-muted">Suma solo lo que pagaste vos.</p>
               <p className="text-sm font-semibold text-title">{shareLine}</p>
@@ -248,15 +268,24 @@ export function BreakdownScreen() {
             onPick={(id) => setHighlightId((current) => (current === id ? null : id))}
           />
           <div className="mb-4 mt-2">
-            <p className="text-sm font-semibold text-muted">Gastaste {formatMoney(periodTotal)} este mes</p>
-            <div className="mt-1.5 flex h-3 overflow-hidden rounded-full border-[1.5px] border-azul-ink" aria-hidden="true">
-              <i className="h-full bg-azul" style={{ width: `${periodSharedWidth}%` }} />
-              <i className="h-full border-l-[1.5px] border-mostaza-ink bg-mostaza" style={{ width: `${periodPrivateWidth}%` }} />
-            </div>
+            <p className="text-sm font-medium text-tinta">
+              Gastaste <span className="whitespace-nowrap font-display font-semibold">{formatMoney(periodTotal)}</span> este mes
+            </p>
+            <SpendBar sharedWidth={periodSharedWidth} privateWidth={periodPrivateWidth} />
+            <p className="mt-2 flex gap-4 text-sm font-medium text-gris">
+              <span className="inline-flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded-full border-[1.5px] border-tinta bg-azul" /> Compartidos</span>
+              <span className="inline-flex items-center gap-1.5"><span className="inline-block h-3 w-3 rounded-full border-[1.5px] border-tinta bg-ciruela-claro" /> Privados</span>
+            </p>
           </div>
           <BagPaidList expenses={visible.filter((expense) => expense.paidFromBag)} onOpen={setEditing} />
           <ExpenseRows
-            expenses={highlightId ? visible.filter((expense) => expense.categoryId === highlightId) : visible}
+            expenses={
+              highlightId === 'otras'
+                ? visible.filter((expense) => otrasIds.includes(expense.categoryId))
+                : highlightId
+                  ? visible.filter((expense) => expense.categoryId === highlightId)
+                  : visible
+            }
             categories={data.categories}
             names={data.names}
             meId={me.id}
@@ -266,7 +295,7 @@ export function BreakdownScreen() {
       ) : null}
 
       {!listLoading && !filteredEmpty && !friendly ? (
-        <Card>
+        <Card className="px-3.5 py-0">
           <ul>
             {visible.map((expense) => {
               const category = data.categories.find((item) => item.id === expense.categoryId)
@@ -276,7 +305,8 @@ export function BreakdownScreen() {
                     expense={expense}
                     categoryName={category?.name ?? 'Otros'}
                     categoryIcon={category?.icon || DEFAULT_ICON}
-                    partnerPaid={expense.isShared && expense.payerId !== me.id ? data.names[expense.payerId] : undefined}
+                    whoPaid={expense.isShared && expense.payerId !== me.id ? 'partner' : null}
+                    personName={data.names[expense.payerId]}
                     showPrivate
                     onOpen={() => setEditing(expense)}
                   />
@@ -317,7 +347,18 @@ export function BreakdownScreen() {
           }}
         />
       ) : null}
+      <FabSpace />
+      <Fab to="/cargar" label="Nuevo gasto" state={{ from: '/se-me-fue' }} />
     </>
+  )
+}
+
+function SpendBar({ sharedWidth, privateWidth }: { sharedWidth: number; privateWidth: number }) {
+  return (
+    <div className="mt-2 flex h-3 overflow-hidden rounded-full border-[1.5px] border-tinta" aria-hidden="true">
+      <i className="h-full bg-azul" style={{ width: `${sharedWidth}%` }} />
+      {privateWidth > 0 ? <i className="h-full border-l-2 border-tinta bg-ciruela-claro" style={{ width: `${privateWidth}%` }} /> : null}
+    </div>
   )
 }
 
@@ -333,7 +374,7 @@ function BagPaidList({ expenses, onOpen }: { expenses: ExpenseItem[]; onOpen: (e
               {expense.title}
               <span className="text-muted"> · privado, pagado con la bolsa</span>
             </span>
-            <span className="shrink-0 whitespace-nowrap font-display font-medium">{formatMoney(expense.amount)}</span>
+            <span className="shrink-0 whitespace-nowrap font-display font-semibold">{formatMoney(expense.amount)}</span>
           </button>
         </li>
       ))}
@@ -356,7 +397,7 @@ function ExpenseRows({
 }) {
   if (expenses.length === 0) return null
   return (
-    <ul className="mb-4 overflow-hidden rounded-2xl bg-card px-4">
+    <ul className="mb-4 overflow-hidden rounded-2xl border-2 border-azul-ink bg-card px-3.5">
       {expenses.map((expense) => {
         const category = categories.find((item) => item.id === expense.categoryId)
         return (
@@ -365,7 +406,8 @@ function ExpenseRows({
               expense={expense}
               categoryName={category?.name ?? 'Otros'}
               categoryIcon={category?.icon || DEFAULT_ICON}
-              partnerPaid={expense.isShared && expense.payerId !== meId ? names[expense.payerId] : undefined}
+              whoPaid={expense.isShared && expense.payerId !== meId ? 'partner' : null}
+              personName={names[expense.payerId]}
               showPrivate
               onOpen={() => onOpen(expense)}
             />

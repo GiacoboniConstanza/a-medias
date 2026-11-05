@@ -260,14 +260,14 @@ function ModuleCard({
       <span className="min-w-0 flex-1">
         <span className="block font-display text-sm font-semibold text-muted">{meta.label}</span>
         {module === 'finanzas' ? (
-          <span className="block font-display text-xl font-bold leading-tight">
+          <span className="block font-display text-xl font-semibold leading-tight">
             {spentReady ? formatMoney(spent) : '…'}{' '}
             <span className="font-sans text-sm font-bold text-muted">gastado en {month}</span>
           </span>
         ) : null}
         {module === 'memos' ? (
           <>
-            <span className="block font-display text-xl font-bold leading-tight">{pendingLabel(pending)}</span>
+            <span className="block font-display text-xl font-semibold leading-tight">{pendingLabel(pending)}</span>
             {sharedPending > 0 ? (
               <span className="mt-0.5 block text-sm font-bold text-azul-ink">
                 <AppIcon name="user-group" className="mr-1 text-sm" />
@@ -278,7 +278,7 @@ function ModuleCard({
         ) : null}
         {module === 'habitos' ? (
           <>
-            <span className="block font-display text-xl font-bold leading-tight">
+            <span className="block font-display text-xl font-semibold leading-tight">
               {habitTotal > 0 ? `${todayCounterLabel(habitDone, habitTotal)} hoy` : 'Nada para hoy'}
             </span>
             {habitTotal > 0 ? (
@@ -296,7 +296,7 @@ function ModuleCard({
         {module === 'comidas' ? (
           foodReady ? (
             <>
-              <span className="block font-display text-xl font-bold leading-tight">{proteinLabel(foodProtein, foodGoal)}</span>
+              <span className="block font-display text-xl font-semibold leading-tight">{proteinLabel(foodProtein, foodGoal)}</span>
               {foodGoal != null && foodGoal > 0 ? (
                 <span className="mt-1.5 block">
                   <Progress value={proteinPercent(foodProtein, foodGoal) ?? 0} color="var(--color-rosa-hondo)" />
@@ -304,7 +304,7 @@ function ModuleCard({
               ) : null}
             </>
           ) : (
-            <span className="block font-display text-xl font-bold leading-tight">…</span>
+            <span className="block font-display text-xl font-semibold leading-tight">…</span>
           )
         ) : null}
       </span>

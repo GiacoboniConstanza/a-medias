@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AppIcon } from '../components/AppIcon.tsx'
-import { Fab } from '../components/Fab.tsx'
+import { Fab, FabSpace } from '../components/Fab.tsx'
 import { FilterSheet, PERIODS, type ExpenseFilters } from '../components/FilterSheet.tsx'
 import { FixedExpenseSheet, type FixedDraft } from '../components/FixedExpenseSheet.tsx'
 import { MonthSwitcher } from '../components/MonthSwitcher.tsx'
@@ -29,7 +29,7 @@ import {
 import { partnerId } from '../lib/derive.ts'
 import { expenseSpan } from '../lib/expense-range.ts'
 import { filterReminders, matchesCategories, matchesScope, type PaidFilter, type ScopeFilter } from '../lib/finance-filters.ts'
-import { dayDiff, dueBucket, dueLabel, dueTone, scheduleAmount, showPayLink, type DueBucket } from '../lib/fixed.ts'
+import { dayDiff, dueBucket, dueLabel, dueTone, scheduleAmount, type DueBucket } from '../lib/fixed.ts'
 import { formatMoney } from '../lib/format.ts'
 import { isHubHome } from '../lib/modules.ts'
 import { iconSurface } from '../lib/icons.ts'
@@ -421,13 +421,11 @@ export function RemindersScreen() {
           aria-haspopup="dialog"
           aria-expanded={sheetOpen}
           aria-label={activeCount > 0 ? `Filtros, ${activeCount} activos` : 'Filtros'}
-          className={`relative grid h-11 w-11 shrink-0 place-items-center rounded-full border text-lg ${
-            activeCount > 0 ? 'border-mostaza-ink border-[1.5px] border-tinta bg-mostaza text-tinta' : 'border-line bg-card text-mostaza-ink'
-          }`}
+          className="relative grid h-11 w-11 shrink-0 place-items-center rounded-full border-[1.5px] border-azul bg-card text-lg text-mostaza-ink"
         >
           <AppIcon name="sliders" />
           {activeCount > 0 ? (
-            <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-card px-1 text-sm font-bold text-mostaza-ink ring-2 ring-mostaza-ink">
+            <span className="absolute -right-1 -top-1 grid h-6 min-w-6 place-items-center rounded-full border-2 border-crema bg-tinta px-1 text-sm font-bold text-crema">
               {activeCount}
             </span>
           ) : null}
@@ -461,15 +459,17 @@ export function RemindersScreen() {
             <AppIcon name="xmark" />
           </button>
           <div className="flex items-center gap-3 pr-8">
-            <MoonMark />
-            <h2 className="font-display text-[19px] font-semibold">¿Gastaste algo hoy?</h2>
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-azul-claro text-lg text-tinta">
+              <AppIcon name="pen" />
+            </span>
+            <h2 className="font-display text-lg font-semibold">¿Gastaste algo hoy?</h2>
           </div>
           <div className="mt-3.5 flex items-center gap-3">
             <Link
               to="/cargar"
-              className="inline-flex min-h-11 items-center gap-1.5 rounded-[18px] bg-mostaza px-5 text-sm font-bold text-tinta"
+              className="inline-flex h-11 items-center rounded-full border-[1.5px] border-tinta bg-mostaza px-[18px] font-display text-lg font-semibold text-tinta"
             >
-              <AppIcon name="pen" /> Anotar
+              Anotar
             </Link>
             <button type="button" className="min-h-11 px-1 text-sm font-bold text-mostaza-ink" onClick={() => void markReviewed()}>
               No gasté nada
@@ -486,7 +486,7 @@ export function RemindersScreen() {
       {grouped.map((group) => (
         <section key={group.id} className="mt-5">
           <h2 className="mb-2 px-1 text-sm font-semibold text-muted">{group.title}</h2>
-          <div className="overflow-hidden rounded-2xl bg-card">
+          <div className="overflow-hidden rounded-2xl border-2 border-azul-ink bg-card">
             {group.items.map((item) => (
               <SwipeDue
                 key={item.id}
@@ -495,9 +495,7 @@ export function RemindersScreen() {
                 month={month}
                 now={now}
                 partnerName={partnerName}
-                saving={saving}
                 onEdit={() => openEditor(item)}
-                onPay={() => void pay(item.id)}
               />
             ))}
           </div>
@@ -534,7 +532,7 @@ export function RemindersScreen() {
                     </span>
                   </button>
                   <div className="text-right">
-                    <p className="font-display text-base font-bold">{formatMoney(item.amount)}</p>
+                    <p className="whitespace-nowrap font-display text-lg font-semibold">{formatMoney(item.amount)}</p>
                     <button
                       type="button"
                       className="min-h-11 text-sm font-bold text-mostaza-ink disabled:opacity-50"
@@ -580,7 +578,7 @@ export function RemindersScreen() {
                       {item.title}
                       {item.notes ? <AppIcon name="note-sticky" className="ml-1.5 text-sm text-muted" /> : null}
                     </span>
-                    <span className="font-display text-base font-bold">{formatMoney(item.amount)}</span>
+                    <span className="font-display text-base font-semibold">{formatMoney(item.amount)}</span>
                   </button>
                 </li>
               ))}
@@ -592,6 +590,15 @@ export function RemindersScreen() {
       <div className="h-24" aria-hidden="true" />
       <ErrorText>{message}</ErrorText>
       <Toast onDone={() => setToast('')}>{toast}</Toast>
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-x-0 z-[5] h-[var(--alto-franja-fab)]"
+        style={{
+          bottom: 'calc(89px + env(safe-area-inset-bottom))',
+          background: 'linear-gradient(to bottom, transparent, var(--color-crema) 24px, var(--color-crema))',
+        }}
+      />
+      <FabSpace avisos />
       <Fab
         label="Nuevo gasto fijo"
         onClick={() => {
@@ -668,24 +675,12 @@ function compareDue(left: FixedItem, right: FixedItem, bucket: DueBucket, month:
   return bucket === 'today' ? -delta : delta
 }
 
-function MoonMark() {
-  return (
-    <svg width="58" height="58" viewBox="0 0 58 58" aria-hidden="true" className="shrink-0">
-      <circle cx="29" cy="29" r="27" fill="var(--color-azul-claro)" />
-      <path d="M36 14a15 15 0 1 0 9 24a12 12 0 1 1-9-24z" fill="var(--color-mostaza)" />
-      <circle cx="16" cy="16" r="1.8" fill="var(--color-azul)" />
-      <circle cx="44" cy="12" r="1.4" fill="var(--color-azul)" />
-      <circle cx="12" cy="40" r="1.2" fill="var(--color-azul)" />
-    </svg>
-  )
-}
-
 function IconBubble({ icon }: { icon: string }) {
   const surface = iconSurface(icon)
   return (
     <span
-      className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-base"
-      style={{ background: surface.background, color: surface.color }}
+      className="grid h-10 w-10 shrink-0 place-items-center rounded-full border-2 text-lg"
+      style={{ background: surface.background, color: surface.color, borderColor: surface.border }}
     >
       <AppIcon name={icon} />
     </span>
@@ -697,133 +692,38 @@ function SwipeDue({
   month,
   now,
   partnerName,
-  saving,
   grouped = false,
   onEdit,
-  onPay,
 }: {
   item: FixedItem
   month: string
   now: Date
   partnerName: string
-  saving: boolean
   grouped?: boolean
   onEdit: () => void
-  onPay: () => void
 }) {
   const tone = dueTone(item.dueDay, month, now)
   const when = dueLabel(item.dueDay, month, now)
-  const payOnCard = showPayLink(item.dueDay, month, now)
-  const [reveal, setReveal] = useState(0)
-  const [dragging, setDragging] = useState(false)
-  const origin = useRef({ x: 0, y: 0, reveal: 0 })
-  const tracking = useRef(false)
-  const horizontal = useRef(false)
-  const dragged = useRef(false)
-  const revealRef = useRef(0)
-
-  function setRevealTo(value: number) {
-    revealRef.current = value
-    setReveal(value)
-  }
-
-  function onPointerDown(event: PointerEvent<HTMLDivElement>) {
-    if ((event.target as HTMLElement).closest('[data-pay]')) return
-    tracking.current = true
-    horizontal.current = false
-    origin.current = { x: event.clientX, y: event.clientY, reveal: revealRef.current }
-  }
-
-  function onPointerMove(event: PointerEvent<HTMLDivElement>) {
-    if (!tracking.current) return
-    const dx = event.clientX - origin.current.x
-    const dy = event.clientY - origin.current.y
-    if (!horizontal.current) {
-      if (Math.abs(dy) > 10 && Math.abs(dy) > Math.abs(dx)) {
-        tracking.current = false
-        return
-      }
-      if (Math.abs(dx) < 8) return
-      horizontal.current = true
-      setDragging(true)
-      event.currentTarget.setPointerCapture(event.pointerId)
-    }
-    setRevealTo(Math.min(72, Math.max(0, origin.current.reveal - dx)))
-  }
-
-  function onPointerUp() {
-    const wasHorizontal = horizontal.current
-    tracking.current = false
-    horizontal.current = false
-    setDragging(false)
-    if (!wasHorizontal) return
-    dragged.current = true
-    setRevealTo(revealRef.current > 36 ? 72 : 0)
-  }
-
-  function edit() {
-    if (dragged.current) {
-      dragged.current = false
-      return
-    }
-    onEdit()
-  }
-
   return (
-    <div className={`relative overflow-hidden bg-salvia-claro ${grouped ? 'border-b border-line last:border-0' : 'rounded-2xl'}`}>
-      <button
-        type="button"
-        data-pay="true"
-        aria-label={`Marcar ${item.title} como pagado`}
-        aria-hidden={reveal < 36}
-        tabIndex={reveal >= 36 ? 0 : -1}
-        disabled={saving}
-        onClick={onPay}
-        className="absolute inset-y-0 right-0 flex w-[72px] flex-col items-center justify-center gap-1 text-sm font-bold text-mostaza-ink disabled:opacity-50"
-      >
-        <span className="grid h-9 w-9 place-items-center rounded-full bg-salvia-claro">
-          <AppIcon name="check" />
-        </span>
-        Pagué
-      </button>
-      <div
-        className={`swipe-motion relative z-10 touch-pan-y bg-card ${grouped ? '' : 'rounded-2xl border-2 border-azul-ink'} ${dragging ? '' : 'transition-[margin] duration-200 ease-out'}`}
-        style={{ marginRight: reveal }}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
-      >
-        <div className="flex items-center gap-3.5 px-4 py-4">
-          <button type="button" onClick={edit} className="flex min-h-11 min-w-0 flex-1 items-center gap-3.5 text-left" aria-label={`Editar ${item.title}, ${when}`}>
-            <IconBubble icon={item.icon} />
-            <span className="min-w-0 flex-1">
-              <span className="flex min-w-0 items-baseline gap-1.5">
-                <span className="truncate text-base font-bold">
-                  {item.title}
-                  {item.notes ? <AppIcon name="note-sticky" className="ml-1.5 text-sm text-muted" /> : null}
-                </span>
-                {item.isShared ? <span className="shrink-0 text-sm font-semibold text-muted">con {partnerName}</span> : null}
-              </span>
-              <span className={`mt-0.5 block text-sm font-bold ${toneClass[tone]}`}>{when}</span>
+    <div className={grouped ? 'border-b border-line last:border-0' : 'rounded-2xl border-2 border-azul-ink'}>
+      <button type="button" onClick={onEdit} className="flex min-h-[var(--alto-fila-aviso)] w-full items-center gap-3 px-3.5 py-2.5 text-left" aria-label={`Editar ${item.title}, ${when}`}>
+        <IconBubble icon={item.icon} />
+        <span className="min-w-0 flex-1">
+          <span className="flex min-w-0 items-baseline gap-1.5">
+            <span className="truncate font-display text-lg font-semibold text-tinta">
+              {item.title}
+              {item.notes ? <AppIcon name="note-sticky" className="ml-1.5 text-sm text-muted" /> : null}
             </span>
-          </button>
-          <div className="text-right">
-            <p className="font-display text-base font-bold">{formatMoney(item.amount)}</p>
-            {payOnCard ? (
-              <button
-                type="button"
-                data-pay="true"
-                className="inline-flex min-h-11 items-center gap-1 text-sm font-bold text-mostaza-ink disabled:opacity-50"
-                onClick={onPay}
-                disabled={saving}
-              >
-                <AppIcon name="check" className="text-sm" /> Pagué
-              </button>
+            {item.isShared ? (
+              <span className="shrink-0 text-sm font-medium text-gris">
+                con <span className="font-bold text-salvia-ink">{partnerName}</span>
+              </span>
             ) : null}
-          </div>
-        </div>
-      </div>
+          </span>
+          <span className={`mt-0.5 block text-sm font-medium ${toneClass[tone]}`}>{when}</span>
+        </span>
+        <span className="whitespace-nowrap font-display text-lg font-semibold text-tinta">{formatMoney(item.amount)}</span>
+      </button>
     </div>
   )
 }

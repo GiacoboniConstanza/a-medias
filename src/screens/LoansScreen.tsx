@@ -12,11 +12,10 @@ import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
 import { loadSettledMonths } from '../lib/api.ts'
 import { partnerId } from '../lib/derive.ts'
-import { clampNotes, formatMoney, moneyDraftFromAmount, parseMoney } from '../lib/format.ts'
+import { clampNotes, formatMoney, moneyDraftFromAmount, normalizeMoney, parseMoney } from '../lib/format.ts'
 import {
   deleteLoan,
   deleteRepayment,
-  friendlyLoanSummary,
   loadLoanBalances,
   loadRepayments,
   matchesLoanFilter,
@@ -106,12 +105,10 @@ export function LoansScreen() {
           </Chip>
         ))}
       </div>
-      <Card>
-        <div className="flex items-center gap-2">
+      <Card className="border-ciruela-ink bg-ciruela-claro">
+        <div className="flex items-center gap-3.5">
           <Plant stage={signed === 0 ? 'lush' : 'steady'} />
-          <p className="min-w-0 font-display text-2xl font-semibold leading-tight text-ciruela-ink">
-            {friendlyLoanSummary(partnerName, signed)}
-          </p>
+          <LoanSummary partnerName={partnerName} signed={signed} />
         </div>
       </Card>
       {visible.length === 0 ? (
@@ -130,12 +127,16 @@ export function LoansScreen() {
           />
         ))
       )}
-      <Button type="button" onClick={() => setCreating(true)} disabled={!otherId}>
+      <Button
+        type="button"
+        aria-disabled={!otherId}
+        onClick={() => {
+          if (otherId) setCreating(true)
+        }}
+      >
         Nuevo préstamo
       </Button>
-      {!otherId ? (
-        <p className="mt-2 text-center text-base font-semibold text-muted">Cuando se sume tu compañera, van a poder prestarse.</p>
-      ) : null}
+      {!otherId ? <p className="mt-1.5 text-sm font-medium text-gris">Primero vinculá a tu pareja.</p> : null}
       <ErrorText>{error}</ErrorText>
       {creating && otherId && partnerName ? (
         <LoanEditor
@@ -202,6 +203,28 @@ export function LoansScreen() {
   )
 }
 
+function LoanSummary({ partnerName, signed }: { partnerName: string | null; signed: number }) {
+  const amount = normalizeMoney(signed)
+  if (!partnerName) return <p className="text-sm font-medium text-tinta">Cuando se sume tu compañera, van a poder prestarse.</p>
+  if (amount === 0) return <p className="text-lg font-medium text-tinta">Están a mano.</p>
+  const maru = partnerName.trim().toLowerCase() === 'maru'
+  const name = <span className={`font-bold ${maru ? 'text-salvia-ink' : 'text-rosa-texto'}`}>{partnerName}</span>
+  if (amount < 0) {
+    return (
+      <p className="text-lg font-medium text-tinta">
+        Le debés <span className="whitespace-nowrap font-display font-semibold">{formatMoney(-amount)}</span> a {name}.
+      </p>
+    )
+  }
+  return (
+    <div className="min-w-0">
+      <p className="text-lg font-medium text-tinta">{name} te debe</p>
+      <p className="mt-1 whitespace-nowrap font-display text-[36px] font-semibold leading-none text-tinta">{formatMoney(amount)}</p>
+      <p className="mt-1.5 text-sm font-medium text-tinta">en préstamos</p>
+    </div>
+  )
+}
+
 function LoanCard({
   loan,
   mine,
@@ -217,12 +240,12 @@ function LoanCard({
 }) {
   const who = mine ? `Le prestaste a ${partnerName ?? 'ella'}` : `${partnerName ?? 'Ella'} te prestó`
   return (
-    <article className="mb-3 rounded-2xl bg-card p-4 border-2 border-azul-ink">
+    <article className="mb-3 rounded-2xl border-2 border-ciruela-ink bg-card p-4">
       <button type="button" onClick={onOpen} className="w-full text-left">
         <span className="flex items-start justify-between gap-3">
           <span className="min-w-0">
-            <span className="block text-base font-semibold text-muted">{who}</span>
-            <span className="mt-1 block whitespace-nowrap font-display text-2xl font-semibold tabular-nums text-ciruela-ink">
+            <span className="block text-sm font-semibold text-gris">{who}</span>
+            <span className="mt-1.5 block whitespace-nowrap font-display text-lg font-semibold text-ciruela-ink">
               {formatMoney(loan.amount)}
             </span>
           </span>

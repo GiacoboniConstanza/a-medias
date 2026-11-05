@@ -5,7 +5,7 @@ import { ErrorText, Toggle } from './ui.tsx'
 import { MAX_ASK_TIMES, nextTimeSlot, reminderFootnote, timesValid, type ReminderPrefs } from '../lib/reminders.ts'
 
 const pill =
-  'min-h-11 rounded-[18px] border-2 border-azul bg-sand-soft px-3.5 font-display text-xl font-bold text-mostaza-ink scheme-light'
+  'min-h-11 rounded-[18px] border-2 border-azul bg-sand-soft px-3.5 font-display text-xl font-semibold text-mostaza-ink scheme-light'
 
 export function ReminderSettingsSheet({
   open,
@@ -126,7 +126,7 @@ export function ReminderSettingsSheet({
           >
             −
           </button>
-          <span className="min-w-8 text-center font-display text-xl font-bold text-title">{prefs.dueLeadDays}</span>
+          <span className="min-w-8 text-center font-display text-xl font-semibold text-title">{prefs.dueLeadDays}</span>
           <button
             type="button"
             className="grid h-11 w-11 place-items-center rounded-2xl bg-sand font-display text-xl font-semibold text-title"
