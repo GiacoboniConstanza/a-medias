@@ -590,14 +590,6 @@ export function RemindersScreen() {
       <div className="h-24" aria-hidden="true" />
       <ErrorText>{message}</ErrorText>
       <Toast onDone={() => setToast('')}>{toast}</Toast>
-      <div
-        aria-hidden="true"
-        className="pointer-events-none fixed inset-x-0 z-[5] h-[var(--alto-franja-fab)]"
-        style={{
-          bottom: 'calc(89px + env(safe-area-inset-bottom))',
-          background: 'linear-gradient(to bottom, transparent, var(--color-crema) 24px, var(--color-crema))',
-        }}
-      />
       <FabSpace avisos />
       <Fab
         label="Nuevo gasto fijo"

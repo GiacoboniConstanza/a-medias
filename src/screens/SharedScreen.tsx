@@ -238,7 +238,7 @@ export function SharedScreen() {
               </>
             )}
             <SplitBar expense={expenseAmount} loans={loanAmount} />
-            <MoneyRow label="Por gastos" amount={formatMoney(expenseAmount)} dotClass="border-tinta bg-azul" />
+            <MoneyRow label="Por gastos" amount={formatMoney(expenseAmount)} dotClass="border-tinta bg-azul-claro" />
             <MoneyRow label="Por préstamos" amount={formatMoney(loanAmount)} dotClass="border-tinta bg-ciruela" />
             {settled ? (
               <p className="mt-3 rounded-2xl border-[1.5px] border-tinta bg-azul-claro px-[18px] py-2.5 text-sm font-medium text-tinta">
