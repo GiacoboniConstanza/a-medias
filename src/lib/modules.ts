@@ -39,7 +39,7 @@ export const FINANCE_TABS: readonly NavItem[] = [
   { to: FINANCE_ROUTES.resumen, label: 'Resumen', icon: 'wallet', end: true },
   { to: FINANCE_ROUTES.gastos, label: 'Gastos', icon: 'receipt' },
   { to: FINANCE_ROUTES.compartidos, label: 'Compartidos', icon: 'user-group' },
-  { to: FINANCE_ROUTES.prestamos, label: 'Préstamos', icon: 'hand-holding-dollar' },
+  { to: FINANCE_ROUTES.prestamos, label: 'Transferencias', icon: 'hand-holding-dollar' },
   { to: FINANCE_ROUTES.ahorros, label: 'Ahorros', icon: 'piggy-bank' },
 ]
 

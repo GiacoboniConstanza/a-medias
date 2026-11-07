@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { monthPocket } from './derive.ts'
+import { formatMoney } from './format.ts'
 import { loanMonthEffect, remainingAfterLoans, type PeriodLoan, type PeriodRepayment } from './loans.ts'
 import {
   linkedLoanAmount,
   loansInSettlement,
   passPhrase,
   planMonthSettlement,
+  returnSentences,
   withoutSettlementRepayments,
   type SettleLoan,
   type TaggedRepayment,
@@ -33,7 +35,7 @@ const aMano = splitByPercents(
   false,
 )
 
-const pocket = monthPocket({ base: 900_000, privateSpent: 72_000, myShare: 30_000, extras: 300_000 })
+const pocket = monthPocket({ base: 900_000, privateSpent: 72_000, sharedPaid: 30_000, extras: 300_000 })
 
 function loan(id: string, lenderId: string, borrowerId: string, pending: number, period: string): SettleLoan {
   return { id, lenderId, borrowerId, pending, period }
@@ -75,6 +77,9 @@ describe('saldar el mes', () => {
     expect(plan.amount).toBe(351_921.2)
     expect(plan.canSettle).toBe(true)
     expect(plan.expenseDebtorId).toBe(maru)
+    expect(returnSentences(coty, 'Maru', plan.repayments)).toBe(
+      `Maru devuelve ${formatMoney(275_000)}. Devolvés ${formatMoney(80_000)}`,
+    )
   })
 
   it('la devolución queda en el período del mes saldado', () => {
@@ -222,5 +227,29 @@ describe('saldar el mes', () => {
     expect(linkedLoanAmount(plan.repayments)).toBe(10.01)
     expect(passPhrase('Maru', true, plan.amount)).toBe('Maru te pasa $ 9,99')
     expect(passPhrase('Coty', false, plan.amount)).toBe('Le pasás $ 9,99 a Coty')
+    expect(returnSentences(coty, 'Maru', plan.repayments)).toBe(`Maru devuelve ${formatMoney(10.01)}`)
+  })
+
+  it('el reparto no mueve Te quedan y las devoluciones del saldo sí', () => {
+    const cash = monthPocket({ base: 1_000, privateSpent: 0, sharedPaid: 100, extras: 0 })
+    expect(cash.spent).toBe(100)
+    expect(cash.remaining).toBe(900)
+    const plan = planMonthSettlement({
+      month: '2026-11-01',
+      meId: coty,
+      partnerId: maru,
+      split: maruDebe,
+      loans: [loan('oct', coty, maru, 300, '2026-10-01')],
+      alreadySettled: false,
+    })
+    expect(plan.expenseAmount).toBe(156_921.2)
+    expect(plan.loanAmount).toBe(300)
+    expect(plan.amount).toBe(157_221.2)
+    const before = loanMonthEffect(coty, '2026-11-01', [], [])
+    expect(remainingAfterLoans(cash.income, cash.spent, before.net)).toBe(900)
+    const after = loanMonthEffect(coty, '2026-11-01', [], asMovements(plan.repayments))
+    expect(after.collected).toBe(300)
+    expect(remainingAfterLoans(cash.income, cash.spent, after.net)).toBe(1_200)
+    expect(remainingAfterLoans(cash.income, cash.spent, after.net)).not.toBe(900 + plan.expenseAmount)
   })
 })

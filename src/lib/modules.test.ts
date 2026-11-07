@@ -32,7 +32,7 @@ describe('filtro del menú', () => {
 describe('menú según la pantalla', () => {
   it('sin hub muestra Finanzas y Resumen es /', () => {
     const nav = navFor('/', ['finanzas'])
-    expect(nav.items.map((item) => item.label)).toEqual(['Resumen', 'Gastos', 'Compartidos', 'Préstamos', 'Ahorros'])
+    expect(nav.items.map((item) => item.label)).toEqual(['Resumen', 'Gastos', 'Compartidos', 'Transferencias', 'Ahorros'])
     expect(nav.items[0]?.to).toBe('/')
     expect(nav.activeTo).toBe('/')
     expect(navFor('/finanzas', ['finanzas']).activeTo).toBe('/')

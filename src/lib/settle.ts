@@ -144,3 +144,23 @@ export function passPhrase(partnerName: string, meIsCreditor: boolean, amount: n
   if (meIsCreditor) return `${partnerName} te pasa ${money}`
   return `Le pasás ${money} a ${partnerName}`
 }
+
+/** Devoluciones que anota saldar el mes, separadas del reparto. No es el neto guardado. */
+export function returnSentences(
+  meId: string,
+  partnerName: string,
+  repayments: readonly { borrowerId: string; amount: number }[],
+): string | null {
+  let theirs = 0
+  let mine = 0
+  for (const row of repayments) {
+    if (row.borrowerId === meId) mine += row.amount
+    else theirs += row.amount
+  }
+  theirs = normalizeMoney(theirs)
+  mine = normalizeMoney(mine)
+  const parts: string[] = []
+  if (theirs > 0) parts.push(`${partnerName} devuelve ${formatMoney(theirs)}`)
+  if (mine > 0) parts.push(`Devolvés ${formatMoney(mine)}`)
+  return parts.length > 0 ? parts.join('. ') : null
+}

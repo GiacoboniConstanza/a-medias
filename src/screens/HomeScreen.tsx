@@ -16,6 +16,7 @@ import { useModules } from '../context/ModulesProvider.tsx'
 import { useMonth } from '../context/MonthProvider.tsx'
 import { saveViewMode } from '../lib/api.ts'
 import { debtCopy, monthPocket, monthSplit, myPrivateSpent, paceInput, partnerId } from '../lib/derive.ts'
+import { sumPaidBy } from '../lib/period.ts'
 import { homeAccountingCard, type HomeCardLine } from '../lib/home-card.ts'
 import { formatMoney } from '../lib/format.ts'
 import { jarStatus } from '../lib/jar.ts'
@@ -79,20 +80,23 @@ export function HomeScreen() {
   const meId = profile.id
   const otherId = partnerId(data, meId)
   const split = monthSplit(data)
-  const mine = split.rows.find((row) => row.id === meId)
   const pace = paceInput(month)
   const base = data.bases[meId] ?? 0
   const privateSpent = myPrivateSpent(data, meId)
-  const myShare = mine?.share ?? 0
+  const sharedPaid = sumPaidBy(
+    data.monthExpenses.filter((expense) => expense.isShared),
+    meId,
+  )
   const extras = data.extrasThisMonth.reduce((sum, extra) => sum + extra.amount, 0)
-  const pocket = monthPocket({ base, privateSpent, myShare, extras })
+  const pocket = monthPocket({ base, privateSpent, sharedPaid, extras })
   const loanEffect = loanMonthEffect(meId, month, loanMoves.loans, loanMoves.repayments)
-  const card = homeAccountingCard(pocket, loanEffect)
+  const partnerName = (otherId && data.names[otherId]) || 'tu compañera'
+  const card = homeAccountingCard(pocket, loanEffect, partnerName)
   const remaining = card.remaining
   const jar = jarStatus({
     base,
     privateSpent,
-    myShare,
+    sharedPaid,
     extras,
     loanNet: loanEffect.net,
     ...pace,
@@ -142,50 +146,32 @@ export function HomeScreen() {
             <HomePot />
             <div className="min-w-0">
               <h2 className="flex items-center gap-1.5 font-display text-base font-semibold text-title">
-                <AppIcon name="seedling" className="text-mostaza-ink" /> Me queda
+                <AppIcon name="seedling" className="text-mostaza-ink" /> Te quedan
               </h2>
+              <p className={`font-display text-[clamp(1.75rem,8vw,2rem)] font-semibold leading-none whitespace-nowrap ${amountTone}`}>{card.remainingText}</p>
+              <p className="mt-1 text-sm font-normal text-muted">{jar.message}</p>
               {jar.tone === 'empty' ? (
                 <Link to="/sueldo" className="mt-1 inline-flex min-h-11 items-center font-semibold text-mostaza-ink">
                   Cargar sueldo base
                 </Link>
-              ) : (
-                <p className={`font-display text-[clamp(1.75rem,8vw,2rem)] font-semibold leading-none whitespace-nowrap ${amountTone}`}>{formatMoney(remaining)}</p>
-              )}
-              <p className="mt-1 text-sm font-normal text-muted">{jar.message}</p>
+              ) : null}
             </div>
           </div>
         ) : (
-          <>
-            <div className="flex items-start justify-between gap-3">
-              <h2 className="font-display text-xl font-semibold text-title">Me queda</h2>
-              <HomePot />
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h2 className="font-display text-xl font-semibold text-title">Te quedan</h2>
+              <p className={`mt-1 font-display text-[clamp(1.75rem,8vw,2.375rem)] font-semibold leading-none whitespace-nowrap ${amountTone}`}>{card.remainingText}</p>
             </div>
-            <p className={`mt-1 font-display text-[clamp(1.75rem,8vw,2.375rem)] font-semibold leading-none whitespace-nowrap ${amountTone}`}>{card.remainingText}</p>
-            <p className="mt-2 text-sm font-normal text-muted">Ingresos menos gastos y préstamos</p>
-            <SoftDivider />
-            <div className="space-y-2">
-              {card.income.map((row) => (
-                <Row key={row.label} line={row} />
-              ))}
-            </div>
-            <SoftDivider />
-            <div className="space-y-2">
-              {card.spent.map((row) => (
-                <Row key={row.label} line={row} />
-              ))}
-            </div>
-            {card.showLoans ? (
-              <>
-                <SoftDivider />
-                <div className="space-y-2">
-                  {card.loans.map((row) => (
-                    <Row key={row.label} line={row} />
-                  ))}
-                </div>
-              </>
-            ) : null}
-          </>
+            <HomePot />
+          </div>
         )}
+        <SoftDivider />
+        <div className="space-y-2">
+          {card.lines.map((row) => (
+            <Row key={row.label} line={row} />
+          ))}
+        </div>
       </Card>
 
       {hub ? null : <PartnerMemos />}
@@ -270,7 +256,6 @@ function SoftDivider() {
 
 function Row({ line }: { line: HomeCardLine }) {
   const tone = {
-    detail: 'font-normal text-muted',
     income: 'font-semibold text-mostaza-ink',
     spent: 'font-semibold text-rosa-texto',
     loan: 'font-normal text-ciruela-ink',

@@ -47,12 +47,12 @@ describe('estado de un préstamo', () => {
       { lenderId: coty, borrowerId: maru, pending: 0, status: 'saldado' },
     ])
     expect(signed).toBe(200_000)
-    expect(friendlyLoanSummary('Maru', signed)).toBe('Maru te debe $ 200.000,00 en préstamos')
-    expect(homeLoanLine(signed)).toBe('Préstamos a cobrar $ 200.000,00')
-    expect(homeLoanLine(-80_000)).toBe('Préstamos a devolver $ 80.000,00')
+    expect(friendlyLoanSummary('Maru', signed)).toBe('Maru tiene que devolver $ 200.000,00')
+    expect(homeLoanLine(signed)).toBe('Tiene que devolver $ 200.000,00')
+    expect(homeLoanLine(-80_000)).toBe('Tenés que devolver $ 80.000,00')
     expect(homeLoanLine(0)).toBeNull()
-    expect(friendlyLoanSummary('Coty', -80_000)).toBe('Le debés $ 80.000,00 a Coty.')
-    expect(friendlyLoanSummary(null, 10)).toBe('Cuando se sume tu compañera, van a poder prestarse.')
+    expect(friendlyLoanSummary('Coty', -80_000)).toBe('Tenés que devolver $ 80.000,00')
+    expect(friendlyLoanSummary(null, 10)).toBe('Cuando se sume tu compañera, van a poder pasarse plata.')
     expect(friendlyLoanSummary('Maru', 0)).toBe('Están a mano.')
   })
 
@@ -62,13 +62,13 @@ describe('estado de un préstamo', () => {
   })
 })
 
-describe('neto de Compartido con préstamos', () => {
-  it('resta el saldo de gastos cuando el préstamo queda del otro lado', () => {
-    const note = sharedLoanNote('Maru', 280_000, -30_000)
-    expect(note?.pendingLine).toBe('Préstamos pendientes: Maru te debe $ 280.000,00')
-    expect(note?.netLine).toBe('Maru te debe $ 250.000,00')
-    expect(balanceSentence('Coty', -250_000)).toBe('Le debés $ 250.000,00 a Coty')
-    expect(sharedLoanNote('Maru', 0, -30_000)).toBeNull()
+describe('pendiente de devolución, aparte del reparto', () => {
+  it('no resta el saldo de gastos del pendiente', () => {
+    const note = sharedLoanNote('Maru', 280_000)
+    expect(note).toEqual({ pendingLine: 'Maru tiene que devolver $ 280.000,00' })
+    expect(note).not.toHaveProperty('netLine')
+    expect(balanceSentence('Coty', -250_000)).toBe('Tenés que devolver $ 250.000,00')
+    expect(sharedLoanNote('Maru', 0)).toBeNull()
   })
 })
 
@@ -98,47 +98,37 @@ describe('frases del paso 3', () => {
     false,
   )
 
-  it('coincide con el reparto cuando Maru debe, con y sin préstamos', () => {
+  it('deja el reparto y el pendiente en frases distintas, también si se cruzan', () => {
     expect(maruDebe.rows.map((row) => row.share)).toEqual([311_821.2, 467_731.8])
     expect(maruDebe.amount).toBe(156_921.2)
     expect(sharedSignedBalance('coty', maruDebe)).toBe(156_921.2)
 
     const sinPrestamos = settlementPhrases('coty', maruDebe, 0)
     expect(sinPrestamos).toEqual({
-      expenseLine: 'Maru pagó $ 154.900,00 y le tocaba $ 311.821,20, así que te debe $ 156.921,20.',
+      expenseLine: `Maru puso de menos ${formatMoney(maruDebe.amount)}`,
       loanLine: null,
-      totalLine: 'Maru te debe $ 156.921,20',
-      breakdown: null,
     })
-    expect(sinPrestamos.totalLine).toBe(balanceSentence('Maru', sharedSignedBalance('coty', maruDebe)))
 
     const conPrestamos = settlementPhrases('coty', maruDebe, 275_000)
     expect(conPrestamos).toEqual({
-      expenseLine: 'Maru pagó $ 154.900,00 y le tocaba $ 311.821,20, así que te debe $ 156.921,20.',
-      loanLine: 'Además, tiene préstamos pendientes por $ 275.000,00.',
-      totalLine: 'Maru te debe $ 431.921,20',
-      breakdown: '$ 156.921,20 + $ 275.000,00',
+      expenseLine: `Maru puso de menos ${formatMoney(maruDebe.amount)}`,
+      loanLine: `Maru tiene que devolver ${formatMoney(275_000)}`,
     })
-    expect(conPrestamos.totalLine).toBe(
-      balanceSentence('Maru', normalizeMoney(sharedSignedBalance('coty', maruDebe) + 275_000)),
-    )
+    expect(`${conPrestamos.expenseLine} ${conPrestamos.loanLine}`).not.toContain(formatMoney(431_921.2))
 
     const desdeMaru = settlementPhrases('maru', maruDebe, -275_000)
-    expect(desdeMaru.expenseLine).toBe(
-      'Pagaste $ 154.900,00 y te tocaba $ 311.821,20, así que le debés $ 156.921,20 a Coty.',
-    )
-    expect(desdeMaru.loanLine).toBe('Además, tenés préstamos pendientes por $ 275.000,00.')
-    expect(desdeMaru.totalLine).toBe('Le debés $ 431.921,20 a Coty')
-    expect(desdeMaru.totalLine).toBe(
-      balanceSentence('Coty', normalizeMoney(sharedSignedBalance('maru', maruDebe) - 275_000)),
-    )
+    expect(desdeMaru).toEqual({
+      expenseLine: `Coty puso de más ${formatMoney(maruDebe.amount)}`,
+      loanLine: `Tenés que devolver ${formatMoney(275_000)}`,
+    })
+    expect(`${desdeMaru.expenseLine} ${desdeMaru.loanLine}`).not.toContain(formatMoney(431_921.2))
 
     const cruzado = settlementPhrases('coty', maruDebe, -275_000)
-    expect(cruzado.breakdown).toBe('$ 275.000,00 - $ 156.921,20')
-    expect(cruzado.totalLine).toBe(
-      balanceSentence('Maru', normalizeMoney(sharedSignedBalance('coty', maruDebe) - 275_000)),
-    )
-    expect(cruzado.totalLine).toBe('Le debés $ 118.078,80 a Maru')
+    expect(cruzado).toEqual({
+      expenseLine: `Maru puso de menos ${formatMoney(maruDebe.amount)}`,
+      loanLine: `Tenés que devolver ${formatMoney(275_000)}`,
+    })
+    expect(`${cruzado.expenseLine} ${cruzado.loanLine}`).not.toContain(formatMoney(118_078.8))
   })
 
   it('invierte la frase cuando Coty debe, con y sin préstamos', () => {
@@ -149,54 +139,54 @@ describe('frases del paso 3', () => {
     const owed = formatMoney(cotyDebe.amount)
 
     const sinPrestamos = settlementPhrases('maru', cotyDebe, 0)
-    expect(sinPrestamos.loanLine).toBeNull()
-    expect(sinPrestamos.breakdown).toBeNull()
-    expect(sinPrestamos.expenseLine).toBe(
-      `Coty pagó ${formatMoney(deudora?.paid ?? 0)} y le tocaba ${formatMoney(deudora?.share ?? 0)}, así que te debe ${owed}.`,
-    )
-    expect(sinPrestamos.totalLine).toBe(`Coty te debe ${owed}`)
-    expect(sinPrestamos.totalLine).toBe(balanceSentence('Coty', sharedSignedBalance('maru', cotyDebe)))
+    expect(sinPrestamos).toEqual({
+      expenseLine: `Coty puso de menos ${owed}`,
+      loanLine: null,
+    })
+    expect(deudora?.paid).toBe(154_900)
 
     const conPrestamos = settlementPhrases('maru', cotyDebe, 80_000)
-    expect(conPrestamos.loanLine).toBe('Además, tiene préstamos pendientes por $ 80.000,00.')
-    expect(conPrestamos.breakdown).toBe(`${owed} + $ 80.000,00`)
-    expect(conPrestamos.totalLine).toBe(
-      balanceSentence('Coty', normalizeMoney(sharedSignedBalance('maru', cotyDebe) + 80_000)),
+    expect(conPrestamos).toEqual({
+      expenseLine: `Coty puso de menos ${owed}`,
+      loanLine: `Coty tiene que devolver ${formatMoney(80_000)}`,
+    })
+    expect(`${conPrestamos.expenseLine} ${conPrestamos.loanLine}`).not.toContain(
+      formatMoney(normalizeMoney(sharedSignedBalance('maru', cotyDebe) + 80_000)),
     )
 
     const desdeCoty = settlementPhrases('coty', cotyDebe, -80_000)
-    expect(desdeCoty.expenseLine).toBe(
-      `Pagaste ${formatMoney(deudora?.paid ?? 0)} y te tocaba ${formatMoney(deudora?.share ?? 0)}, así que le debés ${owed} a Maru.`,
-    )
-    expect(desdeCoty.loanLine).toBe('Además, tenés préstamos pendientes por $ 80.000,00.')
-    expect(desdeCoty.totalLine).toBe(
-      balanceSentence('Maru', normalizeMoney(sharedSignedBalance('coty', cotyDebe) - 80_000)),
+    expect(desdeCoty).toEqual({
+      expenseLine: `Maru puso de más ${owed}`,
+      loanLine: `Tenés que devolver ${formatMoney(80_000)}`,
+    })
+    expect(`${desdeCoty.expenseLine} ${desdeCoty.loanLine}`).not.toContain(
+      formatMoney(normalizeMoney(Math.abs(sharedSignedBalance('coty', cotyDebe) - 80_000))),
     )
   })
 
-  it('dice que están a mano, y suma préstamos si los hay', () => {
+  it('deja el reparto en cero y el pendiente en su propia frase', () => {
     expect(aMano.amount).toBe(0)
     const sinPrestamos = settlementPhrases('coty', aMano, 0)
-    expect(sinPrestamos.expenseLine).toBe('Están a mano')
-    expect(sinPrestamos.loanLine).toBeNull()
-    expect(sinPrestamos.totalLine).toBe('Están a mano')
-    expect(sinPrestamos.breakdown).toBeNull()
-    expect(settlementPhrases('maru', aMano, 0).totalLine).toBe('Están a mano')
+    expect(sinPrestamos).toEqual({ expenseLine: 'Están a mano este mes.', loanLine: null })
+    expect(settlementPhrases('maru', aMano, 0)).toEqual({ expenseLine: 'Están a mano este mes.', loanLine: null })
 
     const conPrestamos = settlementPhrases('coty', aMano, 275_000)
-    expect(conPrestamos.expenseLine).toBe('Están a mano')
-    expect(conPrestamos.loanLine).toBe('Además, tiene préstamos pendientes por $ 275.000,00.')
-    expect(conPrestamos.breakdown).toBeNull()
-    expect(conPrestamos.totalLine).toBe('Maru te debe $ 275.000,00')
-    expect(conPrestamos.totalLine).toBe(balanceSentence('Maru', 275_000))
-    expect(settlementPhrases('maru', aMano, -275_000).totalLine).toBe('Le debés $ 275.000,00 a Coty')
+    expect(conPrestamos).toEqual({
+      expenseLine: 'Están a mano este mes.',
+      loanLine: balanceSentence('Maru', 275_000),
+    })
+    expect(conPrestamos.expenseLine).not.toContain('275.000')
+    expect(settlementPhrases('maru', aMano, -275_000)).toEqual({
+      expenseLine: 'Están a mano este mes.',
+      loanLine: 'Tenés que devolver $ 275.000,00',
+    })
   })
 })
 
-describe('préstamos en Me queda', () => {
+describe('transferencias en Te quedan', () => {
   const loans = [{ lenderId: coty, borrowerId: maru, amount: 200_000, period: '2026-11-01' }]
   const repayments = [{ lenderId: coty, borrowerId: maru, amount: 80_000, period: '2026-12-01' }]
-  const pocket = monthPocket({ base: 900_000, privateSpent: 72_000, myShare: 30_000, extras: 300_000 })
+  const pocket = monthPocket({ base: 900_000, privateSpent: 72_000, sharedPaid: 30_000, extras: 300_000 })
 
   it('resta al que presta y suma al que recibe, cada uno en el período que le toca', () => {
     const novemberLender = loanMonthEffect(coty, '2026-11-01', loans, repayments)
@@ -220,7 +210,10 @@ describe('préstamos en Me queda', () => {
     expect(pocket.remaining).toBe(1_098_000)
     const effect = loanMonthEffect(coty, '2026-11-01', loans, repayments)
     expect(hasLoanMovement(effect)).toBe(true)
-    expect(loanEffectLines(effect)).toEqual([{ label: 'Préstamos dados', amount: -200_000 }])
+    expect(loanEffectLines('Maru', effect)).toEqual([
+      { label: 'Maru te pasó', amount: 0 },
+      { label: 'Le pasaste a Maru', amount: 200_000 },
+    ])
     expect(formatSignedMoney(effect.net)).toBe('-$ 200.000,00')
     expect(formatSignedMoney(80_000)).toBe('+$ 80.000,00')
     expect(loanMonthEffect(coty, '2026-10-01', loans, repayments).net).toBe(0)

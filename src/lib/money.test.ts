@@ -21,8 +21,8 @@ describe('reparto del boceto', () => {
   })
 
   it('dice quién le debe a quién', () => {
-    expect(debtSentence('coty', result)).toBe('Maru te debe $ 84.000,00')
-    expect(debtSentence('maru', result)).toBe('Le debés $ 84.000,00 a Coty')
+    expect(debtSentence('coty', result)).toBe('Maru puso de menos $ 84.000,00')
+    expect(debtSentence('maru', result)).toBe('Coty puso de más $ 84.000,00')
   })
 })
 
@@ -43,7 +43,7 @@ describe('frasco', () => {
     const status = jarStatus({
       base: 0,
       privateSpent: 0,
-      myShare: 0,
+      sharedPaid: 0,
       dayOfMonth: 16,
       daysInMonth: 31,
       isCurrentMonth: true,
@@ -55,7 +55,7 @@ describe('frasco', () => {
     const status = jarStatus({
       base: 100_000,
       privateSpent: 80_000,
-      myShare: 40_000,
+      sharedPaid: 40_000,
       dayOfMonth: 10,
       daysInMonth: 31,
       isCurrentMonth: true,
@@ -66,11 +66,12 @@ describe('frasco', () => {
 })
 
 describe('inicio del mes', () => {
-  it('resta privados y la parte compartida de sueldo más extras', () => {
-    const pocket = monthPocket({ base: 900_000, privateSpent: 72_000, myShare: 211_200, extras: 300_000 })
-    expect(pocket.remaining).toBe(916_800)
-    expect(pocket.spent).toBe(283_200)
+  it('resta lo pagado y no la parte teórica del reparto', () => {
+    const pocket = monthPocket({ base: 900_000, privateSpent: 72_000, sharedPaid: 295_200, extras: 300_000 })
     expect(pocket.income).toBe(1_200_000)
+    expect(pocket.spent).toBe(367_200)
+    expect(pocket.remaining).toBe(832_800)
+    expect(pocket.spent).not.toBe(72_000 + 211_200)
   })
 
   it('titula el mes sin la palabra de', () => {

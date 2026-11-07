@@ -113,14 +113,13 @@ function finishSplit(total: number, rows: SplitRow[], usedEvenSplit: boolean): S
 
 export function debtSentence(meId: string, result: SplitResult): string {
   if (result.rows.length < 2) return 'Cuando se sume tu compañera, calculamos el reparto.'
-  if (result.amount === 0 || !result.debtorId || !result.creditorId) return 'Están a mano este mes.'
-  const debtor = result.rows.find((row) => row.id === result.debtorId)
-  const creditor = result.rows.find((row) => row.id === result.creditorId)
-  if (!debtor || !creditor) return 'Están a mano este mes.'
-  const money = formatMoney(result.amount)
-  if (meId === creditor.id) return `${debtor.name} te debe ${money}`
-  if (meId === debtor.id) return `Le debés ${money} a ${creditor.name}`
-  return `${debtor.name} le debe ${money} a ${creditor.name}`
+  const partner = result.rows.find((row) => row.id !== meId)
+  if (!partner) return 'Cuando se sume tu compañera, calculamos el reparto.'
+  const gap = normalizeMoney(partner.balance)
+  if (gap === 0) return 'Están a mano este mes.'
+  const money = formatMoney(Math.abs(gap))
+  if (gap > 0) return `${partner.name} puso de más ${money}`
+  return `${partner.name} puso de menos ${money}`
 }
 
 export type PairBalance = {

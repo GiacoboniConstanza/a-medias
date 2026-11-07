@@ -13,7 +13,7 @@ export type JarStatus = {
 export function jarStatus(input: {
   base: number
   privateSpent: number
-  myShare: number
+  sharedPaid: number
   extras?: number
   loanNet?: number
   dayOfMonth: number
@@ -31,7 +31,7 @@ export function jarStatus(input: {
     }
   }
 
-  const spent = input.privateSpent + input.myShare
+  const spent = input.privateSpent + input.sharedPaid
   const income = input.base + (input.extras ?? 0)
   const remaining = remainingAfterLoans(income, spent, input.loanNet ?? 0)
   const percentLeft = Math.max(0, Math.round((remaining / income) * 100))

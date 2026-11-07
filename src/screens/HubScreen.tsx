@@ -7,7 +7,8 @@ import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
 import { useModules } from '../context/ModulesProvider.tsx'
 import { useMonth } from '../context/MonthProvider.tsx'
-import { monthPocket, monthSplit, myPrivateSpent, partnerId } from '../lib/derive.ts'
+import { monthPocket, myPrivateSpent, partnerId } from '../lib/derive.ts'
+import { sumPaidBy } from '../lib/period.ts'
 import { formatMoney } from '../lib/format.ts'
 import { todayCounterLabel, todayProgress, type Habit, type HabitCheck } from '../lib/habits.ts'
 import { argentinaISO, asNumber, dayTotals, proteinLabel, proteinPercent, type MacroInput } from '../lib/meals.ts'
@@ -165,12 +166,13 @@ export function HubScreen() {
   const showFinance = enabled.includes('finanzas')
   let spent = 0
   if (showFinance && data) {
-    const split = monthSplit(data)
-    const mine = split.rows.find((row) => row.id === profile.id)
     const pocket = monthPocket({
       base: data.bases[profile.id] ?? 0,
       privateSpent: myPrivateSpent(data, profile.id),
-      myShare: mine?.share ?? 0,
+      sharedPaid: sumPaidBy(
+        data.monthExpenses.filter((expense) => expense.isShared),
+        profile.id,
+      ),
       extras: data.extrasThisMonth.reduce((sum, extra) => sum + extra.amount, 0),
     })
     spent = pocket.spent

@@ -567,15 +567,11 @@ Sin toggle (no muestra cuentas). Panel de ayuda: uno por cada tarjeta de módulo
 3. Selector de mes (4.3, `titulo-mes`).
 4. (Sin toggle en pantalla: el modo está en Opciones, S1.)
 5. (El aviso "Tu balance <año> está listo" ya no va acá: va al final, punto 8.)
-6. Tarjeta "Me queda":
-   - **Contable:** el título "Me queda" (`titulo-tarjeta`), el monto en `monto-hero` `primary` (o `alert-ink` si es negativo; aprobado, P11) y el hint "Ingresos menos gastos y préstamos" (14 px `muted`). Al lado, la plantita de 64 px. Después, el desglose en tres bloques separados por **tres líneas punteadas** (1,5 px `dashed` `line`; **aprobado por Coty**, S4): (1) debajo de "Ingresos menos gastos y préstamos", antes de Sueldo base; (2) entre Ingresos y Gastos (antes de "Mi parte compartidos"); (3) antes de "Préstamos dados". Filas en 14 px `muted` con valores en `monto-fila`, el subtotal de Ingresos en `primary`, Gastos del mes en `alert-ink` y "Préstamos dados" en `lavender-ink`. **Sin link "Ver gastos"**: Gastos ya está en el menú (R29, sección 10).
-   - **Amigable** · **boceto aprobado por Coty** (`inicio-finanzas-390-amigable.png`, `inicio-finanzas-360-amigable.png`). Usa los mismos datos que `develop` (`HomeScreen.tsx`, rama Amigable) más la barra de gastos que pidió Coty:
-     1. La plantita plana de 104 a 120 px, centrada (etapa según `plantStage(jar.percentLeft)`).
-     2. "Me queda" (`titulo-tarjeta`, ícono `seedling` en `good`) y el monto en `monto-hero` `primary`, en un renglón. Si es negativo va en `alert-ink` (ya lo hace `amountTone` en `HomeScreen.tsx`; aprobado por Coty).
-     3. La frase del frasco (`jar.message`, `lib/jar.ts`) en un chip `sage-soft` con texto `primary` (verde) o `copper-soft`/`alert-ink` (amarillo y rojo), con ícono. Hoy va en `good` como texto (M10). Si no hay sueldo, el link "Cargar sueldo base".
-     4. **Barra de gastos** (4.8): "Gastos del mes" y el total en `alert-ink`; la barra compartidos (`good`) / privados (`warn-soft`) y la leyenda "Mi parte compartidos" y "Privados" con sus montos (`pocket.sharedShare`, `pocket.privateSpent`, `pocket.spent`, que ya existen). **Es nueva:** el Amigable de `develop` no la muestra.
-     5. **Sin link "Ver gastos"** (R29, sección 10). El separador punteado entre la frase y la barra se mantiene.
-7. Tarjeta "Saldo compartidos" (en Amigable, "Gastos compartidos", `HomeScreen.tsx:211`): fondo `card`, ícono `handshake` en un círculo `copper-soft` y la frase "Maru te debe $ …" en `titulo-tarjeta` `alert-ink` (o `primary` si te deben a vos y es a tu favor). Lleva a Compartidos.
+6. Tarjeta "Te quedan" (antes "Me queda"):
+   - El número es la plata del mes: sueldo y extras, más lo que la otra le pasó, menos lo que ella pagó (privados y compartidos que pagó ella) y menos lo que ella le pasó. La parte teórica del 60/40 no entra.
+   - **Contable:** el título "Te quedan" (`titulo-tarjeta`), el monto en `monto-hero` `primary` (o `alert-ink` si es negativo; aprobado, P11) y la plantita de 64 px. Debajo, una línea punteada y cuatro filas: "Cobraste", "Gastaste", "<nombre> te pasó" y "Le pasaste a <nombre>". Cobraste en `primary`, Gastaste en `alert-ink`, las transferencias en `lavender-ink`. **Sin link "Ver gastos"**: Gastos ya está en el menú (R29, sección 10).
+   - **Amigable:** la plantita al lado del título, el mismo monto y las mismas cuatro filas. La frase del frasco (`jar.message`) usa ese mismo gastado. Si no hay sueldo, el link "Cargar sueldo base".
+7. Tarjeta "Saldo compartidos": fondo `card`, ícono `handshake` en un círculo `copper-soft` y la frase "Maru puso de más" o "Maru puso de menos" (o "Están a mano este mes"). No dice "te debe" y no suma transferencias. Lleva a Compartidos.
 8. El aviso **"Tu balance <año> está listo"**, debajo del Saldo: fila de 56 px en `sand-soft` con borde `line`, `chart-pie` en `primary`, el texto en Fredoka 500 de 16 px, "Ver" (48 × 48, `primary`, lleva a Mi año) y una X de 48 × 48 (`aria-label="Cerrar aviso"`). Aparece en los mismos casos que hoy en `develop` y la X lo oculta hasta el año siguiente (sección 10). El cierre se recuerda **en el dispositivo, con `localStorage`** (aprobado por Coty en la corrida 1, N27): en otro dispositivo o navegador el aviso vuelve a aparecer.
 9. Lo condicional que ya existe en `develop`, debajo y sin cambiar las reglas:
    - `SplitNotice`.
@@ -608,18 +604,17 @@ Boceto vigente en 11.1 (aprobado por Coty: Gastos, S10; formulario, S25).
 
 ![](diseno/compartidos-contable-390.png) ![](diseno/compartidos-amigable-390.png)
 
-1. Encabezado de pestaña (4.18): migas, campana con número y Opciones (4.26). La ayuda (HelpSheet con 4 paneles: Total a saldar · Cómo se reparte · Gastos compartidos · Saldar mes) se abre desde Opciones. **Sin h1 de pestaña** (S1, reemplaza N5). Sin botón volver: es pestaña del menú.
+1. Encabezado de pestaña (4.18): migas, campana con número y Opciones (4.26). La ayuda (HelpSheet con 4 paneles: Reparto · Cómo se reparte · Gastos compartidos · Saldar mes) se abre desde Opciones. **Sin h1 de pestaña** (S1, reemplaza N5). Sin botón volver: es pestaña del menú.
 2. Selector de mes (`titulo-mes`).
 3. (Sin toggle en pantalla: el modo está en Opciones.)
 4. **Contable:**
-   - **Total a saldar** (`scale-balanced`):
-     - El chip de estado: "Sin saldar" (`gold-soft`/`warn-ink`) o, después de saldar, **"Saldado" en salvia** (`sage-soft`/`primary`, ícono `check` en `good`). Aprobado por Coty (P7).
-     - La frase "Maru te debe" (18 px, color de quien debe) y el monto `monto-hero` en `alert-ink`.
-     - La barra dividida gastos/préstamos y las filas de 36 px "Por gastos" (`alert-ink`) y "Por préstamos" (`lavender-ink`).
-     - El botón principal de 52 px "Saldar mes", que **incluye los préstamos** (regla en el punto 6). "Por préstamos" muestra lo pendiente de los préstamos con `period` menor o igual al mes.
+   - **Reparto** (`scale-balanced`):
+     - El chip de estado: "Sin saldar" o, después de saldar, **"Saldado"** (ícono `check`). Aprobado por Coty (P7).
+     - La frase "Maru puso de más" o "Maru puso de menos" y el monto de esa diferencia. Si pagaron justo su parte, "Están a mano". No suma el pendiente de las transferencias.
+     - El botón principal de 52 px "Saldar mes" sigue en esta tarjeta. Al confirmar, el reparto y las devoluciones se leen por separado: el reparto no cambia "Te quedan".
    - **Cómo se reparte** (`chart-simple`):
      - El subtítulo "Según sueldo base: Maru 40 % · Coty 60 %", con cada nombre en su color.
-     - Por persona: el nombre en su color (sin círculo de iniciales), el chip Debe o A favor y las métricas "Pagó" y "Su parte (x %)" con pistas de 12 px.
+     - Por persona: el nombre en su color (sin círculo de iniciales), el chip "Puso de más" o "Puso de menos" y las métricas "Pagó" y "Su parte (x %)".
    - **Gastos compartidos** (`receipt`):
      - "N gastos" a la derecha.
      - La caja `sage-soft` "Total del mes" (`monto-tarjeta`, `title`).
@@ -628,33 +623,33 @@ Boceto vigente en 11.1 (aprobado por Coty: Gastos, S10; formulario, S25).
    - "Exportar a planilla" como **enlace** (botón `ghost` de 52 px, `download` y texto en `primary`), no como botón arena (sección 10).
 5. **Amigable** · **boceto aprobado por Coty** (vigentes: `compartidos-amigable-390.png`, `compartidos-amigable-360.png`; de antes, con el encabezado reemplazado: `compartidos-390-amigable.png`, `compartidos-360-amigable.png`, `compartidos-confirmar-390-amigable.png`, `compartidos-confirmar-360-amigable.png`, `compartidos-saldado-390-amigable.png`, `compartidos-saldado-360-amigable.png`). Usa los datos de `FriendlyShared` (`SharedScreen.tsx:196–247`) con el estilo del Contable aprobado, y muestra en lugar de narrar:
    1. Encabezado de pestaña (igual que el Contable, con Opciones en "Amigable") y el selector de mes.
-   2. **Total a saldar**, primero y con la misma forma que el Contable: chip de estado, "Maru te debe" (18 px, color de quien debe), la plantita de **44 px** (sección 10; `lush` si están a mano, si no `steady`, como en `develop`), el monto en `monto-hero` y la barra gastos/préstamos con "Por gastos" (`receipt`, `alert-ink`) y "Por préstamos" (`hand-holding-dollar`, `lavender-ink`). Reemplaza las tres frases de `SettlementCopy` ("Maru pagó $ X y le tocaba $ Y, así que te debe $ Z…"): el dato está en la barra y en las filas.
+   2. **Reparto**, primero y con la misma forma que el Contable: chip de estado, "Maru puso de más" o "puso de menos", la plantita y el monto de esa diferencia. Sin barra que sume gastos y transferencias.
    3. **"Saldar mes" va adentro de esa tarjeta** (botón principal de 52 px), igual que en el Contable: un solo lugar para la misma acción en las dos vistas. En `develop` el botón está al final de la pantalla, después de toda la lista.
    4. **Quién pagó** (`wallet`): el total del mes a la derecha, una barra Coty (`alert`) / Maru (`lavender`) y las filas "Pagaste vos" (`alert-ink`) y "Pagó Maru" (`lavender-ink`), sin rayas entre filas. Reemplaza la grilla de 2 columnas, con los mismos datos (`myPaid`, `partnerPaid`).
    5. **Gastos compartidos**: filas de 64 px con el círculo de categoría de 40 px, el título en Fredoka 18 px, abajo "Pagó Maru" o "Pagaste vos" en el color de cada una y el chip "Nov" si corresponde, y el monto a la derecha. Sin círculos de iniciales. **Solo quién pagó**, sin monto de reparto (S2).
    6. "Exportar a planilla" como enlace y el menú de Finanzas con **Compartidos** activo.
    7. Vacío: "Este mes no hay gastos compartidos."
-   8. **Mes saldado** (aprobado por Coty, P7 y P20): el chip pasa a "Saldado" (salvia), la frase a **"Maru te pasó $ X"** (la frase arriba y el monto en `monto-hero` en `muted`); en lugar de "Saldar mes", la caja `sage-soft` "Mes saldado por $ …" (texto de `develop`) y el botón secundario "Deshacer saldo".
-6. **Saldar mes** (las dos vistas): abre `ConfirmSheet` ("¿Saldar noviembre?", "Maru te pasa $ …", desglose por gastos y por préstamos, "Sí, saldar mes" y "Cancelar"). Después muestra el toast "Mes saldado" con **Deshacer** (6 s); más tarde se deshace desde Compartidos con "Deshacer saldo". Cualquiera de las dos puede deshacerlo (`SharedScreen.tsx:144–145`).
+   8. **Mes saldado** (aprobado por Coty, P7 y P20): el chip pasa a "Saldado". El monto sigue siendo el del reparto, recalculado con los gastos, no el neto guardado en el saldo. La caja dice "Mes saldado." y el botón secundario es "Deshacer saldo".
+6. **Saldar mes** (las dos vistas): abre `ConfirmSheet` ("¿Saldar noviembre?", la frase del reparto, "Eso no cambia lo que te queda", y aparte las devoluciones que se anotan). No muestra un único "te pasa" que sume las dos cosas. Después, el toast "Mes saldado" con **Deshacer**; más tarde se deshace desde Compartidos. Cualquiera de las dos puede deshacerlo.
    - **Regla de los préstamos (aprobada por Coty, P21):**
      1. Al saldar un mes entran **todos los préstamos pendientes con `period` menor o igual a ese mes**.
      2. Cada uno genera **una devolución por el pendiente entero** (lo que falta devolver, no el monto original), que **cuenta en el período del mes saldado** y queda vinculada al saldo con **`loan_repayments.settlement_id`**.
      3. **Deshacer borra solo esas devoluciones** (las que tienen ese `settlement_id`) y el saldo. Las devoluciones cargadas a mano no se tocan.
-   - **Ojo, Cursor:** en `develop`, `settle()` (`SharedScreen.tsx:56–75`) guarda `amount: split.amount`, que es **solo lo de gastos**. Hay que sumar los préstamos según la regla de arriba. Si `loan_repayments` todavía no tiene `settlement_id`, hace falta una migración: eso es trabajo de base y va en su propia tarea, no lo hagas sin que te lo pidan.
+   - **Ojo, Cursor:** `settle_shared_month` sigue exigiendo el neto de reparto más préstamos y las devoluciones del pendiente entero. La pantalla no muestra ese neto como una sola deuda. No hace falta otra migración.
    - **Ojo, Cursor:** `paidHalfCaption` ("Pagó Maru, mitad: $ X", `lib/split.ts`) divide cada gasto por la mitad, pero el reparto es por sueldo (40 % / 60 %). **Las filas ya no llevan esa leyenda:** dicen solo "Pagó Maru" o "Pagaste vos" (aprobado por Coty, S2, que cierra Q1 y reemplaza P22). Sacá `paidHalfCaption` de las filas; si no queda ningún uso, borrala (buscá antes con `rg -n paidHalfCaption src`). El reparto se muestra solo en "Cómo se reparte", con "Su parte (x %)" por persona.
 
-### 5.5 Préstamos (`/prestamos`, `LoansScreen.tsx`)
+### 5.5 Transferencias (`/prestamos`, `LoansScreen.tsx`)
 
 Boceto vigente en 11.4 (aprobado por Coty, S25).
 
 1. Encabezado de pestaña (4.18): migas, campana y "?" (solo Amigable, S11, N11). Sin h1 de pestaña (S1).
 2. (Sin modo: solo Amigable, S11. No hay mes.)
 3. `FilterBar` (Todos / Pendientes / Saldados), sin scroll horizontal.
-4. **Amigable:** una tarjeta con la plantita y el resumen en palabras (`friendlyLoanSummary`); después, una `LoanCard` por préstamo: quién, el monto en `monto-tarjeta`, la fecha y la nota, el estado ("Parcial" en `copper-soft`/`alert-ink`, no en `debt`) y lo devuelto en `primary`.
-5. ~~**Contable**~~: descartado (S11). En celular, **Préstamos mantiene sus tarjetas** (aprobado por Coty, S8).
-6. Vacío: "No hay préstamos saldados." o "Todavía no hay préstamos para ver."
-7. "Nuevo préstamo" (botón principal), desactivado si no hay pareja, con el motivo visible.
-8. Hojas: el detalle del préstamo con Devoluciones, el editor y la carga de una devolución.
+4. **Amigable:** una tarjeta con la plantita y el pendiente: "Maru tiene que devolver" o "Tenés que devolver". Después, una tarjeta por transferencia: "Maru te pasó" o "Le pasaste a Maru", el monto, la fecha y lo que falta devolver.
+5. ~~**Contable**~~: descartado (S11). En celular, **Transferencias mantiene sus tarjetas** (aprobado por Coty, S8).
+6. Vacío: "No hay transferencias saldadas." o "Todavía no hay transferencias para ver."
+7. "Nueva transferencia" (botón principal), desactivado si no hay pareja, con el motivo visible. La ruta sigue siendo `/prestamos` y los datos siguen en `loans`.
+8. Hojas: el detalle, con quién le pasó plata a quién y las devoluciones, el editor y la carga de una devolución.
 
 ### 5.6 Ahorros (`/ahorros`, `SavingsScreen.tsx`)
 

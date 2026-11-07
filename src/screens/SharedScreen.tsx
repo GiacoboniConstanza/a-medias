@@ -16,17 +16,12 @@ import { useFinance } from '../context/FinanceProvider.tsx'
 import { useMonth } from '../context/MonthProvider.tsx'
 import { saveViewMode, settleMonth, undoSettlement, type ExpenseItem } from '../lib/api.ts'
 import { buildSharedCsv, downloadText } from '../lib/csv.ts'
-import { monthSplit, partnerId } from '../lib/derive.ts'
+import { debtCopy, monthSplit, partnerId } from '../lib/derive.ts'
 import { formatMoney } from '../lib/format.ts'
 import { DEFAULT_ICON } from '../lib/icons.ts'
-import { loadLoanBalances, loadSettlementRepayments } from '../lib/loans.ts'
+import { loadLoanBalances } from '../lib/loans.ts'
 import { monthName, shortDate } from '../lib/month.ts'
-import {
-  linkedLoanAmount,
-  passPhrase,
-  planMonthSettlement,
-  type SettleLoan,
-} from '../lib/settle.ts'
+import { planMonthSettlement, returnSentences, type SettleLoan } from '../lib/settle.ts'
 import type { SplitResult, SplitRow } from '../lib/split.ts'
 import type { ViewMode } from '../types/database.ts'
 
@@ -43,15 +38,12 @@ export function SharedScreen() {
   const [openExpense, setOpenExpense] = useState<ExpenseItem | null>(null)
   const [payerFilter, setPayerFilter] = useState('all')
   const [loans, setLoans] = useState<SettleLoan[]>([])
-  const [linked, setLinked] = useState<{ lenderId: string; borrowerId: string; amount: number }[]>([])
-
-  const settlementId = data?.settlement?.id ?? null
 
   useEffect(() => {
     if (!profile) return
     let active = true
-    Promise.all([loadLoanBalances(), settlementId ? loadSettlementRepayments(settlementId) : Promise.resolve([])])
-      .then(([rows, linkedRows]) => {
+    loadLoanBalances()
+      .then((rows) => {
         if (!active) return
         setLoans(
           rows.map((loan) => ({
@@ -62,17 +54,15 @@ export function SharedScreen() {
             period: loan.period,
           })),
         )
-        setLinked(linkedRows)
       })
       .catch(() => {
         if (!active) return
         setLoans([])
-        setLinked([])
       })
     return () => {
       active = false
     }
-  }, [profile, settlementId, data])
+  }, [profile, data])
 
   if (!profile) return null
   if (loading && !data) return <p className="py-16 text-center font-bold text-muted">Cargando…</p>
@@ -93,11 +83,8 @@ export function SharedScreen() {
   const people = [...split.rows].sort((a, b) => personRank(a.name) - personRank(b.name))
   const partner = people.find((row) => row.id !== meId) ?? null
   const settled = data.settlement
-  const loanAmount = settled ? linkedLoanAmount(linked) : plan.loanAmount
-  const expenseAmount = plan.expenseAmount
-  const headlineAmount = settled ? settled.amount : plan.amount
-  const creditorId = settled ? settled.creditorId : plan.creditorId
-  const favor = headlineAmount > 0 && creditorId === meId
+  const gap = partner?.balance ?? 0
+  const returnsNote = returnSentences(meId, partner?.name ?? 'tu compañera', plan.repayments)
   const friendly = profile.viewMode === 'friendly'
   const visible = friendly || payerFilter === 'all' ? shared : shared.filter((expense) => expense.payerId === payerFilter)
   const filters = [
@@ -192,7 +179,7 @@ export function SharedScreen() {
           >
             <div className="flex items-start justify-between gap-3">
               <h2 className="inline-flex items-center gap-1.5 font-display text-lg font-semibold text-tinta">
-                <AppIcon name="scale-balanced" /> Total a saldar
+                <AppIcon name="scale-balanced" /> Reparto
               </h2>
               <span
                 className={`inline-flex h-[var(--alto-chip)] shrink-0 items-center gap-1.5 rounded-full border-[1.5px] border-tinta px-2.5 text-sm font-semibold ${
@@ -203,7 +190,7 @@ export function SharedScreen() {
                 {settled ? 'Saldado' : 'Sin saldar'}
               </span>
             </div>
-            {headlineAmount === 0 || !partner ? (
+            {gap === 0 || !partner ? (
               <div className="mt-3 flex items-end justify-between gap-3">
                 <p className="min-w-0 font-display text-[36px] font-semibold leading-none text-tinta">Están a mano</p>
                 <Plantita width={46} height={60} />
@@ -211,38 +198,17 @@ export function SharedScreen() {
             ) : (
               <>
                 <p className="mt-3 text-lg font-medium text-tinta">
-                  {settled ? (
-                    favor ? (
-                      <>
-                        <NameOnBlue name={partner.name} /> te pasó
-                      </>
-                    ) : (
-                      <>
-                        Le pasaste a <NameOnBlue name={partner.name} />
-                      </>
-                    )
-                  ) : favor ? (
-                    <>
-                      <NameOnBlue name={partner.name} /> te debe
-                    </>
-                  ) : (
-                    <>
-                      Le debés a <NameOnBlue name={partner.name} />
-                    </>
-                  )}
+                  <NameOnBlue name={partner.name} /> puso de {gap > 0 ? 'más' : 'menos'}
                 </p>
                 <div className="mt-1 flex items-end justify-between gap-3">
-                  <p className="min-w-0 font-display text-[36px] font-semibold leading-none whitespace-nowrap text-tinta">{formatMoney(headlineAmount)}</p>
+                  <p className="min-w-0 font-display text-[36px] font-semibold leading-none whitespace-nowrap text-tinta">{formatMoney(Math.abs(gap))}</p>
                   <Plantita width={46} height={60} />
                 </div>
               </>
             )}
-            <SplitBar expense={expenseAmount} loans={loanAmount} />
-            <MoneyRow label="Por gastos" amount={formatMoney(expenseAmount)} dotClass="border-tinta bg-azul-claro" />
-            <MoneyRow label="Por préstamos" amount={formatMoney(loanAmount)} dotClass="border-tinta bg-ciruela" />
             {settled ? (
               <p className="mt-3 rounded-2xl border-[1.5px] border-tinta bg-azul-claro px-[18px] py-2.5 text-sm font-medium text-tinta">
-                Mes saldado por <span className="whitespace-nowrap font-display text-sm font-semibold">{formatMoney(headlineAmount)}</span>
+                Mes saldado.
               </p>
             ) : null}
             {settled ? (
@@ -345,13 +311,13 @@ export function SharedScreen() {
       >
         {partner && plan.amount > 0 ? (
           <>
-            <p className="font-display text-2xl font-semibold whitespace-nowrap text-title">
-              {passPhrase(partner.name, plan.creditorId === meId, plan.amount)}
-            </p>
-            <MoneyRow label="Por gastos" amount={formatMoney(plan.expenseAmount)} dotClass="border-tinta bg-azul" />
-            <MoneyRow label="Por préstamos" amount={formatMoney(plan.loanAmount)} dotClass="border-tinta bg-ciruela" />
+            <p className="font-display text-2xl font-semibold text-title">{debtCopy(meId, split)}</p>
+            <p className="mt-2 text-base font-semibold text-muted">Eso no cambia lo que te queda.</p>
+            {returnsNote ? (
+              <p className="mt-3 text-base font-semibold text-title">Al saldar se anotan estas devoluciones: {returnsNote}.</p>
+            ) : null}
             <p className="mt-3 text-base font-semibold text-muted">
-              Los gastos y préstamos de {monthName(month)} quedan marcados como saldados. Si te equivocás, lo podés deshacer.
+              El mes queda marcado como saldado. Si te equivocás, lo podés deshacer.
             </p>
           </>
         ) : null}
@@ -409,11 +375,11 @@ function helpBlocks(split: SplitResult, people: SplitRow[], monthLabel: string):
     : people.map((row) => `${row.name} ${row.percent}%`).join(', ')
   return [
     {
-      title: 'Total a saldar',
+      title: 'Reparto',
       titleClass: 'text-mostaza-ink',
       icon: 'scale-balanced',
       iconWrapClass: 'bg-salvia-claro text-mostaza-ink',
-      body: 'Cuánta plata tiene que pasarle una a la otra este mes. Suma lo que falta por gastos y los préstamos pendientes.',
+      body: 'Cuánto le toca a cada una. Si puso de más o de menos, es el reparto: no cambia la plata que te queda ni se suma a las transferencias.',
     },
     {
       title: 'Cómo se reparte',
@@ -429,8 +395,8 @@ function helpBlocks(split: SplitResult, people: SplitRow[], monthLabel: string):
             <span className="font-bold text-mostaza-ink">Su parte:</span> lo que le corresponde poner según su sueldo base: {base}.
           </p>
           <p className="mt-2">
-            Si pagó menos que su parte, <span className="text-rosa-texto">debe</span> la diferencia. Si pagó más, la tiene{' '}
-            <span className="text-mostaza-ink">a favor</span>.
+            Si pagó menos que su parte, <span className="text-rosa-texto">puso de menos</span>. Si pagó más,{' '}
+            <span className="text-mostaza-ink">puso de más</span>.
           </p>
         </div>
       ),
@@ -447,7 +413,7 @@ function helpBlocks(split: SplitResult, people: SplitRow[], monthLabel: string):
       titleClass: 'text-mostaza-ink',
       icon: 'check',
       iconWrapClass: 'bg-mostaza-claro text-mostaza-ink',
-      body: 'Tocalo cuando ya se pasaron la plata. Te pedimos confirmación antes de marcar el mes como saldado, y lo podés deshacer.',
+      body: 'Marca el mes como saldado y anota la devolución de cada transferencia pendiente. El reparto no se convierte en una transferencia. Lo podés deshacer.',
     },
   ]
 }
@@ -500,40 +466,6 @@ function WhoPaid({ people, total, meId }: { people: SplitRow[]; total: number; m
   )
 }
 
-function SplitBar({ expense, loans }: { expense: number; loans: number }) {
-  const total = expense + loans
-  const expenseWidth = total > 0 ? (expense / total) * 100 : 0
-  const loanWidth = total > 0 ? (loans / total) * 100 : 0
-  return (
-    <div className="mt-3 flex h-3 overflow-hidden rounded-full border-[1.5px] border-tinta" role="img" aria-label="Gastos y préstamos">
-      <div className="h-full bg-azul" style={{ width: `${expenseWidth}%` }} />
-      {loanWidth > 0 ? <div className="h-full border-l-2 border-tinta bg-ciruela" style={{ width: `${loanWidth}%` }} /> : null}
-    </div>
-  )
-}
-
-function MoneyRow({
-  label,
-  amount,
-  amountClass = 'text-tinta',
-  dotClass,
-}: {
-  label: string
-  amount: string
-  amountClass?: string
-  dotClass: string
-}) {
-  return (
-    <div className="mt-2 flex min-h-11 items-center justify-between gap-3 border-t border-dashed border-line text-base font-semibold text-tinta first:border-t-0">
-      <span className="inline-flex min-w-0 items-center gap-1.5">
-        <span className={`inline-block h-3.5 w-3.5 shrink-0 rounded-full border-[1.5px] ${dotClass}`} aria-hidden="true" />
-        {label}
-      </span>
-      <span className={`shrink-0 whitespace-nowrap font-display font-semibold tabular-nums ${amountClass}`}>{amount}</span>
-    </div>
-  )
-}
-
 function PersonShare({ row, scale }: { row: SplitRow; scale: number }) {
   const key = row.name.trim().toLowerCase()
   const maru = key === 'maru'
@@ -541,9 +473,9 @@ function PersonShare({ row, scale }: { row: SplitRow; scale: number }) {
   const debt = row.balance < 0
   const favor = row.balance > 0
   const chip = debt
-    ? { label: `Debe ${formatMoney(-row.balance)}`, icon: 'arrow-right-from-bracket' }
+    ? { label: `Puso de menos ${formatMoney(-row.balance)}`, icon: 'arrow-right-from-bracket' }
     : favor
-      ? { label: `A favor ${formatMoney(row.balance)}`, icon: 'arrow-right-to-bracket' }
+      ? { label: `Puso de más ${formatMoney(row.balance)}`, icon: 'arrow-right-to-bracket' }
       : { label: 'A mano', icon: '' }
   const paidWidth = scale > 0 ? (row.paid / scale) * 100 : 0
   const shareWidth = scale > 0 ? (row.share / scale) * 100 : 0

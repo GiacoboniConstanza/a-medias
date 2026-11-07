@@ -14,12 +14,12 @@ describe('saldo compartido', () => {
   it('arma la frase y lo pagado de cada una con el mismo reparto', () => {
     expect(pairBalance('coty', owed)).toEqual({
       even: false,
-      sentence: 'Maru te debe $ 12.500,00',
+      sentence: 'Maru puso de menos $ 12.500,00',
       myPaid: 25_000,
       partnerPaid: 0,
       partnerName: 'Maru',
     })
-    expect(pairBalance('maru', owed).sentence).toBe('Le debés $ 12.500,00 a Coty')
+    expect(pairBalance('maru', owed).sentence).toBe('Coty puso de más $ 12.500,00')
   })
 
   it('dice que están a mano cuando el saldo es cero', () => {

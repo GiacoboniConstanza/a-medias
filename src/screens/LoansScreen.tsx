@@ -71,7 +71,7 @@ export function LoansScreen() {
       })
       .catch((caught) => {
         if (!active) return
-        setError(caught instanceof Error ? caught.message : 'No pude cargar los préstamos.')
+        setError(caught instanceof Error ? caught.message : 'No pude cargar las transferencias.')
       })
       .finally(() => {
         if (active) setReady(true)
@@ -98,7 +98,7 @@ export function LoansScreen() {
   return (
     <>
       <SectionHeader lead="crumb" aside={<NotificationBell />} />
-      <div className="mb-3 flex flex-wrap gap-2" role="group" aria-label="Préstamos">
+      <div className="mb-3 flex flex-wrap gap-2" role="group" aria-label="Transferencias">
         {FILTERS.map((option) => (
           <Chip key={option.id} active={filter === option.id} onClick={() => setFilter(option.id)}>
             {option.label}
@@ -113,7 +113,7 @@ export function LoansScreen() {
       </Card>
       {visible.length === 0 ? (
         <p className="mb-3 text-base font-semibold text-muted">
-          {filter === 'settled' ? 'No hay préstamos saldados.' : 'Todavía no hay préstamos para ver.'}
+          {filter === 'settled' ? 'No hay transferencias saldadas.' : 'Todavía no hay transferencias para ver.'}
         </p>
       ) : (
         visible.map((loan) => (
@@ -134,7 +134,7 @@ export function LoansScreen() {
           if (otherId) setCreating(true)
         }}
       >
-        Nuevo préstamo
+        Nueva transferencia
       </Button>
       {!otherId ? <p className="mt-1.5 text-sm font-medium text-gris">Primero vinculá a tu pareja.</p> : null}
       <ErrorText>{error}</ErrorText>
@@ -205,22 +205,22 @@ export function LoansScreen() {
 
 function LoanSummary({ partnerName, signed }: { partnerName: string | null; signed: number }) {
   const amount = normalizeMoney(signed)
-  if (!partnerName) return <p className="text-sm font-medium text-tinta">Cuando se sume tu compañera, van a poder prestarse.</p>
+  if (!partnerName) return <p className="text-sm font-medium text-tinta">Cuando se sume tu compañera, van a poder pasarse plata.</p>
   if (amount === 0) return <p className="text-lg font-medium text-tinta">Están a mano.</p>
   const maru = partnerName.trim().toLowerCase() === 'maru'
   const name = <span className={`font-bold ${maru ? 'text-salvia-ink' : 'text-rosa-texto'}`}>{partnerName}</span>
   if (amount < 0) {
     return (
-      <p className="text-lg font-medium text-tinta">
-        Le debés <span className="whitespace-nowrap font-display font-semibold">{formatMoney(-amount)}</span> a {name}.
-      </p>
+      <div className="min-w-0">
+        <p className="text-lg font-medium text-tinta">Tenés que devolver</p>
+        <p className="mt-1 whitespace-nowrap font-display text-[36px] font-semibold leading-none text-tinta">{formatMoney(-amount)}</p>
+      </div>
     )
   }
   return (
     <div className="min-w-0">
-      <p className="text-lg font-medium text-tinta">{name} te debe</p>
+      <p className="text-lg font-medium text-tinta">{name} tiene que devolver</p>
       <p className="mt-1 whitespace-nowrap font-display text-[36px] font-semibold leading-none text-tinta">{formatMoney(amount)}</p>
-      <p className="mt-1.5 text-sm font-medium text-tinta">en préstamos</p>
     </div>
   )
 }
@@ -238,7 +238,7 @@ function LoanCard({
   onOpen: () => void
   onRepay: () => void
 }) {
-  const who = mine ? `Le prestaste a ${partnerName ?? 'ella'}` : `${partnerName ?? 'Ella'} te prestó`
+  const who = mine ? `Le pasaste a ${partnerName ?? 'ella'}` : `${partnerName ?? 'Ella'} te pasó`
   return (
     <article className="mb-3 rounded-2xl border-2 border-ciruela-ink bg-card p-4">
       <button type="button" onClick={onOpen} className="w-full text-left">
@@ -317,7 +317,7 @@ function LoanDetail({
       await onChanged()
       onClose()
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'No pude eliminar el préstamo.')
+      setError(caught instanceof Error ? caught.message : 'No pude eliminar la transferencia.')
     }
   }
 
@@ -336,7 +336,7 @@ function LoanDetail({
     <>
       <Sheet
         open
-        title="Préstamo"
+        title="Transferencia"
         onClose={onClose}
         footer={
           <div className="space-y-2">
@@ -348,7 +348,7 @@ function LoanDetail({
             {lender && !locked ? (
               <>
                 <Button type="button" variant="alt" onClick={onEdit}>
-                  Editar préstamo
+                  Editar transferencia
                 </Button>
                 <button type="button" className="min-h-11 w-full rounded-2xl text-base font-semibold text-tinta" onClick={() => setConfirming('loan')}>
                   <AppIcon name="trash" /> Eliminar
@@ -361,7 +361,7 @@ function LoanDetail({
         {locked && loan.lockMonth ? (
           <div className="mb-3 rounded-2xl bg-azul-claro p-3 text-base font-semibold text-tinta">
             <AppIcon name="lock" className="mr-1" />
-            {monthWord(loan.lockMonth)} ya está saldado. Para cambiar este préstamo, primero deshacé el saldo en Compartidos.
+            {monthWord(loan.lockMonth)} ya está saldado. Para cambiar esta transferencia, primero deshacé el saldo en Compartidos.
             <Link to="/compartidos" className="mt-2 flex min-h-11 items-center text-base font-bold text-mostaza-ink">
               Ir a Compartidos
             </Link>
@@ -369,7 +369,7 @@ function LoanDetail({
         ) : null}
         <p className="whitespace-nowrap font-display text-3xl font-semibold tabular-nums text-ciruela-ink">{formatMoney(loan.amount)}</p>
         <p className="mt-1 text-base font-semibold text-muted">
-          {names[loan.lenderId] ?? 'Alguien'} le prestó a {names[loan.borrowerId] ?? 'alguien'} · {shortDate(loan.lentOn)}
+          {names[loan.lenderId] ?? 'Alguien'} le pasó plata a {names[loan.borrowerId] ?? 'alguien'} · {shortDate(loan.lentOn)}
         </p>
         <p className="mt-1 whitespace-nowrap text-base font-semibold text-muted">
           Devuelto {formatMoney(loan.repaid)} · pendiente {formatMoney(loan.pending)}
@@ -405,7 +405,7 @@ function LoanDetail({
       </Sheet>
       <ConfirmSheet
         open={confirming === 'loan'}
-        title="¿Eliminar este préstamo?"
+        title="¿Eliminar esta transferencia?"
         confirmLabel="Eliminar"
         onClose={() => setConfirming(null)}
         onConfirm={() => void removeLoan()}
@@ -474,7 +474,7 @@ function LoanEditor({
       })
       await onSaved()
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'No pude guardar el préstamo.')
+      setError(caught instanceof Error ? caught.message : 'No pude guardar la transferencia.')
     } finally {
       setSaving(false)
     }
@@ -488,7 +488,7 @@ function LoanEditor({
       await deleteLoan(loan.id)
       await onSaved()
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'No pude eliminar el préstamo.')
+      setError(caught instanceof Error ? caught.message : 'No pude eliminar la transferencia.')
       setSaving(false)
     }
   }
@@ -497,7 +497,7 @@ function LoanEditor({
     <>
       <Sheet
         open
-        title={loan ? 'Editar préstamo' : 'Nuevo préstamo'}
+        title={loan ? 'Editar transferencia' : 'Nueva transferencia'}
         onClose={onClose}
         footer={
           <div className="space-y-2">
@@ -512,7 +512,7 @@ function LoanEditor({
           </div>
         }
       >
-        <p className="mb-3 text-base font-semibold text-muted">Se lo prestás a {borrowerName}.</p>
+        <p className="mb-3 text-base font-semibold text-muted">Le pasás plata a {borrowerName}.</p>
         <MoneyField draft={draft} onDraft={setDraft} error={error && parseMoney(draft) == null ? error : undefined} />
         <label className="mb-3 block text-base font-bold text-muted">
           Fecha
@@ -542,7 +542,7 @@ function LoanEditor({
       </Sheet>
       <ConfirmSheet
         open={confirming}
-        title="¿Eliminar este préstamo?"
+        title="¿Eliminar esta transferencia?"
         confirmLabel={saving ? 'Eliminando…' : 'Eliminar'}
         disabled={saving}
         onClose={() => setConfirming(false)}

@@ -42,14 +42,15 @@ export function debtCopy(meId: string, result: SplitResult): string {
   return debtSentence(meId, result)
 }
 
-export function monthPocket(input: { base: number; privateSpent: number; myShare: number; extras: number }) {
-  const spent = input.privateSpent + input.myShare
+/** Gastado es plata que salió: privados y compartidos que pagué. La parte del reparto no entra. */
+export function monthPocket(input: { base: number; privateSpent: number; sharedPaid: number; extras: number }) {
+  const spent = input.privateSpent + input.sharedPaid
   const income = input.base + input.extras
   return {
     remaining: income - spent,
     spent,
     privateSpent: input.privateSpent,
-    sharedShare: input.myShare,
+    sharedPaid: input.sharedPaid,
     base: input.base,
     extras: input.extras,
     income,

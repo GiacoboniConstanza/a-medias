@@ -77,36 +77,29 @@ export function matchesLoanFilter(status: LoanStatus, filter: LoanFilter): boole
 export function balanceSentence(partnerName: string, signed: number): string {
   const amount = normalizeMoney(signed)
   if (amount === 0) return 'Están a mano'
-  if (amount > 0) return `${partnerName} te debe ${formatMoney(amount)}`
-  return `Le debés ${formatMoney(-amount)} a ${partnerName}`
+  if (amount > 0) return `${partnerName} tiene que devolver ${formatMoney(amount)}`
+  return `Tenés que devolver ${formatMoney(-amount)}`
 }
 
 export function friendlyLoanSummary(partnerName: string | null, signed: number): string {
-  if (!partnerName) return 'Cuando se sume tu compañera, van a poder prestarse.'
+  if (!partnerName) return 'Cuando se sume tu compañera, van a poder pasarse plata.'
   const amount = normalizeMoney(signed)
-  if (amount > 0) return `${partnerName} te debe ${formatMoney(amount)} en préstamos`
-  if (amount < 0) return `Le debés ${formatMoney(-amount)} a ${partnerName}.`
+  if (amount > 0) return `${partnerName} tiene que devolver ${formatMoney(amount)}`
+  if (amount < 0) return `Tenés que devolver ${formatMoney(-amount)}`
   return 'Están a mano.'
 }
 
 export function homeLoanLine(signed: number): string | null {
   const amount = normalizeMoney(signed)
-  if (amount > 0) return `Préstamos a cobrar ${formatMoney(amount)}`
-  if (amount < 0) return `Préstamos a devolver ${formatMoney(-amount)}`
+  if (amount > 0) return `Tiene que devolver ${formatMoney(amount)}`
+  if (amount < 0) return `Tenés que devolver ${formatMoney(-amount)}`
   return null
 }
 
-/** sharedSigned usa el mismo signo: positivo si el gasto compartido queda a tu favor. */
-export function sharedLoanNote(
-  partnerName: string,
-  loanSigned: number,
-  sharedSigned: number,
-): { pendingLine: string; netLine: string } | null {
+/** El pendiente de devolución no se suma al reparto de gastos. */
+export function sharedLoanNote(partnerName: string, loanSigned: number): { pendingLine: string } | null {
   if (normalizeMoney(loanSigned) === 0) return null
-  return {
-    pendingLine: `Préstamos pendientes: ${balanceSentence(partnerName, loanSigned)}`,
-    netLine: balanceSentence(partnerName, normalizeMoney(loanSigned + sharedSigned)),
-  }
+  return { pendingLine: balanceSentence(partnerName, loanSigned) }
 }
 
 export function sharedSignedBalance(
@@ -122,55 +115,15 @@ export function sharedSignedBalance(
 export type SettlementPhrases = {
   expenseLine: string
   loanLine: string | null
-  totalLine: string
-  breakdown: string | null
 }
 
-/** Frases del paso 3. Los montos salen del reparto y del saldo de préstamos, sin recalcular. */
+/** El reparto y el pendiente de devolución van en frases distintas. No se suman. */
 export function settlementPhrases(meId: string, result: SplitResult, loanSigned: number): SettlementPhrases {
-  const loans = normalizeMoney(loanSigned)
   const partner = result.rows.find((row) => row.id !== meId) ?? null
-  const sharedSigned = sharedSignedBalance(meId, result)
-  const net = normalizeMoney(sharedSigned + loans)
-  const expenseLine = expenseDebtLine(meId, result)
-  if (!partner || result.rows.length < 2) {
-    return { expenseLine, loanLine: null, totalLine: expenseLine, breakdown: null }
-  }
-  return {
-    expenseLine,
-    loanLine: loanPendingLine(loans),
-    totalLine: balanceSentence(partner.name, net),
-    breakdown: settlementBreakdown(sharedSigned, loans),
-  }
-}
-
-function expenseDebtLine(meId: string, result: SplitResult): string {
-  if (result.rows.length < 2) return debtSentence(meId, result)
-  if (result.amount === 0 || !result.debtorId || !result.creditorId) return 'Están a mano'
-  const debtor = result.rows.find((row) => row.id === result.debtorId)
-  const creditor = result.rows.find((row) => row.id === result.creditorId)
-  if (!debtor || !creditor) return 'Están a mano'
-  const paid = formatMoney(debtor.paid)
-  const share = formatMoney(debtor.share)
-  const owed = formatMoney(result.amount)
-  if (meId === creditor.id) return `${debtor.name} pagó ${paid} y le tocaba ${share}, así que te debe ${owed}.`
-  if (meId === debtor.id) return `Pagaste ${paid} y te tocaba ${share}, así que le debés ${owed} a ${creditor.name}.`
-  return `${debtor.name} pagó ${paid} y le tocaba ${share}, así que le debe ${owed} a ${creditor.name}.`
-}
-
-function loanPendingLine(loanSigned: number): string | null {
-  if (loanSigned === 0) return null
-  if (loanSigned > 0) return `Además, tiene préstamos pendientes por ${formatMoney(loanSigned)}.`
-  return `Además, tenés préstamos pendientes por ${formatMoney(-loanSigned)}.`
-}
-
-function settlementBreakdown(sharedSigned: number, loanSigned: number): string | null {
-  if (sharedSigned === 0 || loanSigned === 0) return null
-  const sharedAbs = Math.abs(sharedSigned)
-  const loanAbs = Math.abs(loanSigned)
-  if ((sharedSigned > 0) === (loanSigned > 0)) return `${formatMoney(sharedAbs)} + ${formatMoney(loanAbs)}`
-  const [larger, smaller] = sharedAbs >= loanAbs ? [sharedAbs, loanAbs] : [loanAbs, sharedAbs]
-  return `${formatMoney(larger)} - ${formatMoney(smaller)}`
+  const expenseLine = debtSentence(meId, result)
+  const loans = normalizeMoney(loanSigned)
+  if (!partner || result.rows.length < 2 || loans === 0) return { expenseLine, loanLine: null }
+  return { expenseLine, loanLine: balanceSentence(partner.name, loans) }
 }
 
 /** El cupo de una devolución nueva es el pendiente. Al editarla, vuelve a sumar su monto. */
@@ -234,7 +187,7 @@ export function hasLoanMovement(effect: LoanMonthEffect): boolean {
   return effect.given !== 0 || effect.collected !== 0 || effect.received !== 0 || effect.paid !== 0
 }
 
-/** Me queda = ingresos − gastos del mes + neto de préstamos. Ingresos y gastos no se tocan. */
+/** Te quedan = ingresos − gastos pagados + neto de transferencias del mes. El reparto no entra. */
 export function remainingAfterLoans(income: number, spent: number, loanNet: number): number {
   return normalizeMoney(income - spent + loanNet)
 }
@@ -245,13 +198,12 @@ export function formatSignedMoney(value: number): string {
   return formatMoney(amount)
 }
 
-export function loanEffectLines(effect: LoanMonthEffect): { label: string; amount: number }[] {
-  const lines: { label: string; amount: number }[] = []
-  if (effect.given !== 0) lines.push({ label: 'Préstamos dados', amount: -effect.given })
-  if (effect.collected !== 0) lines.push({ label: 'Devoluciones cobradas', amount: effect.collected })
-  if (effect.received !== 0) lines.push({ label: 'Préstamos recibidos', amount: effect.received })
-  if (effect.paid !== 0) lines.push({ label: 'Devoluciones pagadas', amount: -effect.paid })
-  return lines
+/** Plata que entró y plata que salió en el mes. Una devolución es el mismo movimiento, al revés. */
+export function loanEffectLines(partnerName: string, effect: LoanMonthEffect): { label: string; amount: number }[] {
+  return [
+    { label: `${partnerName} te pasó`, amount: normalizeMoney(effect.received + effect.collected) },
+    { label: `Le pasaste a ${partnerName}`, amount: normalizeMoney(effect.given + effect.paid) },
+  ]
 }
 
 function asStatus(value: string): LoanStatus {
