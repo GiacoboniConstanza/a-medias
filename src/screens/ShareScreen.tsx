@@ -33,6 +33,7 @@ export function ShareScreen() {
           amount: receipt.amount,
           title: receipt.merchant,
           spentOn: receipt.date,
+          tipo: 'gasto',
           missingAmount: receipt.amount == null,
           missingTitle: receipt.merchant == null,
           missingDate: receipt.date == null,

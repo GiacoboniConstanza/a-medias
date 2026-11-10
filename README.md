@@ -7,7 +7,7 @@ El trabajo de la app vive en la rama `develop`.
 ## Qué incluye
 
 - Inicio con frasco (vista amigable) o resumen (vista contable). La preferencia queda en el perfil.
-- Carga de un gasto con teclado grande. Con el monto y la categoría alcanza: compartido y “pagué yo” ya vienen elegidos.
+- Formulario único en `/cargar` para Gasto, Ingreso y Transferencia, con el teclado del teléfono (sin teclado dibujado). El nombre del gasto es opcional.
 - Transferencias entre las dos (gasto para quien manda, ingreso para quien recibe): solo mueven “Te quedan”, no el saldo compartido. Los préstamos viejos y sus devoluciones migran a transferencias.
 - Saldar mes cierra solo el reparto de gastos compartidos.
 - ¿En qué se me fue?, bolsa de extras, meta compartida, compartidos con saldo y CSV, recordatorios de vencimiento.

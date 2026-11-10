@@ -7,12 +7,14 @@ export function MoneyInput({
   readOnly = false,
   label = 'Monto',
   className = '',
+  autoFocus = false,
 }: {
   draft: string
   onDraft: (value: string) => void
   readOnly?: boolean
   label?: string
   className?: string
+  autoFocus?: boolean
 }) {
   const ref = useRef<HTMLInputElement>(null)
   const caretRef = useRef<number | null>(null)
@@ -25,16 +27,22 @@ export function MoneyInput({
     caretRef.current = null
   })
 
+  useLayoutEffect(() => {
+    if (!autoFocus || readOnly) return
+    ref.current?.focus()
+  }, [autoFocus, readOnly])
+
   return (
     <span className="inline-flex min-w-0 max-w-full items-center justify-center">
       <span aria-hidden="true" className="shrink-0">
-        ${' '}
+        ${'\u00a0'}
       </span>
       <input
         ref={ref}
         inputMode="decimal"
         enterKeyHint="done"
         autoComplete="off"
+        autoFocus={autoFocus}
         readOnly={readOnly}
         value={formatMoneyDraft(draft)}
         aria-label={label}

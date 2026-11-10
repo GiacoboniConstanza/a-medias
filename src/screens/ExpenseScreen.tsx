@@ -1,22 +1,26 @@
 import { useNavigate } from 'react-router-dom'
-import { ExpenseEditor, type ExpensePrefill } from '../components/ExpenseEditor.tsx'
+import { MovementForm, type MovementPrefill } from '../components/MovementForm.tsx'
 
-export type { ExpensePrefill }
+export type { MovementPrefill as ExpensePrefill }
 
-export function ExpenseScreen({ prefill, onCancel, onDone }: { prefill?: ExpensePrefill; onCancel?: () => void; onDone?: () => void } = {}) {
+export function ExpenseScreen({
+  prefill,
+  onCancel,
+  onDone,
+}: {
+  prefill?: MovementPrefill
+  onCancel?: () => void
+  onDone?: () => void
+} = {}) {
   const navigate = useNavigate()
   return (
-    <ExpenseEditor
-      presentation="page"
+    <MovementForm
       prefill={prefill}
       onClose={() => {
         if (onCancel) onCancel()
         else navigate(-1)
       }}
-      onDone={async (notice) => {
-        await onDone?.()
-        navigate('/', { state: { notice } })
-      }}
+      onDone={onDone}
     />
   )
 }
