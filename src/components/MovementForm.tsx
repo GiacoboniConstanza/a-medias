@@ -106,11 +106,11 @@ export function MovementForm({
             : 'Transferencia guardada'
     return (
       <div className="min-h-dvh bg-crema pb-8">
-        <section className="scallop-b bg-azul px-4 pb-4 pt-2">
+        <section className="scallop-b bg-azul px-4 pb-4 pt-[max(0.5rem,env(safe-area-inset-top))]">
           <button
             type="button"
             aria-label="Volver"
-            className="inline-flex min-h-11 min-w-11 items-center justify-center text-tinta"
+            className="-ml-3 inline-flex min-h-11 min-w-11 items-center justify-center text-tinta"
             onClick={() => navigate(fromPath || '/')}
           >
             <AppIcon name="chevron-left" />
@@ -525,11 +525,11 @@ function MovementFormBody({
 
   return (
     <div className="min-h-dvh bg-crema">
-      <section className="scallop-b bg-azul px-4 pb-4 pt-2">
+      <section className="scallop-b bg-azul px-4 pb-4 pt-[max(0.5rem,env(safe-area-inset-top))]">
         <button
           type="button"
           aria-label="Volver"
-          className="inline-flex min-h-12 min-w-11 items-center justify-center text-tinta"
+          className="-ml-3 inline-flex min-h-12 min-w-11 items-center justify-center text-tinta"
           onClick={onClose}
         >
           <AppIcon name="chevron-left" />
