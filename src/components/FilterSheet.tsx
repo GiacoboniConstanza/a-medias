@@ -2,9 +2,9 @@ import { useEffect, useId, useRef, useState, type PointerEvent, type ReactNode }
 import { createPortal } from 'react-dom'
 import { AppIcon } from './AppIcon.tsx'
 import { Button, inputClass } from './ui.tsx'
-import { PaidChips } from './ScopeChips.tsx'
+import { PaidChips, ScopeChips } from './ScopeChips.tsx'
 import type { DatePreset } from '../lib/expense-range.ts'
-import type { PaidFilter } from '../lib/finance-filters.ts'
+import type { PaidFilter, ScopeFilter } from '../lib/finance-filters.ts'
 
 export const PERIODS: { id: DatePreset; label: string }[] = [
   { id: 'month', label: 'Todo el mes' },
@@ -18,17 +18,22 @@ export const PERIODS: { id: DatePreset; label: string }[] = [
 
 export type FilterCategory = { id: string; name: string; icon: string }
 
+export type WhoFilter = 'all' | 'me' | 'partner'
+
 export type ExpenseFilters = {
   preset: DatePreset
   customFrom: string
   customTo: string
   categoryIds: string[]
   paid?: PaidFilter
+  scope?: ScopeFilter
+  who?: WhoFilter
 }
+
+export type MovementFilterTipo = 'todos' | 'gastos' | 'ingresos' | 'transferencias'
 
 export function FilterSheet({
   open,
-  friendly,
   month,
   end,
   categories,
@@ -38,9 +43,10 @@ export function FilterSheet({
   title = 'Filtrar gastos',
   applyLabel = 'Ver gastos',
   showPaid = false,
+  tipo,
+  partnerName,
 }: {
   open: boolean
-  friendly: boolean
   month: string
   end: string
   categories: FilterCategory[]
@@ -50,6 +56,9 @@ export function FilterSheet({
   title?: string
   applyLabel?: string
   showPaid?: boolean
+  /** En Movimientos: oculta Compartido y Categoría si no es Gastos (P16). */
+  tipo?: MovementFilterTipo
+  partnerName?: string | null
 }) {
   const titleId = useId()
   const dialogRef = useRef<HTMLDivElement>(null)
@@ -63,11 +72,15 @@ export function FilterSheet({
   initialRef.current = initial
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
+  const showExpenseGroups = tipo == null || tipo === 'gastos'
+  const showWho = Boolean(partnerName)
   const [preset, setPreset] = useState(initial.preset)
   const [customFrom, setCustomFrom] = useState(initial.customFrom)
   const [customTo, setCustomTo] = useState(initial.customTo)
   const [categoryIds, setCategoryIds] = useState(initial.categoryIds)
   const [paid, setPaid] = useState<PaidFilter>(initial.paid ?? 'all')
+  const [scope, setScope] = useState<ScopeFilter>(initial.scope ?? 'all')
+  const [who, setWho] = useState<WhoFilter>(initial.who ?? 'all')
   const [seenOpen, setSeenOpen] = useState(open)
   if (open !== seenOpen) {
     setSeenOpen(open)
@@ -78,6 +91,8 @@ export function FilterSheet({
       setCustomTo(current.customTo)
       setCategoryIds(current.categoryIds)
       setPaid(current.paid ?? 'all')
+      setScope(current.scope ?? 'all')
+      setWho(current.who ?? 'all')
     }
   }
 
@@ -158,6 +173,8 @@ export function FilterSheet({
     setCustomTo(end)
     setCategoryIds([])
     setPaid('all')
+    setScope('all')
+    setWho('all')
   }
 
   function onPointerDown(event: PointerEvent<HTMLDivElement>) {
@@ -210,15 +227,58 @@ export function FilterSheet({
           <span className="h-1.5 w-12 rounded-full bg-line" aria-hidden="true" />
         </div>
         <div className="flex items-center justify-between gap-3 px-5 pb-2">
-          <h2 id={titleId} className="font-display text-xl font-semibold">
+          <h2 id={titleId} className="font-display text-lg font-semibold">
             {title}
           </h2>
-          <button type="button" onClick={clearDraft} className="inline-flex min-h-11 items-center text-sm font-bold text-mostaza-ink">
-            Limpiar filtros
+          <button type="button" onClick={onClose} aria-label="Cerrar" className="grid h-11 w-11 place-items-center text-tinta">
+            <AppIcon name="xmark" />
           </button>
         </div>
         <div className="overflow-y-auto px-5 pb-3">
-          <p className="mb-2 font-display text-base font-semibold">¿Cuándo?</p>
+          {showExpenseGroups ? (
+            <>
+              <p className="mb-2 font-display text-base font-semibold">Compartido o privado</p>
+              <ScopeChips value={scope} onChange={setScope} />
+            </>
+          ) : null}
+          {showWho ? (
+            <>
+              <p className="mb-2 mt-5 font-display text-base font-semibold">Quién</p>
+              <div className="mb-3 flex flex-wrap gap-2" role="group" aria-label="Quién">
+                {(
+                  [
+                    { id: 'all', label: 'Las dos' },
+                    { id: 'me', label: 'Yo' },
+                    { id: 'partner', label: partnerName ?? 'Compañera' },
+                  ] as const
+                ).map((option) => (
+                  <SheetChip key={option.id} active={who === option.id} onClick={() => setWho(option.id)}>
+                    {option.label}
+                  </SheetChip>
+                ))}
+              </div>
+            </>
+          ) : null}
+          {showExpenseGroups ? (
+            <>
+              <p className="mb-2 mt-5 font-display text-base font-semibold">Categoría</p>
+              <div className="flex flex-wrap gap-2" role="group" aria-label="Categorías">
+                <SheetChip active={categoryIds.length === 0} onClick={() => setCategoryIds([])}>
+                  Todas
+                </SheetChip>
+                {categories.map((category) => (
+                  <SheetChip
+                    key={category.id}
+                    active={categoryIds.includes(category.id)}
+                    onClick={() => toggleCategory(category.id)}
+                  >
+                    <AppIcon name={category.icon} /> {category.name}
+                  </SheetChip>
+                ))}
+              </div>
+            </>
+          ) : null}
+          <p className="mb-2 mt-5 font-display text-base font-semibold">¿Cuándo?</p>
           <div className="flex flex-wrap gap-2" role="group" aria-label="Período">
             {PERIODS.map((period) => (
               <SheetChip key={period.id} active={preset === period.id} onClick={() => choosePreset(period.id)}>
@@ -266,25 +326,6 @@ export function FilterSheet({
               <PaidChips value={paid} onChange={setPaid} />
             </>
           ) : null}
-          {friendly ? null : (
-            <>
-              <p className="mb-2 mt-5 font-display text-base font-semibold">Categoría</p>
-              <div className="flex flex-wrap gap-2" role="group" aria-label="Categorías">
-                <SheetChip active={categoryIds.length === 0} onClick={() => setCategoryIds([])}>
-                  Todas
-                </SheetChip>
-                {categories.map((category) => (
-                  <SheetChip
-                    key={category.id}
-                    active={categoryIds.includes(category.id)}
-                    onClick={() => toggleCategory(category.id)}
-                  >
-                    <AppIcon name={category.icon} /> {category.name}
-                  </SheetChip>
-                ))}
-              </div>
-            </>
-          )}
         </div>
         <div className="mt-auto border-t border-line px-5 pb-6 pt-3">
           <Button
@@ -295,7 +336,9 @@ export function FilterSheet({
                 preset,
                 customFrom,
                 customTo,
-                categoryIds: friendly ? [] : categoryIds,
+                categoryIds: showExpenseGroups ? categoryIds : [],
+                scope: showExpenseGroups ? scope : 'all',
+                who: showWho ? who : 'all',
                 ...(showPaid ? { paid } : {}),
               })
             }
@@ -304,10 +347,10 @@ export function FilterSheet({
           </Button>
           <button
             type="button"
-            onClick={onClose}
+            onClick={clearDraft}
             className="mt-2 block min-h-[52px] w-full rounded-2xl border-2 border-mostaza-ink bg-card text-base font-semibold text-mostaza-ink"
           >
-            Cancelar
+            Limpiar
           </button>
         </div>
       </div>
@@ -322,8 +365,8 @@ function SheetChip({ active, onClick, children }: { active: boolean; onClick: ()
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-2xl border-2 px-3 text-sm font-semibold text-title ${
-        active ? 'border-mostaza-ink bg-salvia-claro' : 'border-line bg-sand-soft'
+      className={`inline-flex min-h-11 items-center justify-center gap-1.5 rounded-2xl border-[1.5px] px-3 text-sm font-semibold text-tinta ${
+        active ? 'border-azul-ink bg-azul-claro' : 'border-azul bg-tarjeta'
       }`}
     >
       {active ? <AppIcon name="check" /> : null}
