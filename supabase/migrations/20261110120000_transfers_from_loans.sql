@@ -156,9 +156,10 @@ for update to authenticated
 using (created_by = (select auth.uid()))
 with check (created_by = (select auth.uid()));
 
+-- El delete llega al trigger para que niegue con P0001 si no es quien la cargó.
 create policy transfers_delete on public.transfers
 for delete to authenticated
-using (created_by = (select auth.uid()));
+using ((select auth.uid()) in (from_id, to_id));
 
 revoke all on public.transfers from public, anon, authenticated;
 grant select, insert, update, delete on public.transfers to authenticated;
@@ -274,3 +275,65 @@ alter table public.expenses
 
 alter table public.expenses
   alter column category_id drop not null;
+
+-- Categoría y título opcionales: validate_expense acepta category_id null (P4).
+create or replace function private.validate_expense()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  cat_owner uuid;
+  cat_household uuid;
+  payer_household uuid;
+begin
+  if new.category_id is not null then
+    select c.owner_id, c.household_id
+    into cat_owner, cat_household
+    from public.categories as c
+    where c.id = new.category_id;
+
+    if cat_household is null or cat_household is distinct from new.household_id then
+      raise exception 'La categoría no es de este hogar';
+    end if;
+
+    if new.is_shared and cat_owner is not null then
+      raise exception 'Un gasto compartido no puede usar una categoría privada';
+    end if;
+
+    if not new.is_shared and cat_owner is distinct from new.owner_id then
+      raise exception 'Esa categoría privada no es tuya';
+    end if;
+  end if;
+
+  if not new.is_shared and new.payer_id is distinct from new.owner_id then
+    raise exception 'Un gasto privado lo pagás vos';
+  end if;
+
+  select p.household_id
+  into payer_household
+  from public.profiles as p
+  where p.id = new.payer_id;
+
+  if payer_household is distinct from new.household_id then
+    raise exception 'Quien pagó no está en el hogar';
+  end if;
+
+  if (select auth.uid()) is not null and not private.is_member(new.household_id) then
+    raise exception 'No pertenecés a este hogar';
+  end if;
+
+  if tg_op = 'INSERT'
+    and (select auth.uid()) is not null
+    and new.owner_id is distinct from (select auth.uid()) then
+    raise exception 'Solo podés anotar gastos a tu nombre';
+  end if;
+
+  if tg_op = 'UPDATE' and new.owner_id is distinct from old.owner_id then
+    raise exception 'No se puede cambiar quién cargó el gasto';
+  end if;
+
+  return new;
+end;
+$$;
