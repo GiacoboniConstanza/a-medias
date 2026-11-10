@@ -92,15 +92,13 @@ values ('01010101-0101-4101-8101-010101010101', 'CASERA26', '11111111-1111-4111-
 update public.profiles
 set
   household_id = '01010101-0101-4101-8101-010101010101',
-  display_name = 'Coty',
-  view_mode = 'friendly'
+  display_name = 'Coty'
 where id = '11111111-1111-4111-8111-111111111111';
 
 update public.profiles
 set
   household_id = '01010101-0101-4101-8101-010101010101',
-  display_name = 'Maru',
-  view_mode = 'accounting'
+  display_name = 'Maru'
 where id = '22222222-2222-4222-8222-222222222222';
 
 insert into public.categories (id, household_id, name, emoji, icon) values
