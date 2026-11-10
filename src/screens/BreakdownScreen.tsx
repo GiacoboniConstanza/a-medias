@@ -87,10 +87,11 @@ export function BreakdownScreen() {
   const visible = filterByScopeAndCategory(source, { scope, categoryIds: friendly ? [] : categoryIds })
   const paidByMe = visible.filter((expense) => expense.payerId === me.id)
   const rankedBubbles: BubbleItem[] = [...paidByMe.reduce((map, expense) => {
+    const categoryKey = expense.categoryId ?? 'sin-categoria'
     const category = data.categories.find((item) => item.id === expense.categoryId)
     const icon = category?.icon || DEFAULT_ICON
     const surface = iconSurface(icon)
-    const current = map.get(expense.categoryId) ?? {
+    const current = map.get(categoryKey) ?? {
       icon,
       label: category?.name ?? 'Otros',
       amount: 0,
@@ -98,7 +99,7 @@ export function BreakdownScreen() {
       border: surface.border,
     }
     current.amount += expense.amount
-    map.set(expense.categoryId, current)
+    map.set(categoryKey, current)
     return map
   }, new Map<string, Omit<BubbleItem, 'id'>>()).entries()]
     .map(([id, item]) => ({ id, ...item }))
@@ -138,10 +139,11 @@ export function BreakdownScreen() {
   const periodSharedWidth = periodTotal > 0 ? (periodShared / periodTotal) * 100 : 0
   const periodPrivateWidth = periodTotal > 0 ? (periodPrivate / periodTotal) * 100 : 0
   const top = [...paidByMe.reduce((map, expense) => {
+    const categoryKey = expense.categoryId ?? 'sin-categoria'
     const category = data.categories.find((item) => item.id === expense.categoryId)
-    const current = map.get(expense.categoryId) ?? { label: category?.name ?? 'Otros', amount: 0 }
+    const current = map.get(categoryKey) ?? { label: category?.name ?? 'Otros', amount: 0 }
     current.amount += expense.amount
-    map.set(expense.categoryId, current)
+    map.set(categoryKey, current)
     return map
   }, new Map<string, { label: string; amount: number }>()).values()].sort((a, b) => b.amount - a.amount)[0]
   const selectedNames = categories.filter((category) => categoryIds.includes(category.id)).map((category) => category.name)
@@ -281,9 +283,9 @@ export function BreakdownScreen() {
           <ExpenseRows
             expenses={
               highlightId === 'otras'
-                ? visible.filter((expense) => otrasIds.includes(expense.categoryId))
+                ? visible.filter((expense) => expense.categoryId != null && otrasIds.includes(expense.categoryId))
                 : highlightId
-                  ? visible.filter((expense) => expense.categoryId === highlightId)
+                  ? visible.filter((expense) => (expense.categoryId ?? 'sin-categoria') === highlightId)
                   : visible
             }
             categories={data.categories}

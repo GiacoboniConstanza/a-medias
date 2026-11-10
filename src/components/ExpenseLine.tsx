@@ -58,7 +58,7 @@ export function ExpenseLine({
       </span>
       <span className="min-w-0 pr-2">
         <span className="flex min-h-[26px] flex-wrap items-center gap-1.5">
-          <span className="font-display text-lg font-semibold text-tinta">{expense.title}</span>
+          <span className="font-display text-lg font-semibold text-tinta">{expense.title ?? 'Gasto'}</span>
           <PeriodTag expense={expense} />
           {markPrivate ? (
             <span className="inline-flex h-[var(--alto-chip)] items-center rounded-full bg-ciruela-claro px-2.5 text-sm font-semibold text-tinta">

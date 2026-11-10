@@ -184,31 +184,34 @@ describe('frases del paso 3', () => {
 })
 
 describe('transferencias en Te quedan', () => {
-  const loans = [{ lenderId: coty, borrowerId: maru, amount: 200_000, period: '2026-11-01' }]
-  const repayments = [{ lenderId: coty, borrowerId: maru, amount: 80_000, period: '2026-12-01' }]
+  // Préstamo migrado + su devolución migrada como transferencia al revés.
+  const transfers = [
+    { fromId: coty, toId: maru, amount: 200_000, period: '2026-11-01' },
+    { fromId: maru, toId: coty, amount: 80_000, period: '2026-12-01' },
+  ]
   const pocket = monthPocket({ base: 900_000, privateSpent: 72_000, sharedPaid: 30_000, extras: 300_000 })
 
-  it('resta al que presta y suma al que recibe, cada uno en el período que le toca', () => {
-    const novemberLender = loanMonthEffect(coty, '2026-11-01', loans, repayments)
-    const novemberBorrower = loanMonthEffect(maru, '2026-11-01', loans, repayments)
-    expect(novemberLender).toEqual({ given: 200_000, collected: 0, received: 0, paid: 0, net: -200_000 })
-    expect(novemberBorrower).toEqual({ given: 0, collected: 0, received: 200_000, paid: 0, net: 200_000 })
-    expect(remainingAfterLoans(pocket.income, pocket.spent, novemberLender.net)).toBe(898_000)
-    expect(remainingAfterLoans(pocket.income, pocket.spent, novemberBorrower.net)).toBe(1_298_000)
+  it('resta al que manda y suma al que recibe, cada uno en el período que le toca', () => {
+    const novemberSender = loanMonthEffect(coty, '2026-11-01', transfers)
+    const novemberReceiver = loanMonthEffect(maru, '2026-11-01', transfers)
+    expect(novemberSender).toEqual({ given: 200_000, collected: 0, received: 0, paid: 0, net: -200_000 })
+    expect(novemberReceiver).toEqual({ given: 0, collected: 0, received: 200_000, paid: 0, net: 200_000 })
+    expect(remainingAfterLoans(pocket.income, pocket.spent, novemberSender.net)).toBe(898_000)
+    expect(remainingAfterLoans(pocket.income, pocket.spent, novemberReceiver.net)).toBe(1_298_000)
 
-    const decemberLender = loanMonthEffect(coty, '2026-12-01', loans, repayments)
-    const decemberBorrower = loanMonthEffect(maru, '2026-12-01', loans, repayments)
-    expect(decemberLender).toEqual({ given: 0, collected: 80_000, received: 0, paid: 0, net: 80_000 })
-    expect(decemberBorrower).toEqual({ given: 0, collected: 0, received: 0, paid: 80_000, net: -80_000 })
-    expect(remainingAfterLoans(pocket.income, pocket.spent, decemberLender.net)).toBe(1_178_000)
-    expect(remainingAfterLoans(pocket.income, pocket.spent, decemberBorrower.net)).toBe(1_018_000)
+    const decemberReceiver = loanMonthEffect(coty, '2026-12-01', transfers)
+    const decemberSender = loanMonthEffect(maru, '2026-12-01', transfers)
+    expect(decemberReceiver).toEqual({ given: 0, collected: 0, received: 80_000, paid: 0, net: 80_000 })
+    expect(decemberSender).toEqual({ given: 80_000, collected: 0, received: 0, paid: 0, net: -80_000 })
+    expect(remainingAfterLoans(pocket.income, pocket.spent, decemberReceiver.net)).toBe(1_178_000)
+    expect(remainingAfterLoans(pocket.income, pocket.spent, decemberSender.net)).toBe(1_018_000)
   })
 
   it('no cambia ingresos ni gastos del mes', () => {
     expect(pocket.income).toBe(1_200_000)
     expect(pocket.spent).toBe(102_000)
     expect(pocket.remaining).toBe(1_098_000)
-    const effect = loanMonthEffect(coty, '2026-11-01', loans, repayments)
+    const effect = loanMonthEffect(coty, '2026-11-01', transfers)
     expect(hasLoanMovement(effect)).toBe(true)
     expect(loanEffectLines('Maru', effect)).toEqual([
       { label: 'Maru te pasó', amount: 0 },
@@ -216,7 +219,7 @@ describe('transferencias en Te quedan', () => {
     ])
     expect(formatSignedMoney(effect.net)).toBe('-$ 200.000,00')
     expect(formatSignedMoney(80_000)).toBe('+$ 80.000,00')
-    expect(loanMonthEffect(coty, '2026-10-01', loans, repayments).net).toBe(0)
-    expect(hasLoanMovement(loanMonthEffect(coty, '2026-10-01', loans, repayments))).toBe(false)
+    expect(loanMonthEffect(coty, '2026-10-01', transfers).net).toBe(0)
+    expect(hasLoanMovement(loanMonthEffect(coty, '2026-10-01', transfers))).toBe(false)
   })
 })

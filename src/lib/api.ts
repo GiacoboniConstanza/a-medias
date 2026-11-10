@@ -24,7 +24,7 @@ export type Category = {
 
 export type ExpenseItem = {
   id: string
-  title: string
+  title: string | null
   amount: number
   spentOn: string
   period: string
@@ -32,7 +32,7 @@ export type ExpenseItem = {
   paidFromBag: boolean
   payerId: string
   ownerId: string
-  categoryId: string
+  categoryId: string | null
   notes: string | null
 }
 
@@ -481,7 +481,7 @@ function isBagKind(kind: string): kind is BagKind {
 
 function mapExpense(expense: {
   id: string
-  title: string
+  title: string | null
   amount: number
   spent_on: string
   period: string
@@ -489,7 +489,7 @@ function mapExpense(expense: {
   paid_from_bag: boolean
   payer_id: string
   owner_id: string
-  category_id: string
+  category_id: string | null
   notes: string | null
 }): ExpenseItem {
   return {
@@ -648,12 +648,17 @@ export async function createCategory(input: {
   return data.id
 }
 
+function optionalTitle(value: string | null | undefined): string | null {
+  const trimmed = value?.trim() ?? ''
+  return trimmed === '' ? null : trimmed
+}
+
 export async function createExpense(input: {
   householdId: string
   ownerId: string
   payerId: string
-  categoryId: string
-  title: string
+  categoryId: string | null
+  title: string | null
   amount: number
   spentOn: string
   period: string
@@ -667,7 +672,7 @@ export async function createExpense(input: {
       owner_id: input.ownerId,
       payer_id: input.payerId,
       category_id: input.categoryId,
-      title: input.title.trim(),
+      title: optionalTitle(input.title),
       amount: input.amount,
       spent_on: input.spentOn,
       period: input.period,
@@ -683,8 +688,8 @@ export async function createExpense(input: {
 export async function updateExpense(input: {
   id: string
   payerId: string
-  categoryId: string
-  title: string
+  categoryId: string | null
+  title: string | null
   amount: number
   spentOn: string
   period: string
@@ -696,7 +701,7 @@ export async function updateExpense(input: {
     .update({
       payer_id: input.payerId,
       category_id: input.categoryId,
-      title: input.title.trim(),
+      title: optionalTitle(input.title),
       amount: input.amount,
       spent_on: input.spentOn,
       period: input.period,
@@ -893,7 +898,6 @@ export async function settleMonth(input: {
   amount: number
   expenseAmount: number
   expenseDebtorId: string | null
-  repayments: { loanId: string; amount: number }[]
 }): Promise<void> {
   const { error } = await supabase.rpc('settle_shared_month', {
     p_month: input.month,
@@ -902,7 +906,6 @@ export async function settleMonth(input: {
     p_amount: input.amount,
     p_expense_amount: input.expenseAmount,
     p_expense_debtor: input.expenseDebtorId,
-    p_repayments: input.repayments.map((row) => ({ loan_id: row.loanId, amount: row.amount })),
   })
   fail(error)
 }

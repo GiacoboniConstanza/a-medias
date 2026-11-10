@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { ListFlower, Plantita } from '../components/Adornos.tsx'
 import { ConfirmSheet } from '../components/ConfirmSheet.tsx'
@@ -19,9 +19,8 @@ import { buildSharedCsv, downloadText } from '../lib/csv.ts'
 import { debtCopy, monthSplit, partnerId } from '../lib/derive.ts'
 import { formatMoney } from '../lib/format.ts'
 import { DEFAULT_ICON } from '../lib/icons.ts'
-import { loadLoanBalances } from '../lib/loans.ts'
 import { monthName, shortDate } from '../lib/month.ts'
-import { planMonthSettlement, returnSentences, type SettleLoan } from '../lib/settle.ts'
+import { planMonthSettlement } from '../lib/settle.ts'
 import type { SplitResult, SplitRow } from '../lib/split.ts'
 import type { ViewMode } from '../types/database.ts'
 
@@ -37,32 +36,6 @@ export function SharedScreen() {
   const [confirm, setConfirm] = useState<'settle' | 'undo' | null>(null)
   const [openExpense, setOpenExpense] = useState<ExpenseItem | null>(null)
   const [payerFilter, setPayerFilter] = useState('all')
-  const [loans, setLoans] = useState<SettleLoan[]>([])
-
-  useEffect(() => {
-    if (!profile) return
-    let active = true
-    loadLoanBalances()
-      .then((rows) => {
-        if (!active) return
-        setLoans(
-          rows.map((loan) => ({
-            id: loan.id,
-            lenderId: loan.lenderId,
-            borrowerId: loan.borrowerId,
-            pending: loan.pending,
-            period: loan.period,
-          })),
-        )
-      })
-      .catch(() => {
-        if (!active) return
-        setLoans([])
-      })
-    return () => {
-      active = false
-    }
-  }, [profile, data])
 
   if (!profile) return null
   if (loading && !data) return <p className="py-16 text-center font-bold text-muted">Cargando…</p>
@@ -77,14 +50,12 @@ export function SharedScreen() {
     meId,
     partnerId: otherId,
     split,
-    loans,
     alreadySettled: Boolean(data.settlement),
   })
   const people = [...split.rows].sort((a, b) => personRank(a.name) - personRank(b.name))
   const partner = people.find((row) => row.id !== meId) ?? null
   const settled = data.settlement
   const gap = partner?.balance ?? 0
-  const returnsNote = returnSentences(meId, partner?.name ?? 'tu compañera', plan.repayments)
   const friendly = profile.viewMode === 'friendly'
   const visible = friendly || payerFilter === 'all' ? shared : shared.filter((expense) => expense.payerId === payerFilter)
   const filters = [
@@ -113,7 +84,6 @@ export function SharedScreen() {
         amount: plan.amount,
         expenseAmount: plan.expenseAmount,
         expenseDebtorId: plan.expenseDebtorId,
-        repayments: plan.repayments.map((row) => ({ loanId: row.loanId, amount: row.amount })),
       })
       setConfirm(null)
       setSettledNote(true)
@@ -147,7 +117,7 @@ export function SharedScreen() {
     const csv = buildSharedCsv(
       shared.map((expense) => ({
         date: shortDate(expense.spentOn),
-        title: expense.title,
+        title: expense.title ?? 'Gasto',
         payer: data?.names[expense.payerId] ?? '',
         amount: expense.amount,
       })),
@@ -313,9 +283,6 @@ export function SharedScreen() {
           <>
             <p className="font-display text-2xl font-semibold text-title">{debtCopy(meId, split)}</p>
             <p className="mt-2 text-base font-semibold text-muted">Eso no cambia lo que te queda.</p>
-            {returnsNote ? (
-              <p className="mt-3 text-base font-semibold text-title">Al saldar se anotan estas devoluciones: {returnsNote}.</p>
-            ) : null}
             <p className="mt-3 text-base font-semibold text-muted">
               El mes queda marcado como saldado. Si te equivocás, lo podés deshacer.
             </p>
@@ -337,9 +304,7 @@ export function SharedScreen() {
           </div>
         }
       >
-        <p className="text-base font-semibold text-title">
-          ¿Deshacer el saldo de {monthName(month)}? Se borran las devoluciones de este saldo. Las que cargaste a mano quedan.
-        </p>
+        <p className="text-base font-semibold text-title">¿Deshacer el saldo de {monthName(month)}?</p>
       </Sheet>
       {openExpense ? (
         <ExpenseEditor

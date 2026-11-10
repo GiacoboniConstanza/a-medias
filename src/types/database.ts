@@ -211,8 +211,8 @@ export type Database = {
           household_id: string
           owner_id: string
           payer_id: string
-          category_id: string
-          title: string
+          category_id: string | null
+          title: string | null
           amount: number
           spent_on: string
           period: string
@@ -226,8 +226,8 @@ export type Database = {
           household_id: string
           owner_id: string
           payer_id: string
-          category_id: string
-          title: string
+          category_id?: string | null
+          title?: string | null
           amount: number
           spent_on: string
           period?: string
@@ -237,12 +237,12 @@ export type Database = {
           created_at?: string
         },
         {
-          title?: string
+          title?: string | null
           amount?: number
           spent_on?: string
           period?: string
           payer_id?: string
-          category_id?: string
+          category_id?: string | null
           is_shared?: boolean
           paid_from_bag?: boolean
           notes?: string | null
@@ -645,87 +645,40 @@ export type Database = {
           kcal?: number | null
         }
       >
-      loans: Table<
+      transfers: Table<
         {
           id: string
-          lender_id: string
-          borrower_id: string
+          from_id: string
+          to_id: string
           amount: number
-          lent_on: string
+          transferred_on: string
           period: string
           notes: string | null
+          created_by: string
           created_at: string
           updated_at: string
         },
         {
           id?: string
-          lender_id: string
-          borrower_id: string
+          from_id: string
+          to_id: string
           amount: number
-          lent_on: string
-          period?: string
-          notes?: string | null
-          created_at?: string
-          updated_at?: string
-        },
-        {
-          borrower_id?: string
-          amount?: number
-          lent_on?: string
-          period?: string
-          notes?: string | null
-        }
-      >
-      loan_repayments: Table<
-        {
-          id: string
-          loan_id: string
-          amount: number
-          paid_on: string
-          period: string
-          notes: string | null
-          created_by: string
-          created_at: string
-          settlement_id: string | null
-        },
-        {
-          id?: string
-          loan_id: string
-          amount: number
-          paid_on: string
+          transferred_on: string
           period?: string
           notes?: string | null
           created_by?: string
           created_at?: string
-          settlement_id?: string | null
+          updated_at?: string
         },
         {
           amount?: number
-          paid_on?: string
+          transferred_on?: string
           period?: string
           notes?: string | null
         }
       >
     }
-    Views: {
-      loan_balances: {
-        Row: {
-          id: string
-          lender_id: string
-          borrower_id: string
-          amount: number
-          lent_on: string
-          period: string
-          notes: string | null
-          created_at: string
-          repaid: number
-          pending: number
-          status: string
-          lock_month: string | null
-        }
-        Relationships: []
-      }
-    }
+    Views: Record<string, never>
     Functions: {
       create_household: { Args: Record<string, never>; Returns: string }
       join_household: { Args: { invite: string }; Returns: string }
@@ -773,7 +726,6 @@ export type Database = {
           p_amount: number
           p_expense_amount: number
           p_expense_debtor: string | null
-          p_repayments: { loan_id: string; amount: number }[]
         }
         Returns: string
       }
