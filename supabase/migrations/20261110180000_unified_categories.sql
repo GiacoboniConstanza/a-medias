@@ -235,7 +235,7 @@ create policy categories_insert on public.categories
 for insert to authenticated
 with check (household_id = (select private.my_household_id()));
 
--- 4. create_household sin owner_id.
+-- 4. create_household sin owner_id (misma lógica idempotente de antes).
 create or replace function private.create_household()
 returns uuid
 language plpgsql
@@ -243,22 +243,21 @@ security definer
 set search_path = ''
 as $$
 declare
-  uid uuid := (select auth.uid());
+  uid uuid;
   hid uuid;
   code text;
   linked integer;
 begin
-  if uid is null then
-    raise exception 'Tenés que entrar para crear un hogar';
-  end if;
+  uid := private.ensure_profile();
 
-  if exists (
-    select 1
-    from public.profiles as p
-    where p.id = uid
-      and p.household_id is not null
-  ) then
-    raise exception 'Ya estás en un hogar';
+  select p.household_id
+  into hid
+  from public.profiles as p
+  where p.id = uid
+  for update;
+
+  if hid is not null then
+    return hid;
   end if;
 
   select h.id
