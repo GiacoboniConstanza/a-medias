@@ -1,6 +1,4 @@
 import { MoneyInput } from './MoneyInput.tsx'
-import { Keypad } from './Keypad.tsx'
-import { applyMoneyKey } from '../lib/format.ts'
 
 export function MoneyField({
   draft,
@@ -9,7 +7,6 @@ export function MoneyField({
   error,
   label = 'Monto',
   size = 'large',
-  showKeypad = true,
   autoFocus = false,
 }: {
   draft: string
@@ -18,7 +15,6 @@ export function MoneyField({
   error?: string
   label?: string
   size?: 'large' | 'display' | 'hero' | 'form'
-  showKeypad?: boolean
   autoFocus?: boolean
 }) {
   const form = size === 'form'
@@ -56,15 +52,10 @@ export function MoneyField({
         />
       </div>
       {error ? (
-        <p className={`mt-1 flex items-center gap-1 text-sm font-bold text-tinta`} role="alert">
+        <p className="mt-1 flex items-center gap-1 text-sm font-bold text-tinta" role="alert">
           {error}
         </p>
       ) : null}
-      {readOnly || !showKeypad ? null : (
-        <div className="mt-2">
-          <Keypad onKey={(key) => onDraft(applyMoneyKey(draft, key))} />
-        </div>
-      )}
     </div>
   )
 }

@@ -260,6 +260,10 @@ export function moneyDraftFromAmount(amount: number | null | undefined): string 
   return `${whole},${String(frac).padStart(2, '0')}`
 }
 
+export function amountFromDigits(digits: string): number {
+  return parseMoneyInput(digits) ?? 0
+}
+
 export const NOTES_MAX = 500
 
 export function clampNotes(value: string): string | null {

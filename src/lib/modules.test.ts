@@ -32,7 +32,7 @@ describe('filtro del menú', () => {
 describe('menú según la pantalla', () => {
   it('sin hub muestra Finanzas y Resumen es /', () => {
     const nav = navFor('/', ['finanzas'])
-    expect(nav.items.map((item) => item.label)).toEqual(['Resumen', 'Gastos', 'Compartidos', 'Transferencias', 'Ahorros'])
+    expect(nav.items.map((item) => item.label)).toEqual(['Resumen', 'Movimientos', 'Ahorros', 'Cargar'])
     expect(nav.items[0]?.to).toBe('/')
     expect(nav.activeTo).toBe('/')
     expect(navFor('/finanzas', ['finanzas']).activeTo).toBe('/')
@@ -40,9 +40,9 @@ describe('menú según la pantalla', () => {
 
   it('con hub el inicio es general y Resumen vive en /finanzas', () => {
     expect(navFor('/', ['finanzas', 'habitos']).items.map((item) => item.label)).toEqual(['Inicio', 'Finanzas', 'Hábitos'])
-    const finance = navFor('/se-me-fue', ['finanzas', 'memos'])
+    const finance = navFor('/movimientos', ['finanzas', 'memos'])
     expect(finance.items[0]?.to).toBe('/finanzas')
-    expect(finance.activeTo).toBe('/se-me-fue')
+    expect(finance.activeTo).toBe('/movimientos')
   })
 
   it('Avisos, Mi año, Mi sueldo y Compartir marcan Resumen', () => {
@@ -52,7 +52,7 @@ describe('menú según la pantalla', () => {
   })
 
   it('Cargar marca la pestaña de origen, o Resumen', () => {
-    expect(navFor('/cargar', ['finanzas'], '/se-me-fue').activeTo).toBe('/se-me-fue')
+    expect(navFor('/cargar', ['finanzas'], '/movimientos').activeTo).toBe('/movimientos')
     expect(navFor('/cargar', ['finanzas']).activeTo).toBe('/')
     expect(navFor('/cargar', ['finanzas', 'memos']).activeTo).toBe('/finanzas')
   })

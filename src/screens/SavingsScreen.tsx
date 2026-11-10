@@ -5,7 +5,7 @@ import { ExtraSheet, FundSheet, GustoSheet, MoveSheet } from '../components/bag/
 import { ConfirmSheet } from '../components/ConfirmSheet.tsx'
 import { ContributeSheet } from '../components/ContributeSheet.tsx'
 import { IconPicker } from '../components/IconPicker.tsx'
-import { amountFromDigits } from '../components/Keypad.tsx'
+import { amountFromDigits } from '../lib/format.ts'
 import { MoneyField } from '../components/MoneyField.tsx'
 import { PotPlant } from '../components/Plant.tsx'
 import { ScopeChips } from '../components/ScopeChips.tsx'

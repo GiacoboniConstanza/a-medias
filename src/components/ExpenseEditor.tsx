@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AppIcon } from './AppIcon.tsx'
 import { IconPicker } from './IconPicker.tsx'
-import { amountFromDigits } from './Keypad.tsx'
+import { amountFromDigits } from '../lib/format.ts'
 import { MoneyField } from './MoneyField.tsx'
 import { Sheet } from './Sheet.tsx'
 import { Button, Chip, ErrorText, NotesField, inputClass } from './ui.tsx'
@@ -41,7 +41,7 @@ export type ExpensePrefill = {
   missingDate: boolean
 }
 
-const settledHelp = 'Los meses saldados están cerrados. Para cargar ahí, deshacé el saldo en Compartidos.'
+const settledHelp = 'Los meses saldados están cerrados. Para cargar ahí, deshacé el saldo en Resumen.'
 
 export function ExpenseEditor({
   presentation,
@@ -378,9 +378,9 @@ function ExpenseForm({
       {settledLock ? (
         <div className="mb-3 rounded-2xl bg-azul-claro p-3 text-base font-semibold text-tinta">
           <AppIcon name="lock" className="mr-1" />
-          {monthWord(expense?.period ?? period)} ya está saldado. Para cambiar este gasto, primero deshacé el saldo en Compartidos.
-          <Link to="/compartidos" className="mt-2 flex min-h-11 items-center text-base font-bold text-mostaza-ink">
-            Ir a Compartidos
+          {monthWord(expense?.period ?? period)} ya está saldado. Para cambiar este gasto, primero deshacé el saldo en Resumen.
+          <Link to={{ pathname: '/', search: '?saldo=1' }} className="mt-2 flex min-h-11 items-center text-base font-bold text-mostaza-ink">
+            Ir a Resumen
           </Link>
         </div>
       ) : null}

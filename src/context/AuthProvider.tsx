@@ -1,13 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import type { ViewMode } from '../types/database.ts'
 import { supabase } from '../lib/supabase.ts'
 
 export type Profile = {
   id: string
   householdId: string | null
   displayName: string
-  viewMode: ViewMode
 }
 
 type AuthState = {
@@ -24,7 +22,7 @@ const AuthContext = createContext<AuthState | null>(null)
 async function fetchProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, household_id, display_name, view_mode')
+    .select('id, household_id, display_name')
     .eq('id', userId)
     .maybeSingle()
   if (error) throw new Error(error.message)
@@ -33,7 +31,6 @@ async function fetchProfile(userId: string): Promise<Profile | null> {
     id: data.id,
     householdId: data.household_id,
     displayName: data.display_name,
-    viewMode: data.view_mode,
   }
 }
 

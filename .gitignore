@@ -8,3 +8,4 @@ dev-dist
 .supabase
 *.tsbuildinfo
 .DS_Store
+respaldo-*.sql
