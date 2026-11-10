@@ -1,5 +1,87 @@
 -- Una sola lista de categorías por hogar (sin privadas).
 
+-- 0. Validadores sin dueño ANTES del repunte.
+-- El UPDATE de category_id dispara expenses_validate / fixed_expenses_validate;
+-- la versión vieja rechaza un gasto privado apuntando a una categoría compartida
+-- ("Esa categoría privada no es tuya") y un compartido apuntando a una privada.
+create or replace function private.validate_expense()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  cat_household uuid;
+  payer_household uuid;
+begin
+  if new.category_id is not null then
+    select c.household_id
+    into cat_household
+    from public.categories as c
+    where c.id = new.category_id;
+
+    if cat_household is null or cat_household is distinct from new.household_id then
+      raise exception 'La categoría no es de este hogar';
+    end if;
+  end if;
+
+  if not new.is_shared and new.payer_id is distinct from new.owner_id then
+    raise exception 'Un gasto privado lo pagás vos';
+  end if;
+
+  select p.household_id
+  into payer_household
+  from public.profiles as p
+  where p.id = new.payer_id;
+
+  if payer_household is distinct from new.household_id then
+    raise exception 'Quien pagó no está en el hogar';
+  end if;
+
+  if (select auth.uid()) is not null and not private.is_member(new.household_id) then
+    raise exception 'No pertenecés a este hogar';
+  end if;
+
+  if tg_op = 'INSERT'
+    and (select auth.uid()) is not null
+    and new.owner_id is distinct from (select auth.uid()) then
+    raise exception 'Solo podés anotar gastos a tu nombre';
+  end if;
+
+  if tg_op = 'UPDATE' and new.owner_id is distinct from old.owner_id then
+    raise exception 'No se puede cambiar quién cargó el gasto';
+  end if;
+
+  return new;
+end;
+$$;
+
+create or replace function private.validate_fixed()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  cat_household uuid;
+begin
+  if new.category_id is null then
+    return new;
+  end if;
+
+  select c.household_id
+  into cat_household
+  from public.categories as c
+  where c.id = new.category_id;
+
+  if cat_household is null or cat_household is distinct from new.household_id then
+    raise exception 'La categoría no es de este hogar';
+  end if;
+
+  return new;
+end;
+$$;
+
 -- 1. Fusionar duplicados por hogar + lower(trim(name)).
 -- Conserva la compartida (owner_id null); si no hay, la más antigua.
 with ranked as (
@@ -153,86 +235,7 @@ create policy categories_insert on public.categories
 for insert to authenticated
 with check (household_id = (select private.my_household_id()));
 
--- 4. validate_expense / validate_fixed: categoría del hogar, sin dueño.
-create or replace function private.validate_expense()
-returns trigger
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  cat_household uuid;
-  payer_household uuid;
-begin
-  if new.category_id is not null then
-    select c.household_id
-    into cat_household
-    from public.categories as c
-    where c.id = new.category_id;
-
-    if cat_household is null or cat_household is distinct from new.household_id then
-      raise exception 'La categoría no es de este hogar';
-    end if;
-  end if;
-
-  if not new.is_shared and new.payer_id is distinct from new.owner_id then
-    raise exception 'Un gasto privado lo pagás vos';
-  end if;
-
-  select p.household_id
-  into payer_household
-  from public.profiles as p
-  where p.id = new.payer_id;
-
-  if payer_household is distinct from new.household_id then
-    raise exception 'Quien pagó no está en el hogar';
-  end if;
-
-  if (select auth.uid()) is not null and not private.is_member(new.household_id) then
-    raise exception 'No pertenecés a este hogar';
-  end if;
-
-  if tg_op = 'INSERT'
-    and (select auth.uid()) is not null
-    and new.owner_id is distinct from (select auth.uid()) then
-    raise exception 'Solo podés anotar gastos a tu nombre';
-  end if;
-
-  if tg_op = 'UPDATE' and new.owner_id is distinct from old.owner_id then
-    raise exception 'No se puede cambiar quién cargó el gasto';
-  end if;
-
-  return new;
-end;
-$$;
-
-create or replace function private.validate_fixed()
-returns trigger
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  cat_household uuid;
-begin
-  if new.category_id is null then
-    return new;
-  end if;
-
-  select c.household_id
-  into cat_household
-  from public.categories as c
-  where c.id = new.category_id;
-
-  if cat_household is null or cat_household is distinct from new.household_id then
-    raise exception 'La categoría no es de este hogar';
-  end if;
-
-  return new;
-end;
-$$;
-
--- 5. create_household sin owner_id.
+-- 4. create_household sin owner_id (misma lógica idempotente de antes).
 create or replace function private.create_household()
 returns uuid
 language plpgsql
@@ -240,22 +243,21 @@ security definer
 set search_path = ''
 as $$
 declare
-  uid uuid := (select auth.uid());
+  uid uuid;
   hid uuid;
   code text;
   linked integer;
 begin
-  if uid is null then
-    raise exception 'Tenés que entrar para crear un hogar';
-  end if;
+  uid := private.ensure_profile();
 
-  if exists (
-    select 1
-    from public.profiles as p
-    where p.id = uid
-      and p.household_id is not null
-  ) then
-    raise exception 'Ya estás en un hogar';
+  select p.household_id
+  into hid
+  from public.profiles as p
+  where p.id = uid
+  for update;
+
+  if hid is not null then
+    return hid;
   end if;
 
   select h.id
@@ -307,7 +309,7 @@ $$;
 revoke all on function private.create_household() from public, anon;
 grant execute on function private.create_household() to authenticated;
 
--- 6. year_balance: categorías del hogar sin filtro de dueño.
+-- 5. year_balance: categorías del hogar sin filtro de dueño.
 create or replace function private.year_balance(target_year integer, as_of date)
 returns jsonb
 language plpgsql
