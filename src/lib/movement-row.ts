@@ -1,4 +1,17 @@
+import { clampNotes } from './format.ts'
+
 /** Título y bajada de una fila de Movimientos (nombre > categoría > tipo). */
+
+/** Nombre y observación del formulario: van a columnas distintas. */
+export function movementTextFields(name: string, observation: string): {
+  title: string | null
+  notes: string | null
+} {
+  return {
+    title: clampNotes(name),
+    notes: clampNotes(observation),
+  }
+}
 
 export function movementExpenseTitle(input: {
   title?: string | null

@@ -20,10 +20,11 @@ import {
   type ExpenseItem,
 } from '../lib/api.ts'
 import { monthPocket, monthSplit, partnerId } from '../lib/derive.ts'
-import { clampNotes, formatMoney, moneyDraftFromAmount, normalizeMoney } from '../lib/format.ts'
+import { formatMoney, moneyDraftFromAmount, normalizeMoney } from '../lib/format.ts'
 import { homeAccountingCard } from '../lib/home-card.ts'
 import { DEFAULT_ICON } from '../lib/icons.ts'
 import { loanMonthEffect, loadLoanMovements, saveTransfer, sharedSignedBalance } from '../lib/loans.ts'
+import { movementTextFields } from '../lib/movement-row.ts'
 import { catamarcaToday, isAfterDay, monthKey, monthName, monthTitle, shiftMonth, shortDate } from '../lib/month.ts'
 import { periodFollowsDate, periodFromDate, sharedMonthSettled } from '../lib/period.ts'
 import { debtSentence } from '../lib/split.ts'
@@ -298,7 +299,8 @@ function MovementFormBody({
   const [spentOn, setSpentOn] = useState(expense?.spentOn ?? prefill?.spentOn ?? catamarcaToday())
   const [period, setPeriod] = useState(expense?.period ?? periodFromDate(prefill?.spentOn || catamarcaToday()))
   const [periodTouched, setPeriodTouched] = useState(Boolean(expense))
-  const [notes, setNotes] = useState(expense?.notes ?? expense?.title ?? '')
+  const [title, setTitle] = useState(expense?.title ?? prefill?.title ?? '')
+  const [notes, setNotes] = useState(expense?.notes ?? '')
   const [showErrors, setShowErrors] = useState(false)
   const [fieldError, setFieldError] = useState<'tipo' | 'monto' | null>(null)
   const [error, setError] = useState('')
@@ -406,33 +408,33 @@ function MovementFormBody({
     setSaving(true)
     setError('')
     const nextPeriod = periodFollowsDate(spentOn, period, periodTouched)
-    const observation = clampNotes(notes)
+    const text = movementTextFields(title, notes)
 
     try {
       if (tipo === 'gasto') {
         const payload = {
           payerId: shared ? payerId || meId : meId,
           categoryId: categoryId || null,
-          title: observation,
+          title: text.title,
           amount,
           spentOn,
           period: nextPeriod,
           isShared: Boolean(partnerIdValue) && shared,
-          notes: observation,
+          notes: text.notes,
         }
         if (expense) {
           await updateExpense({ id: expense.id, ...payload })
           await onSaved({
             kind: 'edit',
             amount,
-            summary: summaryLine('gasto', amount, observation, categoryId, categories, shared, payerId, meId, names),
+            summary: summaryLine('gasto', amount, text.title, categoryId, categories, shared, payerId, meId, names),
           })
         } else {
           await createExpense({ householdId, ownerId: meId, ...payload })
           await onSaved({
             kind: 'gasto',
             amount,
-            summary: summaryLine('gasto', amount, observation, categoryId, categories, shared, payerId, meId, names),
+            summary: summaryLine('gasto', amount, text.title, categoryId, categories, shared, payerId, meId, names),
           })
         }
       } else if (tipo === 'ingreso') {
@@ -447,17 +449,19 @@ function MovementFormBody({
           await createExtra({
             userId: meId,
             householdId,
-            label: observation ?? 'Algo puntual',
+            label: text.title ?? 'Algo puntual',
             amount,
             receivedOn: spentOn,
-            notes: observation,
+            notes: text.notes,
             allocations: [],
           })
         }
         await onSaved({
           kind: 'ingreso',
           amount,
-          summary: `${formatMoney(amount)} · ${incomeKind === 'sueldo' ? 'Sueldo' : 'Algo puntual'}`,
+          summary: `${formatMoney(amount)} · ${
+            incomeKind === 'sueldo' ? 'Sueldo' : text.title ?? 'Algo puntual'
+          }`,
         })
       } else if (partnerIdValue) {
         const fromId = transferDir === 'sent' ? meId : partnerIdValue
@@ -468,13 +472,15 @@ function MovementFormBody({
           amount,
           transferredOn: spentOn,
           period: nextPeriod,
-          notes: observation,
+          // transfers solo tienen notes: nombre si hay, si no la observación.
+          notes: text.title ?? text.notes,
         })
         await onSaved({
           kind: 'transferencia',
           amount,
           summary: `${formatMoney(amount)} · ${
-            transferDir === 'sent' ? `Le pasaste a ${partnerLabel}` : `${partnerLabel} te pasó`
+            text.title ??
+            (transferDir === 'sent' ? `Le pasaste a ${partnerLabel}` : `${partnerLabel} te pasó`)
           }`,
         })
       }
@@ -599,6 +605,19 @@ function MovementFormBody({
       </section>
 
       <div className="space-y-4 px-4 pb-[calc(7.5rem+env(safe-area-inset-bottom))] pt-4" style={{ paddingBottom: `calc(7.5rem + ${keyboard}px)` }}>
+        {tipo ? (
+          <label className="block text-sm font-semibold text-gris">
+            Nombre (opcional)
+            <input
+              value={title}
+              onChange={(event) => setTitle(event.target.value.slice(0, 500))}
+              placeholder="Opcional"
+              maxLength={500}
+              className={`mt-1 ${inputClass}`}
+            />
+          </label>
+        ) : null}
+
         <div ref={montoRef}>
           <MoneyField
             draft={digits}
@@ -914,7 +933,7 @@ function MovementFormBody({
 function summaryLine(
   _tipo: 'gasto',
   amount: number,
-  observation: string | null,
+  name: string | null,
   categoryId: string,
   categories: Category[],
   shared: boolean,
@@ -924,7 +943,7 @@ function summaryLine(
 ): string {
   const category = categories.find((row) => row.id === categoryId)?.name
   const parts = [formatMoney(amount)]
-  if (observation) parts.push(observation)
+  if (name) parts.push(name)
   else if (category) parts.push(category)
   if (shared) {
     parts.push(payerId === meId ? 'Compartido, pagaste vos' : `Compartido, pagó ${names[payerId] ?? 'tu compañera'}`)

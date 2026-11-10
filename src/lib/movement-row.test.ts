@@ -1,5 +1,26 @@
 import { describe, expect, it } from 'vitest'
-import { movementExpenseSubtitle, movementExpenseTitle } from './movement-row.ts'
+import { movementExpenseSubtitle, movementExpenseTitle, movementTextFields } from './movement-row.ts'
+
+describe('nombre y observación del formulario', () => {
+  it('guarda el nombre en title y la observación en notes, sin copiarse', () => {
+    expect(movementTextFields('Alquiler', 'Pago del mes')).toEqual({
+      title: 'Alquiler',
+      notes: 'Pago del mes',
+    })
+    expect(movementTextFields('  Farmacia  ', '')).toEqual({
+      title: 'Farmacia',
+      notes: null,
+    })
+    expect(movementTextFields('', 'Solo una nota')).toEqual({
+      title: null,
+      notes: 'Solo una nota',
+    })
+    expect(movementTextFields('   ', '   ')).toEqual({
+      title: null,
+      notes: null,
+    })
+  })
+})
 
 describe('título de la fila de Movimientos', () => {
   it('usa el nombre, si no la categoría, si no el tipo', () => {
