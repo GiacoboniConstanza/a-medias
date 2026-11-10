@@ -294,6 +294,91 @@ export type Database = {
         },
         { amount?: number }
       >
+      savings: Table<
+        {
+          id: string
+          household_id: string
+          name: string
+          emoji: string
+          icon: string
+          target_amount: number | null
+          target_date: string | null
+          is_shared: boolean
+          owner_id: string | null
+          archived_at: string | null
+          created_at: string
+        },
+        {
+          id?: string
+          household_id: string
+          name: string
+          emoji: string
+          icon: string
+          target_amount?: number | null
+          target_date?: string | null
+          is_shared: boolean
+          owner_id?: string | null
+          archived_at?: string | null
+          created_at?: string
+        },
+        {
+          name?: string
+          emoji?: string
+          icon?: string
+          target_amount?: number | null
+          target_date?: string | null
+          archived_at?: string | null
+        }
+      >
+      saving_opening_balances: Table<
+        {
+          saving_id: string
+          user_id: string
+          amount: number
+        },
+        {
+          saving_id: string
+          user_id: string
+          amount: number
+        },
+        { amount?: number }
+      >
+      saving_moves: Table<
+        {
+          id: string
+          saving_id: string
+          household_id: string
+          user_id: string
+          kind: 'aporte' | 'retiro'
+          amount: number
+          spent_on: string
+          period: string
+          title: string | null
+          notes: string | null
+          created_at: string
+        },
+        {
+          id?: string
+          saving_id: string
+          household_id: string
+          user_id: string
+          kind: 'aporte' | 'retiro'
+          amount: number
+          spent_on: string
+          period?: string
+          title?: string | null
+          notes?: string | null
+          created_at?: string
+        },
+        {
+          saving_id?: string
+          amount?: number
+          spent_on?: string
+          period?: string
+          title?: string | null
+          notes?: string | null
+        }
+      >
       fixed_expenses: Table<
         {
           id: string
