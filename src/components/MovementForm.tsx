@@ -604,19 +604,20 @@ function MovementFormBody({
         ) : null}
       </section>
 
-      <div className="space-y-4 px-4 pb-[calc(7.5rem+env(safe-area-inset-bottom))] pt-4" style={{ paddingBottom: `calc(7.5rem + ${keyboard}px)` }}>
-        {tipo ? (
-          <label className="block text-sm font-semibold text-gris">
-            Nombre (opcional)
-            <input
-              value={title}
-              onChange={(event) => setTitle(event.target.value.slice(0, 500))}
-              placeholder="Opcional"
-              maxLength={500}
-              className={`mt-1 ${inputClass}`}
-            />
-          </label>
-        ) : null}
+      <div
+        className="space-y-4 px-4 pb-[calc(7.5rem+env(safe-area-inset-bottom))] pt-[calc(var(--feston-alto)+1rem)]"
+        style={{ paddingBottom: `calc(7.5rem + ${keyboard}px)` }}
+      >
+        <label className="block text-sm font-semibold text-gris">
+          Nombre (opcional)
+          <input
+            value={title}
+            onChange={(event) => setTitle(event.target.value.slice(0, 500))}
+            placeholder="Opcional"
+            maxLength={500}
+            className={`mt-1 ${inputClass}`}
+          />
+        </label>
 
         <div ref={montoRef}>
           <MoneyField
