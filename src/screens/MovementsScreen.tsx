@@ -18,6 +18,7 @@ import { matchesCategories, matchesScope, matchesSpan, type ScopeFilter } from '
 import { formatMoney, normalizeMoney } from '../lib/format.ts'
 import { iconSurface } from '../lib/icons.ts'
 import { loadLoanMovements, type PeriodLoan } from '../lib/loans.ts'
+import { movementExpenseSubtitle, movementExpenseTitle } from '../lib/movement-row.ts'
 import { catamarcaToday, monthEnd, monthName, shortDate } from '../lib/month.ts'
 import type { ExpenseItem } from '../lib/api.ts'
 
@@ -294,7 +295,7 @@ export function MovementsScreen() {
                             </span>
                           ) : null}
                         </span>
-                        <span className="block text-sm font-medium text-gris">{row.subtitle}</span>
+                        {row.subtitle ? <span className="block text-sm font-medium text-gris">{row.subtitle}</span> : null}
                       </span>
                       <span
                         className={`whitespace-nowrap font-display text-lg font-semibold ${
@@ -398,19 +399,22 @@ function buildRows(input: {
     if (who === 'me' && expense.payerId !== meId) continue
     if (who === 'partner' && expense.payerId === meId) continue
     const category = data.categories.find((item) => item.id === expense.categoryId)
-    const title = expense.notes?.trim() || expense.title?.trim() || category?.name || 'Gasto'
     const paidByMe = expense.payerId === meId
-    const subtitleParts = [
-      paidByMe ? 'Pagaste vos' : `Pagó ${data.names[expense.payerId] ?? partnerName}`,
-      expense.isShared ? 'Compartido' : null,
-      expense.notes?.trim() && category?.name ? category.name : null,
-    ].filter(Boolean)
+    const title = movementExpenseTitle({ title: expense.title, categoryName: category?.name })
+    const subtitle = movementExpenseSubtitle({
+      isShared: expense.isShared,
+      paidByMe,
+      partnerName,
+      payerName: data.names[expense.payerId],
+      categoryName: category?.name,
+      title: expense.title,
+    })
     const surface = iconSurface(category?.icon || 'tag')
     items.push({
       id: expense.id,
       kind: 'gasto',
       title,
-      subtitle: subtitleParts.join(' · '),
+      subtitle,
       amount: expense.amount,
       signed: paidByMe ? -expense.amount : null,
       spentOn: expense.spentOn,
