@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { Plantita } from '../components/Adornos.tsx'
 import { SectionHeader } from '../components/SectionHeader.tsx'
-import { ViewOptions } from '../components/ViewOptions.tsx'
 import { DonutBreakdown } from '../components/DonutBreakdown.tsx'
 import { IncomeChart } from '../components/IncomeChart.tsx'
 import { Sheet } from '../components/Sheet.tsx'
@@ -11,7 +10,7 @@ import { ExpenseEditor } from '../components/ExpenseEditor.tsx'
 import { ExpenseLine } from '../components/ExpenseLine.tsx'
 import { Button, Card, Toast } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
-import { loadCategoryYearExpenses, loadYearBalance, saveViewMode, type ExpenseItem } from '../lib/api.ts'
+import { loadCategoryYearExpenses, loadYearBalance, type ExpenseItem } from '../lib/api.ts'
 import { formatMoney } from '../lib/format.ts'
 import { abbreviateMoney, monthRows, monthSpan } from '../lib/year-rows.ts'
 import {
@@ -32,12 +31,11 @@ import {
   type YearCategory,
   type YearReport,
 } from '../lib/year.ts'
-import type { ViewMode } from '../types/database.ts'
 
 const ARROW = 'grid h-11 w-11 shrink-0 place-items-center rounded-full bg-card text-lg text-mostaza-ink shadow-soft disabled:opacity-40'
 
 export function YearScreen() {
-  const { profile, refreshProfile } = useAuth()
+  const { profile } = useAuth()
   const [year, setYear] = useState(() => new Date().getFullYear())
   const [report, setReport] = useState<YearReport | null>(null)
   const [loading, setLoading] = useState(true)
@@ -70,15 +68,9 @@ export function YearScreen() {
   }, [year, reload])
 
   if (!profile) return null
-  const me = profile
   const category = report?.categories.find((item) => item.id === categoryId) ?? null
   const ready = report && yearHasData(report, today) ? report : null
-  const accounting = me.viewMode === 'accounting'
-
-  async function changeMode(mode: ViewMode) {
-    await saveViewMode(me.id, mode)
-    await refreshProfile()
-  }
+  const accounting = true
 
   return (
     <>
@@ -91,7 +83,6 @@ export function YearScreen() {
             <span className="mr-1 inline-flex min-h-7 items-center gap-1.5 rounded-2xl bg-salvia-claro px-2.5 py-1 text-sm font-bold text-mostaza-ink">
               <AppIcon name="lock" /> Solo vos
             </span>
-            <ViewOptions mode={me.viewMode} onChange={(mode) => void changeMode(mode)} />
           </>
         }
       />

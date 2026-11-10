@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { AppIcon } from './AppIcon.tsx'
 import { Plantita } from './Adornos.tsx'
 import { IconPicker } from './IconPicker.tsx'
-import { amountFromDigits } from './Keypad.tsx'
+import { amountFromDigits } from '../lib/format.ts'
 import { MoneyField } from './MoneyField.tsx'
 import { Button, Chip, inputClass } from './ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
@@ -604,7 +604,6 @@ function MovementFormBody({
             draft={digits}
             onDraft={setDigits}
             size="form"
-            showKeypad={false}
             autoFocus={!editing}
             error={
               showErrors && fieldError === 'monto'

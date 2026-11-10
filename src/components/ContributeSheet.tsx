@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { amountFromDigits } from './Keypad.tsx'
+import { amountFromDigits } from '../lib/format.ts'
 import { MoneyField } from './MoneyField.tsx'
 import { Sheet } from './Sheet.tsx'
 import { Button, Chip } from './ui.tsx'

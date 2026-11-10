@@ -1,6 +1,6 @@
 import { useEffect, useId, useState } from 'react'
 import { IconPicker } from './IconPicker.tsx'
-import { amountFromDigits } from './Keypad.tsx'
+import { amountFromDigits } from '../lib/format.ts'
 import { MoneyField } from './MoneyField.tsx'
 import { Sheet } from './Sheet.tsx'
 import { Button, Chip, ErrorText, NotesField, inputClass, Toggle } from './ui.tsx'

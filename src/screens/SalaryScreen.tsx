@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AppIcon } from '../components/AppIcon.tsx'
-import { amountFromDigits } from '../components/Keypad.tsx'
+import { amountFromDigits } from '../lib/format.ts'
 import { MoneyField } from '../components/MoneyField.tsx'
 import { SectionHeader } from '../components/SectionHeader.tsx'
 import { Sheet } from '../components/Sheet.tsx'

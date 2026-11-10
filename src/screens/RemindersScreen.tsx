@@ -629,7 +629,6 @@ export function RemindersScreen() {
       />
       <FilterSheet
         open={sheetOpen}
-        friendly={false}
         month={month}
         end={end}
         categories={categories}

@@ -1,4 +1,4 @@
-import type { ContributionMode, ViewMode } from '../types/database.ts'
+import type { ContributionMode } from '../types/database.ts'
 import { bagBalances, type BagKind } from './bag.ts'
 import { money } from './format.ts'
 import { DEFAULT_ICON } from './icons.ts'
@@ -573,10 +573,6 @@ export async function loadCategoryYearExpenses(categoryId: string, year: number)
   return (data ?? []).map(mapExpense)
 }
 
-export async function saveViewMode(userId: string, viewMode: ViewMode): Promise<void> {
-  const { error } = await supabase.from('profiles').update({ view_mode: viewMode }).eq('id', userId)
-  fail(error)
-}
 
 export async function saveSalaryRevision(input: {
   id: string | null

@@ -1,6 +1,6 @@
 import { useId, useState } from 'react'
 import { AppIcon } from '../AppIcon.tsx'
-import { amountFromDigits, applyKey, Keypad } from '../Keypad.tsx'
+import { amountFromDigits } from '../../lib/format.ts'
 import { MoneyField } from '../MoneyField.tsx'
 import { Sheet } from '../Sheet.tsx'
 import { Button, FieldError, NotesField, inputClass } from '../ui.tsx'
@@ -344,14 +344,13 @@ export function ExtraSheet({
           </div>
           <p className="text-sm font-semibold text-title">El resto va a gustos: {formatMoney(Math.max(gustosPart, 0))}</p>
           <FieldError id={splitErrorId}>{splitTouched ? splitError : ''}</FieldError>
-          {funds.length > 0 ? (
+          {funds.length > 0 && activeFund ? (
             <div className="mt-3">
-              <Keypad
-                onKey={(key) => {
-                  if (!activeFund) return
-                  setSplitTouched(true)
-                  setFundDigits((current) => ({ ...current, [activeFund]: applyKey(current[activeFund] ?? '', key) }))
-                }}
+              <MoneyField
+                draft={fundDigits[activeFund] ?? ''}
+                onDraft={(value) => setFundDigits((current) => ({ ...current, [activeFund]: value }))}
+                label="Monto a este fondo"
+                size="large"
               />
             </div>
           ) : null}
