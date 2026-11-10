@@ -366,7 +366,6 @@ export function GustoSheet({
   open,
   categories,
   householdId,
-  userId,
   gustosFree,
   onClose,
   onSaved,
@@ -375,7 +374,6 @@ export function GustoSheet({
   open: boolean
   categories: Category[]
   householdId: string
-  userId: string
   gustosFree: number
   onClose: () => void
   onSaved: (message: string) => void
@@ -396,7 +394,6 @@ export function GustoSheet({
   const [saving, setSaving] = useState(false)
   const [serverError, setServerError] = useState('')
   const [seenOpen, setSeenOpen] = useState(open)
-  const privateCategories = categories.filter((category) => category.ownerId === userId)
 
   if (open !== seenOpen) {
     setSeenOpen(open)
@@ -418,7 +415,7 @@ export function GustoSheet({
 
   const amount = normalizeMoney(amountFromDigits(digits))
   const titleError = title.trim() ? '' : 'Poné qué gusto te diste.'
-  const categoryError = categoryId ? '' : 'Elegí una categoría tuya.'
+  const categoryError = categoryId ? '' : 'Elegí una categoría.'
   const amountError =
     amount <= 0 ? 'Poné el monto.' : amount > gustosFree ? 'No te alcanza lo libre de gustos.' : ''
   const valid = !titleError && !categoryError && !amountError && !!spentOn
@@ -431,7 +428,7 @@ export function GustoSheet({
     setSaving(true)
     setServerError('')
     try {
-      const id = await createCategory({ householdId, ownerId: userId, name: draftName, icon: draftIcon })
+      const id = await createCategory({ householdId, name: draftName, icon: draftIcon })
       await onRefresh()
       setCategoryId(id)
       setDrafting(false)
@@ -499,8 +496,8 @@ export function GustoSheet({
       <p id={categoryErrorId} className="mb-2 mt-4 text-sm font-bold text-muted">
         Categoría
       </p>
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Categoría privada">
-        {privateCategories.map((category) => {
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Categoría">
+        {categories.map((category) => {
           const selected = categoryId === category.id
           return (
             <button

@@ -318,14 +318,11 @@ function MovementFormBody({
   const periodSettled = sharedMonthSettled(true, period, settledMonths)
   const gastoBlocked = tipo === 'gasto' && periodSettled
 
-  const visibleCategories = categories.filter((category) =>
-    shared || tipo !== 'gasto' ? category.ownerId === null : category.ownerId === meId || category.ownerId === null,
-  )
   const suggested = useMemo(() => {
-    const byName = new Map(visibleCategories.map((category) => [category.name.toLowerCase(), category]))
+    const byName = new Map(categories.map((category) => [category.name.toLowerCase(), category]))
     return SUGGESTED.map((name) => byName.get(name.toLowerCase())).filter(Boolean) as Category[]
-  }, [visibleCategories])
-  const categoryList = showAllCategories ? visibleCategories : suggested.slice(0, 6)
+  }, [categories])
+  const categoryList = showAllCategories ? categories : suggested.slice(0, 6)
   const latestSalary = salaryHistory[0] ?? null
 
   useEffect(() => {
@@ -500,7 +497,6 @@ function MovementFormBody({
     try {
       const id = await createCategory({
         householdId,
-        ownerId: shared ? null : meId,
         name: draftName,
         icon: draftIcon,
       })
@@ -699,8 +695,8 @@ function MovementFormBody({
                     <AppIcon name={category.icon} /> {category.name}
                   </Chip>
                 ))}
-                {!showAllCategories && visibleCategories.length > suggested.length ? (
-                  <Chip onClick={() => setShowAllCategories(true)}>Ver todas ({visibleCategories.length})</Chip>
+                {!showAllCategories && categories.length > suggested.length ? (
+                  <Chip onClick={() => setShowAllCategories(true)}>Ver todas ({categories.length})</Chip>
                 ) : null}
                 <Chip active={drafting} onClick={() => setDrafting((current) => !current)}>
                   <AppIcon name="plus" /> Nueva

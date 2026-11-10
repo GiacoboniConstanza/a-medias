@@ -16,10 +16,10 @@ where id in (
   'b2222222-2222-4222-8222-222222222222'
 );
 
-insert into public.categories (id, household_id, owner_id, name, emoji, icon) values
-  ('d4444444-4444-4444-8444-444444444444', 'c3333333-3333-4333-8333-333333333333', null, 'Súper', '🛒', 'cart-shopping'),
-  ('d5555555-5555-4555-8555-555555555555', 'c3333333-3333-4333-8333-333333333333', 'a1111111-1111-4111-8111-111111111111', 'Café', '☕', 'mug-hot'),
-  ('d6666666-6666-4666-8666-666666666666', 'c3333333-3333-4333-8333-333333333333', 'b2222222-2222-4222-8222-222222222222', 'Secreto', '🔒', 'lock');
+insert into public.categories (id, household_id, name, emoji, icon) values
+  ('d4444444-4444-4444-8444-444444444444', 'c3333333-3333-4333-8333-333333333333', 'Súper', '🛒', 'cart-shopping'),
+  ('d5555555-5555-4555-8555-555555555555', 'c3333333-3333-4333-8333-333333333333', 'Café', '☕', 'mug-hot'),
+  ('d6666666-6666-4666-8666-666666666666', 'c3333333-3333-4333-8333-333333333333', 'Secreto', '🔒', 'lock');
 
 insert into public.base_salaries (user_id, amount, effective_from) values
   ('a1111111-1111-4111-8111-111111111111', 100000, '2024-06-01'),
@@ -187,7 +187,7 @@ select is(
     where cat ->> 'name' = 'Secreto'
   ),
   0::bigint,
-  'no aparece la categoría privada de la otra'
+  'no aparece la categoría del gasto privado de la otra'
 );
 
 select is(position('Guardia ajena' in (select payload::text from balance_a)), 0, 'no aparece el extra de la otra');
@@ -260,7 +260,7 @@ select is(
 select is(
   position('Café' in private.year_balance(2026, date '2026-10-20')::text),
   0,
-  'la otra no ve mi categoría privada'
+  'la otra no ve la categoría de mi gasto privado'
 );
 
 select ok(

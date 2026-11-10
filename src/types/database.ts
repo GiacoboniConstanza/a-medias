@@ -188,7 +188,6 @@ export type Database = {
         {
           id: string
           household_id: string
-          owner_id: string | null
           name: string
           emoji: string
           icon: string
@@ -197,7 +196,6 @@ export type Database = {
         {
           id?: string
           household_id: string
-          owner_id: string | null
           name: string
           emoji: string
           icon: string

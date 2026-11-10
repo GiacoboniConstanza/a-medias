@@ -164,8 +164,7 @@ function ExpenseForm({
   const [confirming, setConfirming] = useState<'delete' | 'discard' | null>(null)
   const [keyboard, setKeyboard] = useState(0)
 
-  const visibleCategories = categories.filter((category) => (shared ? category.ownerId === null : category.ownerId === meId))
-  const suggestedId = suggestCategoryId(prefill?.title ?? null, visibleCategories)
+  const suggestedId = suggestCategoryId(prefill?.title ?? null, categories)
   const amount = normalizeMoney(amountFromDigits(digits))
   const missingName = title.trim() === ''
   const missingCategory = categoryId === ''
@@ -299,7 +298,6 @@ function ExpenseForm({
     try {
       const id = await createCategory({
         householdId,
-        ownerId: shared ? null : meId,
         name: draftName,
         icon: draftIcon,
       })
@@ -412,10 +410,7 @@ function ExpenseForm({
             disabled={privacyLocked}
             aria-pressed={shared}
             className={segmentClass(shared, 'primary')}
-            onClick={() => {
-              setShared(true)
-              setCategoryId((current) => (categories.some((category) => category.id === current && category.ownerId === null) ? current : ''))
-            }}
+            onClick={() => setShared(true)}
           >
             <AppIcon name="user-group" /> Compartido
           </button>
@@ -427,7 +422,6 @@ function ExpenseForm({
             onClick={() => {
               setShared(false)
               setPayerId(meId)
-              setCategoryId((current) => (categories.some((category) => category.id === current && category.ownerId === meId) ? current : ''))
             }}
           >
             <AppIcon name="lock" /> Privado
@@ -466,7 +460,7 @@ function ExpenseForm({
       <div className="mb-3">
         <p className="mb-1 text-sm font-bold text-muted">Categoría</p>
         <div className="flex flex-wrap gap-2">
-          {visibleCategories.map((category) => (
+          {categories.map((category) => (
             <Chip
               key={category.id}
               active={categoryId === category.id}
