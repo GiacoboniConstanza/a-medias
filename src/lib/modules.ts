@@ -11,10 +11,12 @@ export type NavItem = {
   label: string
   icon: string
   end?: boolean
+  /** Cargar: botón mostaza fijo, nunca queda activo. */
+  action?: 'cargar'
 }
 
 export const MODULE_META: Record<ModuleId, { label: string; detail: string; icon: string; to: string; tone: string; ink: string }> = {
-  finanzas: { label: 'Finanzas', detail: 'Gastos y ahorros', icon: 'wallet', to: '/finanzas', tone: 'bg-mostaza', ink: 'text-tinta' },
+  finanzas: { label: 'Finanzas', detail: 'Movimientos y ahorros', icon: 'wallet', to: '/finanzas', tone: 'bg-mostaza', ink: 'text-tinta' },
   habitos: { label: 'Hábitos', detail: 'Lo que querés hacer cada día', icon: 'seedling', to: '/habitos', tone: 'bg-salvia', ink: 'text-tinta' },
   comidas: { label: 'Comidas', detail: 'Proteína y lo que comés', icon: 'bowl-food', to: '/comidas', tone: 'bg-rosa', ink: 'text-tinta' },
   memos: { label: 'Memos', detail: 'Notas y cosas para acordarte', icon: 'note-sticky', to: '/memos', tone: 'bg-azul', ink: 'text-tinta' },
@@ -22,9 +24,7 @@ export const MODULE_META: Record<ModuleId, { label: string; detail: string; icon
 
 export const FINANCE_ROUTES = {
   resumen: '/finanzas',
-  gastos: '/se-me-fue',
-  compartidos: '/compartidos',
-  prestamos: '/prestamos',
+  movimientos: '/movimientos',
   ahorros: '/ahorros',
   avisos: '/recordatorios',
   anio: '/mi-anio',
@@ -37,10 +37,9 @@ export const FINANCE_ROUTES = {
 /** Pestañas de Finanzas. Sin hub, Resumen apunta a `/` (navFor). */
 export const FINANCE_TABS: readonly NavItem[] = [
   { to: FINANCE_ROUTES.resumen, label: 'Resumen', icon: 'wallet', end: true },
-  { to: FINANCE_ROUTES.gastos, label: 'Gastos', icon: 'receipt' },
-  { to: FINANCE_ROUTES.compartidos, label: 'Compartidos', icon: 'user-group' },
-  { to: FINANCE_ROUTES.prestamos, label: 'Transferencias', icon: 'hand-holding-dollar' },
+  { to: FINANCE_ROUTES.movimientos, label: 'Movimientos', icon: 'list' },
   { to: FINANCE_ROUTES.ahorros, label: 'Ahorros', icon: 'piggy-bank' },
+  { to: FINANCE_ROUTES.cargar, label: 'Cargar', icon: 'plus', action: 'cargar' },
 ]
 
 const RESUMEN_ALIASES = new Set<string>([FINANCE_ROUTES.avisos, FINANCE_ROUTES.anio, FINANCE_ROUTES.sueldo, FINANCE_ROUTES.compartir])
@@ -84,7 +83,7 @@ function financeMenu(hub: boolean): NavItem[] {
   return FINANCE_TABS.map((item, index) => (index === 0 ? { ...item, to: hub ? item.to : '/' } : { ...item }))
 }
 
-/** Menú de Finanzas en Finanzas y el general en el resto. `from` es la pestaña que abrió Cargar. */
+/** Menú de Finanzas en Finanzas y el general en el resto. */
 export function navFor(pathname: string, enabled: readonly ModuleId[], from?: string | null): NavMatch {
   const hub = isHubHome(enabled)
   const tabs = financeMenu(hub)
@@ -93,18 +92,25 @@ export function navFor(pathname: string, enabled: readonly ModuleId[], from?: st
   if (pathname === FINANCE_ROUTES.modulos) return { items: general, activeTo: '/' }
   const onFinance =
     pathname === FINANCE_ROUTES.resumen ||
-    tabs.some((item) => item.to === pathname) ||
+    tabs.some((item) => item.to === pathname && item.action !== 'cargar') ||
     RESUMEN_ALIASES.has(pathname) ||
-    pathname === FINANCE_ROUTES.cargar
+    pathname === FINANCE_ROUTES.cargar ||
+    pathname === '/se-me-fue' ||
+    pathname === '/compartidos' ||
+    pathname === '/prestamos'
   if (!onFinance) {
     const active = general.find((item) => item.to === pathname)?.to ?? '/'
     return { items: general, activeTo: active }
   }
   if (pathname === FINANCE_ROUTES.cargar) {
-    const origin = from && tabs.some((item) => item.to === from) ? from : resumen
+    const origin =
+      from && tabs.some((item) => item.to === from && item.action !== 'cargar') ? from : resumen
     return { items: tabs, activeTo: origin }
   }
-  if (RESUMEN_ALIASES.has(pathname)) return { items: tabs, activeTo: resumen }
+  if (RESUMEN_ALIASES.has(pathname) || pathname === '/compartidos') return { items: tabs, activeTo: resumen }
+  if (pathname === '/se-me-fue' || pathname === '/prestamos') {
+    return { items: tabs, activeTo: FINANCE_ROUTES.movimientos }
+  }
   return { items: tabs, activeTo: tabs.find((item) => item.to === pathname)?.to ?? resumen }
 }
 

@@ -15,7 +15,23 @@ export function BottomNav() {
       style={{ paddingInline: 'max(16px, calc((100vw - var(--ancho-columna)) / 2 + 16px))' }}
     >
       {items.map((link) => {
-        const active = link.to === activeTo
+        const active = link.action === 'cargar' ? false : link.to === activeTo
+        if (link.action === 'cargar') {
+          return (
+            <Link
+              key={link.to}
+              to={link.to}
+              state={{ from: location.pathname }}
+              aria-label={link.label}
+              className="flex min-h-14 min-w-12 shrink-0 flex-col items-center justify-center gap-0.5 whitespace-nowrap px-1 text-sm font-semibold leading-none text-tinta"
+            >
+              <span className="grid h-12 w-12 place-items-center rounded-full border-[1.5px] border-tinta bg-mostaza text-tinta">
+                <AppIcon name="plus" className="text-lg" />
+              </span>
+              <span className="max-[359px]:sr-only font-medium">{link.label}</span>
+            </Link>
+          )
+        }
         return (
           <Link
             key={link.to}
