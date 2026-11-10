@@ -5,6 +5,18 @@ import { supabase } from './supabase.ts'
 export type LoanStatus = 'pendiente' | 'parcial' | 'saldado'
 export type LoanFilter = 'all' | 'open' | 'settled'
 
+/** Transferencia entre las dos. from = quien manda, to = quien recibe. */
+export type Transfer = {
+  id: string
+  fromId: string
+  toId: string
+  amount: number
+  transferredOn: string
+  period: string
+  notes: string | null
+}
+
+/** Forma legada usada por la pantalla de préstamos hasta que se borre. */
 export type Loan = {
   id: string
   lenderId: string
@@ -37,7 +49,7 @@ export type LoanSide = {
   status: LoanStatus
 }
 
-/** Positivo: la otra persona te debe. Negativo: vos le debés. */
+/** Positivo: la otra persona te debe. Negativo: vos le debés. Tras P2 no hay pendiente. */
 export function signedLoanBalance(meId: string, loans: readonly LoanSide[]): number {
   let signed = 0
   for (const loan of loans) {
@@ -138,6 +150,13 @@ export type PeriodLoan = {
   period: string
 }
 
+export type PeriodTransfer = {
+  fromId: string
+  toId: string
+  amount: number
+  period: string
+}
+
 export type PeriodRepayment = {
   lenderId: string
   borrowerId: string
@@ -153,33 +172,47 @@ export type LoanMonthEffect = {
   net: number
 }
 
-/** Efecto del mes: prestar resta, recibir suma; devolver hace lo inverso en el período de la devolución. */
+function asTransfers(
+  loans: readonly PeriodLoan[] | readonly PeriodTransfer[],
+  repayments: readonly PeriodRepayment[] = [],
+): PeriodTransfer[] {
+  const fromLoans: PeriodTransfer[] = loans.map((row) => {
+    if ('fromId' in row) return { fromId: row.fromId, toId: row.toId, amount: row.amount, period: row.period }
+    return { fromId: row.lenderId, toId: row.borrowerId, amount: row.amount, period: row.period }
+  })
+  // Devoluciones legadas en tests: quien debía (borrower) le pasa a quien prestó (lender).
+  const fromRepayments: PeriodTransfer[] = repayments.map((row) => ({
+    fromId: row.borrowerId,
+    toId: row.lenderId,
+    amount: row.amount,
+    period: row.period,
+  }))
+  return [...fromLoans, ...fromRepayments]
+}
+
+/**
+ * Efecto del mes en Te quedan (P1): mandar resta, recibir suma.
+ * Acepta transferencias o la forma legada préstamo+devolución (la devolución es la transferencia al revés).
+ */
 export function loanMonthEffect(
   meId: string,
   period: string,
-  loans: readonly PeriodLoan[],
-  repayments: readonly PeriodRepayment[],
+  loans: readonly PeriodLoan[] | readonly PeriodTransfer[] = [],
+  repayments: readonly PeriodRepayment[] = [],
 ): LoanMonthEffect {
   let given = 0
-  let collected = 0
   let received = 0
-  let paid = 0
-  for (const loan of loans) {
-    if (loan.period !== period) continue
-    if (loan.lenderId === meId) given += loan.amount
-    else if (loan.borrowerId === meId) received += loan.amount
-  }
-  for (const repayment of repayments) {
-    if (repayment.period !== period) continue
-    if (repayment.lenderId === meId) collected += repayment.amount
-    else if (repayment.borrowerId === meId) paid += repayment.amount
+  for (const transfer of asTransfers(loans, repayments)) {
+    if (transfer.period !== period) continue
+    if (transfer.fromId === meId) given += transfer.amount
+    else if (transfer.toId === meId) received += transfer.amount
   }
   return {
     given: normalizeMoney(given),
-    collected: normalizeMoney(collected),
+    collected: 0,
     received: normalizeMoney(received),
-    paid: normalizeMoney(paid),
-    net: normalizeMoney(-given + collected + received - paid),
+    paid: 0,
+    net: normalizeMoney(-given + received),
   }
 }
 
@@ -198,7 +231,7 @@ export function formatSignedMoney(value: number): string {
   return formatMoney(amount)
 }
 
-/** Plata que entró y plata que salió en el mes. Una devolución es el mismo movimiento, al revés. */
+/** Plata que entró y plata que salió en el mes. */
 export function loanEffectLines(partnerName: string, effect: LoanMonthEffect): { label: string; amount: number }[] {
   return [
     { label: `${partnerName} te pasó`, amount: normalizeMoney(effect.received + effect.collected) },
@@ -206,105 +239,104 @@ export function loanEffectLines(partnerName: string, effect: LoanMonthEffect): {
   ]
 }
 
-function asStatus(value: string): LoanStatus {
-  if (value === 'parcial' || value === 'saldado' || value === 'pendiente') return value
-  return 'pendiente'
-}
-
-function mapLoan(row: {
+function mapTransfer(row: {
   id: string
-  lender_id: string
-  borrower_id: string
+  from_id: string
+  to_id: string
   amount: number | string
-  repaid: number | string
-  pending: number | string
-  status: string
-  lent_on: string
+  transferred_on: string
   period: string
   notes: string | null
-  lock_month?: string | null
-}): Loan {
+}): Transfer {
   return {
     id: row.id,
-    lenderId: row.lender_id,
-    borrowerId: row.borrower_id,
+    fromId: row.from_id,
+    toId: row.to_id,
     amount: money(row.amount),
-    repaid: money(row.repaid),
-    pending: money(row.pending),
-    status: asStatus(row.status),
-    lentOn: row.lent_on,
+    transferredOn: row.transferred_on,
     period: row.period,
     notes: row.notes,
-    lockMonth: row.lock_month ? String(row.lock_month).slice(0, 10) : null,
   }
 }
 
+/** Carga transferencias para Te quedan. repayments queda vacío: las devoluciones ya migraron. */
 export async function loadLoanMovements(): Promise<{ loans: PeriodLoan[]; repayments: PeriodRepayment[] }> {
-  const [loansResult, repaymentsResult] = await Promise.all([
-    supabase.from('loans').select('id, lender_id, borrower_id, amount, period'),
-    supabase.from('loan_repayments').select('loan_id, amount, period'),
-  ])
-  if (loansResult.error) throw new Error(loansResult.error.message)
-  if (repaymentsResult.error) throw new Error(repaymentsResult.error.message)
-  const parties = new Map((loansResult.data ?? []).map((loan) => [loan.id, { lenderId: loan.lender_id, borrowerId: loan.borrower_id }]))
+  const { data, error } = await supabase.from('transfers').select('id, from_id, to_id, amount, period')
+  if (error) throw new Error(error.message)
   return {
-    loans: (loansResult.data ?? []).map((loan) => ({
-      lenderId: loan.lender_id,
-      borrowerId: loan.borrower_id,
-      amount: money(loan.amount),
-      period: loan.period,
+    loans: (data ?? []).map((row) => ({
+      lenderId: row.from_id,
+      borrowerId: row.to_id,
+      amount: money(row.amount),
+      period: row.period,
     })),
-    repayments: (repaymentsResult.data ?? []).flatMap((repayment) => {
-      const loan = parties.get(repayment.loan_id)
-      if (!loan) return []
-      return [{ ...loan, amount: money(repayment.amount), period: repayment.period }]
-    }),
+    repayments: [],
   }
 }
 
-export async function loadLoanBalances(): Promise<Loan[]> {
+export async function loadTransfers(): Promise<Transfer[]> {
   const { data, error } = await supabase
-    .from('loan_balances')
-    .select('id, lender_id, borrower_id, amount, repaid, pending, status, lent_on, period, notes, lock_month')
-    .order('lent_on', { ascending: false })
+    .from('transfers')
+    .select('id, from_id, to_id, amount, transferred_on, period, notes')
+    .order('transferred_on', { ascending: false })
   if (error) throw new Error(error.message)
-  return (data ?? []).map((row) => mapLoan(row))
+  return (data ?? []).map(mapTransfer)
 }
 
-export async function loadRepayments(loanId: string): Promise<LoanRepayment[]> {
-  const { data, error } = await supabase
-    .from('loan_repayments')
-    .select('id, loan_id, amount, paid_on, period, notes, created_by, settlement_id')
-    .eq('loan_id', loanId)
-    .order('paid_on', { ascending: true })
-  if (error) throw new Error(error.message)
-  return (data ?? []).map((row) => ({
+/** Compat: la lista vieja de préstamos muestra transferencias como saldadas. */
+export async function loadLoanBalances(): Promise<Loan[]> {
+  const rows = await loadTransfers()
+  return rows.map((row) => ({
     id: row.id,
-    loanId: row.loan_id,
-    amount: money(row.amount),
-    paidOn: row.paid_on,
+    lenderId: row.fromId,
+    borrowerId: row.toId,
+    amount: row.amount,
+    repaid: row.amount,
+    pending: 0,
+    status: 'saldado' as const,
+    lentOn: row.transferredOn,
     period: row.period,
     notes: row.notes,
-    createdBy: row.created_by,
-    settlementId: row.settlement_id,
+    lockMonth: null,
   }))
 }
 
-export async function loadSettlementRepayments(settlementId: string): Promise<{ loanId: string; lenderId: string; borrowerId: string; amount: number }[]> {
-  const [repayments, loans] = await Promise.all([
-    supabase.from('loan_repayments').select('loan_id, amount').eq('settlement_id', settlementId),
-    supabase.from('loans').select('id, lender_id, borrower_id'),
-  ])
-  if (repayments.error) throw new Error(repayments.error.message)
-  if (loans.error) throw new Error(loans.error.message)
-  const parties = new Map((loans.data ?? []).map((loan) => [loan.id, { lenderId: loan.lender_id, borrowerId: loan.borrower_id }]))
-  return (repayments.data ?? []).flatMap((row) => {
-    const loan = parties.get(row.loan_id)
-    if (!loan) return []
-    return [{ loanId: row.loan_id, ...loan, amount: money(row.amount) }]
-  })
+export async function loadRepayments(_loanId: string): Promise<LoanRepayment[]> {
+  return []
 }
 
+export async function loadSettlementRepayments(
+  _settlementId: string,
+): Promise<{ loanId: string; lenderId: string; borrowerId: string; amount: number }[]> {
+  return []
+}
+
+export async function saveTransfer(input: {
+  id?: string
+  fromId: string
+  toId: string
+  amount: number
+  transferredOn: string
+  period: string
+  notes: string | null
+}) {
+  const editable = {
+    amount: input.amount,
+    transferred_on: input.transferredOn,
+    period: input.period,
+    notes: input.notes,
+  }
+  const { error } = input.id
+    ? await supabase.from('transfers').update(editable).eq('id', input.id)
+    : await supabase.from('transfers').insert({
+        ...editable,
+        from_id: input.fromId,
+        to_id: input.toId,
+      })
+  if (error) throw new Error(error.message)
+}
+
+/** Compat con el editor viejo: quien presta manda la plata. */
 export async function saveLoan(input: {
   id?: string
   borrowerId: string
@@ -313,25 +345,23 @@ export async function saveLoan(input: {
   period: string
   notes: string | null
 }) {
-  const payload = {
-    borrower_id: input.borrowerId,
+  await saveTransfer({
+    id: input.id,
+    fromId: await currentUserId(),
+    toId: input.borrowerId,
     amount: input.amount,
-    lent_on: input.lentOn,
+    transferredOn: input.lentOn,
     period: input.period,
     notes: input.notes,
-  }
-  const { error } = input.id
-    ? await supabase.from('loans').update(payload).eq('id', input.id)
-    : await supabase.from('loans').insert({ ...payload, lender_id: (await currentUserId()) })
-  if (error) throw new Error(error.message)
+  })
 }
 
 export async function deleteLoan(id: string) {
-  const { error } = await supabase.from('loans').delete().eq('id', id)
+  const { error } = await supabase.from('transfers').delete().eq('id', id)
   if (error) throw new Error(error.message)
 }
 
-export async function saveRepayment(input: {
+export async function saveRepayment(_input: {
   id?: string
   loanId: string
   amount: number
@@ -339,25 +369,15 @@ export async function saveRepayment(input: {
   period: string
   notes: string | null
 }) {
-  const payload = {
-    amount: input.amount,
-    paid_on: input.paidOn,
-    period: input.period,
-    notes: input.notes,
-  }
-  const { error } = input.id
-    ? await supabase.from('loan_repayments').update(payload).eq('id', input.id)
-    : await supabase.from('loan_repayments').insert({ ...payload, loan_id: input.loanId })
-  if (error) throw new Error(error.message)
+  throw new Error('Las devoluciones pasaron a ser transferencias. Cargá una transferencia nueva.')
 }
 
-export async function deleteRepayment(id: string) {
-  const { error } = await supabase.from('loan_repayments').delete().eq('id', id)
-  if (error) throw new Error(error.message)
+export async function deleteRepayment(_id: string) {
+  throw new Error('Las devoluciones pasaron a ser transferencias.')
 }
 
 async function currentUserId(): Promise<string> {
   const { data, error } = await supabase.auth.getUser()
-  if (error || !data.user) throw new Error('Tenés que entrar para prestar.')
+  if (error || !data.user) throw new Error('Tenés que entrar para transferir.')
   return data.user.id
 }

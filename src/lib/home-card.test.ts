@@ -31,19 +31,17 @@ describe('tarjeta Te quedan', () => {
     expect(card.lines.map((row) => row.label)).not.toContain('Préstamos (neto)')
   })
 
-  it('suma lo que entra y resta lo que sale, en los dos sentidos y con devoluciones', () => {
-    const loans = [
-      { lenderId: coty, borrowerId: maru, amount: 300, period: '2026-11-01' },
-      { lenderId: maru, borrowerId: coty, amount: 40, period: '2026-11-01' },
+  it('suma lo que entra y resta lo que sale, en los dos sentidos', () => {
+    const transfers = [
+      { fromId: coty, toId: maru, amount: 300, period: '2026-11-01' },
+      { fromId: maru, toId: coty, amount: 40, period: '2026-11-01' },
+      { fromId: maru, toId: coty, amount: 100, period: '2026-11-01' },
+      { fromId: coty, toId: maru, amount: 20, period: '2026-11-01' },
     ]
-    const repayments = [
-      { lenderId: coty, borrowerId: maru, amount: 100, period: '2026-11-01' },
-      { lenderId: maru, borrowerId: coty, amount: 20, period: '2026-11-01' },
-    ]
-    const effect = loanMonthEffect(coty, '2026-11-01', loans, repayments)
+    const effect = loanMonthEffect(coty, '2026-11-01', transfers)
     const card = homeAccountingCard(pocket, effect, 'Maru')
 
-    expect(effect).toMatchObject({ given: 300, received: 40, collected: 100, paid: 20, net: -180 })
+    expect(effect).toMatchObject({ given: 320, received: 140, collected: 0, paid: 0, net: -180 })
     expect(card.lines.find((row) => row.label === 'Maru te pasó')?.amount).toBe(formatMoney(140))
     expect(card.lines.find((row) => row.label === 'Le pasaste a Maru')?.amount).toBe(formatMoney(320))
     expect(card.lines.map((row) => row.amount).slice(2)).toEqual(
@@ -54,11 +52,13 @@ describe('tarjeta Te quedan', () => {
     expect(card.lines.map((row) => row.label)).not.toContain('Préstamos (neto)')
   })
 
-  it('la devolución cuenta en su período y un mes sin movimientos queda en cero', () => {
-    const loans = [{ lenderId: coty, borrowerId: maru, amount: 200, period: '2026-11-01' }]
-    const repayments = [{ lenderId: coty, borrowerId: maru, amount: 80, period: '2026-12-01' }]
-    const december = loanMonthEffect(coty, '2026-12-01', loans, repayments)
-    const october = loanMonthEffect(coty, '2026-10-01', loans, repayments)
+  it('la transferencia cuenta en su período y un mes sin movimientos queda en cero', () => {
+    const transfers = [
+      { fromId: coty, toId: maru, amount: 200, period: '2026-11-01' },
+      { fromId: maru, toId: coty, amount: 80, period: '2026-12-01' },
+    ]
+    const december = loanMonthEffect(coty, '2026-12-01', transfers)
+    const october = loanMonthEffect(coty, '2026-10-01', transfers)
     const decemberCard = homeAccountingCard(pocket, december, 'Maru')
     const octoberCard = homeAccountingCard(pocket, october, 'Maru')
 

@@ -1,5 +1,5 @@
 begin;
-select plan(40);
+select plan(29);
 
 insert into auth.users (id, email, raw_user_meta_data)
 values
@@ -289,8 +289,9 @@ select is(
   'Mi año toma el compartido activo y no el último creado'
 );
 
+-- Transferencias (P9): se pueden cargar y editar aunque el mes esté saldado.
 select lives_ok(
-  $$insert into public.loans (id, lender_id, borrower_id, amount, lent_on, period)
+  $$insert into public.transfers (id, from_id, to_id, amount, transferred_on, period)
     values (
       'a9999999-9999-4999-8999-999999999999',
       'a1111111-1111-4111-8111-111111111111',
@@ -299,102 +300,20 @@ select lives_ok(
       '2026-09-02',
       '2026-09-01'
     )$$,
-  'se puede cargar un préstamo de un mes abierto'
+  'se puede cargar una transferencia'
 );
 
 reset role;
-select set_config('request.jwt.claim.sub', 'a2222222-2222-4222-8222-222222222222', true);
-select set_config(
-  'request.jwt.claims',
-  '{"sub":"a2222222-2222-4222-8222-222222222222","role":"authenticated"}',
-  true
-);
-set local role authenticated;
-
-select results_eq(
-  $$update public.loans
-    set notes = 'no'
-    where id = 'a9999999-9999-4999-8999-999999999999'
-    returning id$$,
-  $$select null::uuid where false$$,
-  'quien recibe no edita el préstamo'
-);
-
-reset role;
-select set_config('request.jwt.claim.sub', 'a1111111-1111-4111-8111-111111111111', true);
-select set_config(
-  'request.jwt.claims',
-  '{"sub":"a1111111-1111-4111-8111-111111111111","role":"authenticated"}',
-  true
-);
-set local role authenticated;
-
-select lives_ok(
-  $$select public.settle_shared_month(
-    '2026-09-01',
-    'a2222222-2222-4222-8222-222222222222',
-    'a1111111-1111-4111-8111-111111111111',
-    80,
-    0,
-    null,
-    '[{"loan_id":"a9999999-9999-4999-8999-999999999999","amount":80}]'::jsonb
-  )$$,
-  'saldar el mes sigue generando la devolución'
-);
-
-select lives_ok(
-  $$select public.undo_shared_month((
-    select id from public.settlements where month = '2026-09-01' and household_id = 'a3333333-3333-4333-8333-333333333333'
-  ))$$,
-  'deshacer el mes sigue borrando la devolución del saldo'
-);
-
-select lives_ok(
-  $$update public.loans
-    set notes = 'después de deshacer'
-    where id = 'a9999999-9999-4999-8999-999999999999'$$,
-  'después de deshacer el saldo se puede editar el préstamo'
-);
-
-select lives_ok(
-  $$insert into public.loans (id, lender_id, borrower_id, amount, lent_on, period)
-    values (
-      'a7777777-7777-4777-8777-777777777777',
-      'a1111111-1111-4111-8111-111111111111',
-      'a2222222-2222-4222-8222-222222222222',
-      500,
-      '2026-10-02',
-      '2026-10-01'
-    )$$,
-  'se carga el préstamo de octubre'
-);
-
-reset role;
-
 insert into public.settlements (id, household_id, month, debtor_id, creditor_id, amount, settled_by)
 values (
   'a8888888-8888-4888-8888-888888888888',
   'a3333333-3333-4333-8333-333333333333',
-  '2026-10-01',
+  '2026-09-01',
   'a2222222-2222-4222-8222-222222222222',
   'a1111111-1111-4111-8111-111111111111',
-  200,
+  50,
   'a1111111-1111-4111-8111-111111111111'
 );
-
-select set_config('amedias.settling', '1', true);
-insert into public.loan_repayments (id, loan_id, amount, paid_on, period, notes, created_by, settlement_id)
-values (
-  'a1212121-1212-4212-8212-121212121212',
-  'a7777777-7777-4777-8777-777777777777',
-  200,
-  '2026-10-31',
-  '2026-10-01',
-  'Saldado con el mes',
-  'a1111111-1111-4111-8111-111111111111',
-  'a8888888-8888-4888-8888-888888888888'
-);
-select set_config('amedias.settling', '', true);
 
 select set_config('request.jwt.claim.sub', 'a1111111-1111-4111-8111-111111111111', true);
 select set_config(
@@ -404,62 +323,23 @@ select set_config(
 );
 set local role authenticated;
 
-select throws_ok(
-  $$update public.loans set notes = 'no' where id = 'a7777777-7777-4777-8777-777777777777'$$,
-  'P0001',
-  null,
-  'no se edita un préstamo con una devolución de saldo'
-);
-
-select throws_ok(
-  $$delete from public.loans where id = 'a7777777-7777-4777-8777-777777777777'$$,
-  'P0001',
-  null,
-  'no se borra un préstamo de un mes saldado'
+select lives_ok(
+  $$update public.transfers
+    set notes = 'mes saldado'
+    where id = 'a9999999-9999-4999-8999-999999999999'$$,
+  'en un mes saldado se puede editar la transferencia'
 );
 
 select lives_ok(
-  $$insert into public.loan_repayments (loan_id, amount, paid_on, period)
+  $$insert into public.transfers (from_id, to_id, amount, transferred_on, period)
     values (
-      'a7777777-7777-4777-8777-777777777777',
-      50,
-      '2026-11-02',
-      '2026-11-01'
-    )$$,
-  'un préstamo de octubre saldado acepta una devolución de noviembre'
-);
-
-select throws_ok(
-  $$insert into public.loan_repayments (loan_id, amount, paid_on, period)
-    values (
-      'a7777777-7777-4777-8777-777777777777',
+      'a1111111-1111-4111-8111-111111111111',
+      'a2222222-2222-4222-8222-222222222222',
       10,
-      '2026-10-15',
-      '2026-10-01'
+      '2026-09-15',
+      '2026-09-01'
     )$$,
-  'P0001',
-  null,
-  'una devolución de octubre se rechaza'
-);
-
-reset role;
-
-select lives_ok(
-  $$delete from public.settlements where id = 'a8888888-8888-4888-8888-888888888888'$$,
-  'borrar un saldo pasa y se lleva su devolución'
-);
-
-select is(
-  (select count(*) from public.loan_repayments where id = 'a1212121-1212-4212-8212-121212121212'),
-  0::bigint,
-  'la devolución del saldo se fue con el saldo'
-);
-
-select lives_ok(
-  $$update public.loans
-    set notes = 'abierto de nuevo'
-    where id = 'a7777777-7777-4777-8777-777777777777'$$,
-  'después de borrar el saldo se puede editar el préstamo'
+  'en un mes saldado se puede cargar otra transferencia'
 );
 
 select * from finish();
