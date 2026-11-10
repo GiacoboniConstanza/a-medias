@@ -1,5 +1,5 @@
 begin;
-select plan(13);
+select plan(16);
 
 insert into auth.users (id, email, raw_user_meta_data)
 values
@@ -26,27 +26,55 @@ where id = '33333333-cccc-4333-8333-333333333333';
 insert into public.categories (id, household_id, name, emoji, icon, created_at) values
   ('c1111111-1111-4111-8111-111111111111', 'aaaaaaaa-0000-4000-8000-000000000001', 'Comida', '🍕', 'pizza-slice', timestamptz '2026-01-01'),
   ('c2222222-2222-4222-8222-222222222222', 'aaaaaaaa-0000-4000-8000-000000000001', 'Súper', '🛒', 'cart-shopping', timestamptz '2026-01-01'),
+  ('c5555555-5555-4555-8555-555555555555', 'aaaaaaaa-0000-4000-8000-000000000001', 'Gatos', '🐱', 'cat', timestamptz '2026-01-01'),
   ('c3333333-3333-4333-8333-333333333333', 'bbbbbbbb-0000-4000-8000-000000000002', 'Comida', '🍕', 'pizza-slice', timestamptz '2026-01-01');
 
--- Duplicado artificial para probar la fusión (mismo nombre, id más nuevo).
+-- Duplicados artificiales (como las privadas de Production) para probar la fusión.
+-- El repunte dispara expenses_validate / fixed_expenses_validate.
 drop index public.categories_household_name_idx;
 insert into public.categories (id, household_id, name, emoji, icon, created_at) values
-  ('c4444444-4444-4444-8444-444444444444', 'aaaaaaaa-0000-4000-8000-000000000001', 'comida', '🍕', 'pizza-slice', timestamptz '2026-02-01');
+  ('c4444444-4444-4444-8444-444444444444', 'aaaaaaaa-0000-4000-8000-000000000001', 'comida', '🍕', 'pizza-slice', timestamptz '2026-02-01'),
+  ('c6666666-6666-4666-8666-666666666666', 'aaaaaaaa-0000-4000-8000-000000000001', 'gatos', '🐱', 'cat', timestamptz '2026-02-01');
 
 insert into public.expenses (
   id, household_id, owner_id, payer_id, category_id, title, amount, spent_on, period, is_shared
-) values (
-  'e1111111-1111-4111-8111-111111111111',
-  'aaaaaaaa-0000-4000-8000-000000000001',
-  '11111111-aaaa-4111-8111-111111111111',
-  '11111111-aaaa-4111-8111-111111111111',
-  'c4444444-4444-4444-8444-444444444444',
-  'Almuerzo',
-  1000,
-  '2026-11-02',
-  '2026-11-01',
-  false
-);
+) values
+  (
+    'e1111111-1111-4111-8111-111111111111',
+    'aaaaaaaa-0000-4000-8000-000000000001',
+    '11111111-aaaa-4111-8111-111111111111',
+    '11111111-aaaa-4111-8111-111111111111',
+    'c4444444-4444-4444-8444-444444444444',
+    'Almuerzo',
+    1000,
+    '2026-11-02',
+    '2026-11-01',
+    false
+  ),
+  (
+    'e2222222-2222-4222-8222-222222222222',
+    'aaaaaaaa-0000-4000-8000-000000000001',
+    '22222222-bbbb-4222-8222-222222222222',
+    '22222222-bbbb-4222-8222-222222222222',
+    'c6666666-6666-4666-8666-666666666666',
+    'Comida gatos',
+    2500,
+    '2026-11-03',
+    '2026-11-01',
+    false
+  ),
+  (
+    'e3333333-3333-4333-8333-333333333333',
+    'aaaaaaaa-0000-4000-8000-000000000001',
+    '11111111-aaaa-4111-8111-111111111111',
+    '11111111-aaaa-4111-8111-111111111111',
+    'c1111111-1111-4111-8111-111111111111',
+    'Delivery compartido',
+    8000,
+    '2026-11-04',
+    '2026-11-01',
+    true
+  );
 
 insert into public.fixed_expenses (
   id, household_id, owner_id, category_id, title, emoji, icon, expected_amount, due_day, is_shared
@@ -63,14 +91,30 @@ insert into public.fixed_expenses (
   true
 );
 
-select private.merge_duplicate_categories();
+select lives_ok(
+  $$select private.merge_duplicate_categories()$$,
+  'la fusión repunta gastos y fijos sin que el trigger validador la rechace'
+);
+
 create unique index categories_household_name_idx
   on public.categories (household_id, lower(btrim(name)));
 
 select is(
   (select category_id from public.expenses where id = 'e1111111-1111-4111-8111-111111111111'),
   'c1111111-1111-4111-8111-111111111111'::uuid,
-  'la fusión repunta el gasto a la categoría conservada'
+  'el gasto privado de Coty pasa a la Comida conservada'
+);
+
+select is(
+  (select category_id from public.expenses where id = 'e2222222-2222-4222-8222-222222222222'),
+  'c5555555-5555-4555-8555-555555555555'::uuid,
+  'el gasto privado de Maru pasa a los Gatos conservados'
+);
+
+select is(
+  (select category_id from public.expenses where id = 'e3333333-3333-4333-8333-333333333333'),
+  'c1111111-1111-4111-8111-111111111111'::uuid,
+  'el compartido que ya apuntaba a la conservada no se mueve'
 );
 
 select is(
@@ -81,14 +125,17 @@ select is(
 
 select is(
   (select count(*) from public.categories where household_id = 'aaaaaaaa-0000-4000-8000-000000000001'),
-  2::bigint,
+  3::bigint,
   'no quedan categorías duplicadas en el hogar'
 );
 
 select is(
-  (select count(*) from public.categories where id = 'c4444444-4444-4444-8444-444444444444'),
+  (select count(*) from public.categories where id in (
+    'c4444444-4444-4444-8444-444444444444',
+    'c6666666-6666-4666-8666-666666666666'
+  )),
   0::bigint,
-  'la categoría duplicada se borró'
+  'las categorías duplicadas se borraron'
 );
 
 select set_config('request.jwt.claim.sub', '11111111-aaaa-4111-8111-111111111111', true);
@@ -101,7 +148,7 @@ set local role authenticated;
 
 select is(
   (select count(*) from public.categories),
-  2::bigint,
+  3::bigint,
   'Coty ve todas las categorías del hogar'
 );
 
@@ -114,7 +161,7 @@ select set_config(
 
 select is(
   (select count(*) from public.categories),
-  2::bigint,
+  3::bigint,
   'Maru ve las mismas categorías del hogar'
 );
 
