@@ -19,7 +19,6 @@ export type Category = {
   id: string
   name: string
   icon: string
-  ownerId: string | null
 }
 
 export type ExpenseItem = {
@@ -205,7 +204,7 @@ export async function loadFinance(householdId: string, userId: string, month: st
     supabase.from('savings_funds').select('id, name, icon, target_amount, target_date, archived_at').eq('user_id', userId),
     supabase.from('extra_allocations').select('extra_id, fund_id, amount').eq('user_id', userId),
     supabase.from('bag_movements').select('id, kind, fund_id, expense_id, amount, label, happened_on').eq('user_id', userId),
-    supabase.from('categories').select('id, name, icon, owner_id').eq('household_id', householdId),
+    supabase.from('categories').select('id, name, icon').eq('household_id', householdId),
     supabase
       .from('expenses')
       .select('id, title, amount, spent_on, period, is_shared, paid_from_bag, payer_id, owner_id, category_id, notes')
@@ -410,7 +409,6 @@ export async function loadFinance(householdId: string, userId: string, month: st
       id: category.id,
       name: category.name,
       icon: category.icon || DEFAULT_ICON,
-      ownerId: category.owner_id,
     })),
     monthExpenses: (monthExpenses.data ?? []).map(mapExpense),
     lastLoggedOn: lastExpense.data?.spent_on ?? null,
@@ -625,7 +623,6 @@ export async function previewSalarySplit(input: {
 
 export async function createCategory(input: {
   householdId: string
-  ownerId: string | null
   name: string
   icon: string
 }): Promise<string> {
@@ -633,14 +630,16 @@ export async function createCategory(input: {
     .from('categories')
     .insert({
       household_id: input.householdId,
-      owner_id: input.ownerId,
       name: input.name.trim(),
       icon: input.icon,
       emoji: input.icon,
     })
     .select('id')
     .single()
-  fail(error)
+  if (error) {
+    if (error.code === '23505') throw new Error('Esa categoría ya está en el hogar.')
+    throw new Error(error.message)
+  }
   return data.id
 }
 

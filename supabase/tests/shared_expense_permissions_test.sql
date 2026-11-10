@@ -24,11 +24,10 @@ set local role authenticated;
 
 select ok(public.create_household() is not null, 'la dueña crea el hogar');
 
-insert into public.categories (id, household_id, owner_id, name, emoji, icon)
+insert into public.categories (id, household_id, name, emoji, icon)
 select
   'c3c3c3c3-c3c3-4c3c-8c3c-c3c3c3c3c3c3',
   p.household_id,
-  p.id,
   'Café',
   '☕',
   'mug-hot'
@@ -50,7 +49,7 @@ select
   '2026-10-01',
   true
 from public.profiles as p
-join public.categories as c on c.household_id = p.household_id and c.owner_id is null and c.name = 'Súper'
+join public.categories as c on c.household_id = p.household_id and c.name = 'Súper'
 where p.id = 'a1a1a1a1-a1a1-4a1a-8a1a-a1a1a1a1a1a1';
 
 insert into public.expenses (
@@ -85,7 +84,7 @@ select
   '2026-11-01',
   true
 from public.profiles as p
-join public.categories as c on c.household_id = p.household_id and c.owner_id is null and c.name = 'Súper'
+join public.categories as c on c.household_id = p.household_id and c.name = 'Súper'
 where p.id = 'a1a1a1a1-a1a1-4a1a-8a1a-a1a1a1a1a1a1';
 
 reset role;
@@ -196,7 +195,7 @@ select throws_ok(
     )
     select p.household_id, p.id, p.id, c.id, 'Tarde', 10, '2026-10-20', '2026-10-01', true
     from public.profiles as p
-    join public.categories as c on c.household_id = p.household_id and c.owner_id is null and c.name = 'Súper'
+    join public.categories as c on c.household_id = p.household_id and c.name = 'Súper'
     where p.id = 'a1a1a1a1-a1a1-4a1a-8a1a-a1a1a1a1a1a1'$$,
   'P0001',
   'Ese mes ya está saldado. Deshacé el saldo en Compartidos para cambiar este gasto.',
@@ -221,7 +220,6 @@ select throws_ok(
           from public.categories as c
           join public.profiles as p on p.household_id = c.household_id
           where p.id = 'a1a1a1a1-a1a1-4a1a-8a1a-a1a1a1a1a1a1'
-            and c.owner_id is null
             and c.name = 'Súper'
         )
     where id = 'e5e5e5e5-e5e5-4e5e-8e5e-e5e5e5e5e5e5'$$,

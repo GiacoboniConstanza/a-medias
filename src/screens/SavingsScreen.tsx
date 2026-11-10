@@ -422,7 +422,6 @@ export function SavingsScreen() {
         open={gustoOpen}
         categories={data.categories}
         householdId={profile.householdId}
-        userId={userId}
         gustosFree={data.gustosFree}
         onClose={() => setGustoOpen(false)}
         onSaved={savedNotice}

@@ -141,11 +141,10 @@ select lives_ok(
 );
 
 -- Título de gasto opcional (P4).
-insert into public.categories (id, household_id, owner_id, name, emoji, icon)
+insert into public.categories (id, household_id, name, emoji, icon)
 values (
   'c7c7c7c7-c7c7-47c7-87c7-c7c7c7c7c7c7',
   'c0c0c0c0-c0c0-40c0-80c0-c0c0c0c0c0c0',
-  null,
   'Súper',
   'cart-shopping',
   'cart-shopping'

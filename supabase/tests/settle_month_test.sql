@@ -16,11 +16,10 @@ where id in (
   'a2a2a2a2-a2a2-42a2-82a2-a2a2a2a2a2a2'
 );
 
-insert into public.categories (id, household_id, owner_id, name, emoji, icon)
+insert into public.categories (id, household_id, name, emoji, icon)
 values (
   'a9a9a9a9-a9a9-49a9-89a9-a9a9a9a9a9a9',
   'a0a0a0a0-a0a0-40a0-80a0-a0a0a0a0a0a0',
-  null,
   'Súper',
   'cart-shopping',
   'cart-shopping'

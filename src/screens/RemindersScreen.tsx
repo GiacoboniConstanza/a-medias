@@ -191,10 +191,9 @@ export function RemindersScreen() {
     const fixed = data?.fixed.find((item) => item.id === id)
     if (!fixed || !profile?.householdId || !data) return
     const category =
-      data.categories.find((item) => item.id === fixed.categoryId) ??
-      data.categories.find((item) => (fixed.isShared ? item.ownerId === null : item.ownerId === profile.id))
+      data.categories.find((item) => item.id === fixed.categoryId) ?? data.categories[0] ?? null
     if (!category) {
-      const text = fixed.isShared ? 'Falta una categoría compartida.' : 'Creá una categoría privada en Cargar gasto.'
+      const text = 'Falta una categoría del hogar.'
       if (liveEditing) setSheetError(text)
       else setMessage(text)
       return
@@ -355,7 +354,7 @@ export function RemindersScreen() {
   const ask = Boolean(prefs && shouldAskToday(now, shownPrefs, { logged: loggedToday, clear: clearToday }))
   const streak = loggingStreak(loggedDays, today)
 
-  const categories = data.categories.filter((category) => category.ownerId === null || category.ownerId === profile.id)
+  const categories = data.categories
   const dues = filterReminders(
     data.fixed.filter((item) => item.applies && !item.pausedAt),
     { scope, categoryIds, paid: paidFilter },
