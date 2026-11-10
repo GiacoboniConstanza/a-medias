@@ -1,4 +1,3 @@
-export type ViewMode = 'friendly' | 'accounting'
 export type ContributionMode = 'free' | 'percentage'
 export type AppModule = 'finanzas' | 'habitos' | 'comidas' | 'memos'
 
@@ -22,17 +21,15 @@ export type Database = {
           id: string
           household_id: string | null
           display_name: string
-          view_mode: ViewMode
           created_at: string
         },
         {
           id: string
           household_id?: string | null
           display_name: string
-          view_mode?: ViewMode
           created_at?: string
         },
-        { household_id?: string | null; display_name?: string; view_mode?: ViewMode }
+        { household_id?: string | null; display_name?: string }
       >
       base_salaries: Table<
         {
