@@ -24,7 +24,7 @@ import { formatMoney, moneyDraftFromAmount, normalizeMoney } from '../lib/format
 import { homeAccountingCard } from '../lib/home-card.ts'
 import { DEFAULT_ICON } from '../lib/icons.ts'
 import { loanMonthEffect, loadLoanMovements, saveTransfer, sharedSignedBalance } from '../lib/loans.ts'
-import { movementTextFields } from '../lib/movement-row.ts'
+import { movementTextFields, movementTypeIsLocked, showSharedPayerPicker } from '../lib/movement-row.ts'
 import { catamarcaToday, isAfterDay, monthKey, monthName, monthTitle, shiftMonth, shortDate } from '../lib/month.ts'
 import { periodFollowsDate, periodFromDate, sharedMonthSettled } from '../lib/period.ts'
 import { debtSentence } from '../lib/split.ts'
@@ -170,7 +170,8 @@ export function MovementForm({
               tall
               onClick={() => {
                 void onDone?.()
-                navigate(fromPath || '/')
+                if (onClose) onClose()
+                else navigate(fromPath || '/')
               }}
             >
               Listo
@@ -351,7 +352,7 @@ function MovementFormBody({
   const canSave = disabledReason === null && !futureDate
 
   function chooseTipo(next: MovementType) {
-    if (editing) return
+    if (movementTypeIsLocked(editing)) return
     if (next === 'transferencia' && !partnerIdValue) {
       setTipo(next)
       setError('Para cargar transferencias, primero sumá a tu compañera.')
@@ -554,7 +555,7 @@ function MovementFormBody({
             ] as const
           ).map((option) => {
             const selected = tipo === option.id
-            const locked = editing && tipo !== option.id
+            const locked = movementTypeIsLocked(editing) && tipo !== option.id
             const transferOff = option.id === 'transferencia' && !partnerIdValue && !editing
             return (
               <button
@@ -562,6 +563,7 @@ function MovementFormBody({
                 type="button"
                 role="radio"
                 aria-checked={selected}
+                disabled={locked || transferOff || undefined}
                 aria-disabled={locked || transferOff || undefined}
                 className={`relative flex h-16 flex-col items-center justify-center rounded-2xl text-sm ${
                   selected
@@ -655,7 +657,7 @@ function MovementFormBody({
                 </span>
               </button>
             ) : null}
-            {partnerIdValue && shared ? (
+            {showSharedPayerPicker({ tipo, shared, hasPartner: Boolean(partnerIdValue) }) ? (
               <div>
                 <p id="quien-pago" className="mb-1 text-sm font-semibold text-gris">
                   ¿Quién pagó?

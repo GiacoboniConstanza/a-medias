@@ -2,6 +2,20 @@ import { clampNotes } from './format.ts'
 
 /** Título y bajada de una fila de Movimientos (nombre > categoría > tipo). */
 
+/** En edición el tipo queda fijo: hay que borrar y cargar de nuevo para cambiarlo. */
+export function movementTypeIsLocked(editing: boolean): boolean {
+  return editing
+}
+
+/** "Quién pagó" solo aplica a gastos compartidos con compañera en el hogar. */
+export function showSharedPayerPicker(input: {
+  tipo: 'gasto' | 'ingreso' | 'transferencia' | null
+  shared: boolean
+  hasPartner: boolean
+}): boolean {
+  return input.tipo === 'gasto' && input.shared && input.hasPartner
+}
+
 /** Nombre y observación del formulario: van a columnas distintas. */
 export function movementTextFields(name: string, observation: string): {
   title: string | null

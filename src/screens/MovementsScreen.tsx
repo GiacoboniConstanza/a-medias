@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { Plantita } from '../components/Adornos.tsx'
-import { ExpenseEditor } from '../components/ExpenseEditor.tsx'
+import { MovementForm } from '../components/MovementForm.tsx'
 import { FilterSheet, type ExpenseFilters, type WhoFilter } from '../components/FilterSheet.tsx'
 import { MonthSwitcher } from '../components/MonthSwitcher.tsx'
 import { NotificationBell } from '../components/NotificationBell.tsx'
@@ -345,15 +345,16 @@ export function MovementsScreen() {
       />
 
       {editing ? (
-        <ExpenseEditor
-          presentation="sheet"
-          expense={editing}
-          onClose={() => setEditing(null)}
-          onDone={async () => {
-            setEditing(null)
-            await refresh()
-          }}
-        />
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-crema">
+          <MovementForm
+            expense={editing}
+            onClose={() => setEditing(null)}
+            onDone={async () => {
+              setEditing(null)
+              await refresh()
+            }}
+          />
+        </div>
       ) : null}
     </>
   )
