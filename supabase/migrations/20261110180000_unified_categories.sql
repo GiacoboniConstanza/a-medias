@@ -71,9 +71,12 @@ using ranked
 where category.id = ranked.id
   and ranked.id <> ranked.keep_id;
 
--- 2. Índices viejos y columna owner_id.
+-- 2. Quitar dependencias de owner_id (índices + policies) y la columna.
 drop index if exists public.categories_shared_name_idx;
 drop index if exists public.categories_private_name_idx;
+
+drop policy if exists categories_select on public.categories;
+drop policy if exists categories_insert on public.categories;
 
 alter table public.categories
   drop column if exists owner_id;
@@ -141,10 +144,7 @@ revoke all on function private.merge_duplicate_categories() from public, anon, a
 create unique index categories_household_name_idx
   on public.categories (household_id, lower(btrim(name)));
 
--- 3. RLS: solo por hogar.
-drop policy if exists categories_select on public.categories;
-drop policy if exists categories_insert on public.categories;
-
+-- 3. RLS: solo por hogar (recreada sin owner_id).
 create policy categories_select on public.categories
 for select to authenticated
 using (household_id = (select private.my_household_id()));
