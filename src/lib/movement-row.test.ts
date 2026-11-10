@@ -1,5 +1,26 @@
 import { describe, expect, it } from 'vitest'
-import { movementExpenseSubtitle, movementExpenseTitle, movementTextFields } from './movement-row.ts'
+import {
+  movementExpenseSubtitle,
+  movementExpenseTitle,
+  movementTextFields,
+  movementTypeIsLocked,
+  showSharedPayerPicker,
+} from './movement-row.ts'
+
+describe('edición con el formulario único', () => {
+  it('bloquea el cambio de tipo al editar', () => {
+    expect(movementTypeIsLocked(true)).toBe(true)
+    expect(movementTypeIsLocked(false)).toBe(false)
+  })
+
+  it('muestra quién pagó solo en gastos compartidos', () => {
+    expect(showSharedPayerPicker({ tipo: 'gasto', shared: true, hasPartner: true })).toBe(true)
+    expect(showSharedPayerPicker({ tipo: 'gasto', shared: false, hasPartner: true })).toBe(false)
+    expect(showSharedPayerPicker({ tipo: 'gasto', shared: true, hasPartner: false })).toBe(false)
+    expect(showSharedPayerPicker({ tipo: 'ingreso', shared: true, hasPartner: true })).toBe(false)
+    expect(showSharedPayerPicker({ tipo: 'transferencia', shared: true, hasPartner: true })).toBe(false)
+  })
+})
 
 describe('nombre y observación del formulario', () => {
   it('guarda el nombre en title y la observación en notes, sin copiarse', () => {

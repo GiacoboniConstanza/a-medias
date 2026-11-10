@@ -6,7 +6,7 @@ import { SectionHeader } from '../components/SectionHeader.tsx'
 import { DonutBreakdown } from '../components/DonutBreakdown.tsx'
 import { IncomeChart } from '../components/IncomeChart.tsx'
 import { Sheet } from '../components/Sheet.tsx'
-import { ExpenseEditor } from '../components/ExpenseEditor.tsx'
+import { MovementForm } from '../components/MovementForm.tsx'
 import { ExpenseLine } from '../components/ExpenseLine.tsx'
 import { Button, Card, Toast } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
@@ -123,16 +123,17 @@ export function YearScreen() {
       </Sheet>
       <Toast onDone={() => setToast('')}>{toast}</Toast>
       {editing ? (
-        <ExpenseEditor
-          presentation="sheet"
-          expense={editing}
-          onClose={() => setEditing(null)}
-          onDone={(notice) => {
-            setEditing(null)
-            setToast(notice)
-            setReload((current) => current + 1)
-          }}
-        />
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-crema">
+          <MovementForm
+            expense={editing}
+            onClose={() => setEditing(null)}
+            onDone={() => {
+              setEditing(null)
+              setToast('Cambios guardados')
+              setReload((current) => current + 1)
+            }}
+          />
+        </div>
       ) : null}
     </>
   )
