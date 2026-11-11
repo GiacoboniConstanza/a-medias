@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { monthIsSettled } from './loans.ts'
+import { monthIsSettled } from './transfers.ts'
 
 const settled = ['2026-10-01']
 

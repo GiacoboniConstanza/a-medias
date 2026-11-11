@@ -1,5 +1,5 @@
 begin;
-select plan(18);
+select plan(21);
 
 insert into auth.users (id, email, raw_user_meta_data)
 values
@@ -247,6 +247,46 @@ select throws_ok(
   'P0001',
   'No se puede borrar un ahorro. Archiválo.',
   'no se puede borrar un ahorro'
+);
+
+-- Aporte + retiro: borrar el aporte dejaría el saldo en negativo.
+select lives_ok(
+  $$insert into public.saving_moves (
+      id, saving_id, household_id, user_id, kind, amount, spent_on, period
+    ) values (
+      'cafe4002-cafe-41ca-81fe-000000000001',
+      'cafe1001-cafe-41ca-81fe-000000000001',
+      'cafe0000-cafe-40ca-80fe-000000000001',
+      'cafe0001-cafe-41ca-81fe-000000000001',
+      'aporte',
+      40,
+      '2026-11-12',
+      '2026-11-01'
+    )$$,
+  'Coty aporta al propio'
+);
+
+select lives_ok(
+  $$insert into public.saving_moves (
+      id, saving_id, household_id, user_id, kind, amount, spent_on, period
+    ) values (
+      'cafe4003-cafe-41ca-81fe-000000000001',
+      'cafe1001-cafe-41ca-81fe-000000000001',
+      'cafe0000-cafe-40ca-80fe-000000000001',
+      'cafe0001-cafe-41ca-81fe-000000000001',
+      'retiro',
+      120,
+      '2026-11-13',
+      '2026-11-01'
+    )$$,
+  'Coty retira usando el aporte'
+);
+
+select throws_ok(
+  $$delete from public.saving_moves where id = 'cafe4002-cafe-41ca-81fe-000000000001'$$,
+  'P0001',
+  'Ese movimiento deja el saldo en negativo',
+  'no se borra un aporte si el saldo quedaría negativo'
 );
 
 select set_config('request.jwt.claim.sub', 'cafe0002-cafe-42ca-82fe-000000000002', true);

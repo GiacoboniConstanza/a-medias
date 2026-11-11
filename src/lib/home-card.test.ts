@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { monthPocket } from './derive.ts'
 import { formatMoney } from './format.ts'
 import { homeAccountingCard } from './home-card.ts'
-import { loanEffectLines, loanMonthEffect, remainingAfterLoans } from './loans.ts'
+import { loanEffectLines, loanMonthEffect, remainingAfterLoans } from './transfers.ts'
 
 const coty = 'coty'
 const maru = 'maru'

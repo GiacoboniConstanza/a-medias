@@ -42,30 +42,25 @@ export type YearCategory = {
   months: (number | null)[]
 }
 
-export type YearFund = {
+export type YearSaving = {
   id: string
   name: string
   icon: string
-  saved: number
-  target: number
-}
-
-export type YearGoal = {
-  id: string
-  name: string
-  icon: string
-  target: number
-  total: number
+  isShared: boolean
+  archived: boolean
+  target: number | null
+  balance: number
   mine: number
+  yearIn: number
+  yearOut: number
 }
 
 export type YearHighlight = {
   label: string
-  extraAmount: number
   amount: number
   month: number
-  fundName: string
-  fundIcon: string
+  savingName: string
+  savingIcon: string
 }
 
 export type YearTotals = {
@@ -79,11 +74,8 @@ export type YearReport = {
   months: YearMonth[]
   categories: YearCategory[]
   previous: YearTotals
-  gustosSpent: number | null
   extrasTotal: number | null
-  extrasSaved: number | null
-  funds: YearFund[]
-  goal: YearGoal | null
+  savings: YearSaving[]
   highlight: YearHighlight | null
   dues: { onTime: number; expected: number }
 }
@@ -254,10 +246,7 @@ export function highlightSentence(highlight: YearHighlight | null): string {
   if (!highlight) return 'Cuando cargues un aporte grande, lo vamos a recordar acá.'
   const when = `de ${monthName(highlight.month)}`
   const money = formatMoney(highlight.amount)
-  if (highlight.amount >= highlight.extraAmount) {
-    return `Tu aporte ${when} (${money}) fue a ${highlight.fundName}.`
-  }
-  return `De tu aporte ${when}, ${money} fue a ${highlight.fundName}.`
+  return `Tu aporte ${when} (${money}) fue a ${highlight.savingName}.`
 }
 
 export function yearMoments(report: YearReport, today = new Date()): YearMoment[] {
@@ -265,7 +254,7 @@ export function yearMoments(report: YearReport, today = new Date()): YearMoment[
   const jumpIcon = report.categories[0]?.icon || 'seedling'
   return [
     { icon: jump.startsWith('En ') ? jumpIcon : 'seedling', tone: 'blush', text: jump },
-    { icon: report.highlight?.fundIcon || 'piggy-bank', tone: 'sun', text: highlightSentence(report.highlight) },
+    { icon: report.highlight?.savingIcon || 'piggy-bank', tone: 'sun', text: highlightSentence(report.highlight) },
     { icon: 'house-circle-check', tone: 'sage', text: duesSentence(report.dues.onTime, report.dues.expected) },
   ]
 }
@@ -294,7 +283,6 @@ export function parseYearBalance(value: unknown): YearReport {
   const previous = asRecord(row.previous)
   const dues = asRecord(row.dues)
   const highlight = asRecord(row.highlight)
-  const goal = asRecord(row.goal)
   return {
     year: asNumber(row.year) ?? 0,
     months: row.months.map((item) => {
@@ -325,42 +313,33 @@ export function parseYearBalance(value: unknown): YearReport {
       expenses: asNumber(previous?.expenses),
       saved: asNumber(previous?.saved),
     },
-    gustosSpent: asNumber(row.gustos_spent),
     extrasTotal: asNumber(row.extras_total),
-    extrasSaved: asNumber(row.extras_saved),
-    funds: (Array.isArray(row.funds) ? row.funds : []).flatMap((item) => {
-      const fund = asRecord(item)
-      if (!fund || typeof fund.id !== 'string') return []
+    savings: (Array.isArray(row.savings) ? row.savings : []).flatMap((item) => {
+      const saving = asRecord(item)
+      if (!saving || typeof saving.id !== 'string') return []
       return [
         {
-          id: fund.id,
-          name: typeof fund.name === 'string' ? fund.name : 'Fondo',
-          icon: typeof fund.icon === 'string' ? fund.icon : 'piggy-bank',
-          saved: asNumber(fund.saved) ?? 0,
-          target: asNumber(fund.target) ?? 0,
+          id: saving.id,
+          name: typeof saving.name === 'string' ? saving.name : 'Ahorro',
+          icon: typeof saving.icon === 'string' ? saving.icon : 'piggy-bank',
+          isShared: Boolean(saving.is_shared),
+          archived: Boolean(saving.archived),
+          target: asNumber(saving.target),
+          balance: asNumber(saving.balance) ?? 0,
+          mine: asNumber(saving.mine) ?? 0,
+          yearIn: asNumber(saving.year_in) ?? 0,
+          yearOut: asNumber(saving.year_out) ?? 0,
         },
       ]
     }),
-    goal:
-      goal && typeof goal.id === 'string'
-        ? {
-            id: goal.id,
-            name: typeof goal.name === 'string' ? goal.name : 'Meta',
-            icon: typeof goal.icon === 'string' ? goal.icon : 'umbrella-beach',
-            target: asNumber(goal.target) ?? 0,
-            total: asNumber(goal.total) ?? 0,
-            mine: asNumber(goal.mine) ?? 0,
-          }
-        : null,
     highlight:
-      highlight && typeof highlight.fund_name === 'string'
+      highlight && typeof highlight.saving_name === 'string'
         ? {
-            label: typeof highlight.label === 'string' ? highlight.label : 'Extra',
-            extraAmount: asNumber(highlight.extra_amount) ?? 0,
+            label: typeof highlight.label === 'string' ? highlight.label : 'Aporte',
             amount: asNumber(highlight.amount) ?? 0,
             month: asNumber(highlight.month) ?? 1,
-            fundName: highlight.fund_name,
-            fundIcon: typeof highlight.fund_icon === 'string' ? highlight.fund_icon : 'piggy-bank',
+            savingName: highlight.saving_name,
+            savingIcon: typeof highlight.saving_icon === 'string' ? highlight.saving_icon : 'piggy-bank',
           }
         : null,
     dues: {
