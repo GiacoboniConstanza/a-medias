@@ -4,7 +4,6 @@ import {
   biggestSpendingMonth,
   categoryJump,
   duesSentence,
-  gustosSentence,
   highlightSentence,
   incomeCaption,
   isFutureMonth,
@@ -107,9 +106,8 @@ describe('balance anual', () => {
     const moments = yearMoments(report, today)
     expect(moments).toHaveLength(3)
     expect(moments.map((moment) => moment.text).join(' ')).not.toMatch(/culpa|demasiado|te pasaste|mal/)
-    expect(highlightSentence(report.highlight)).toBe('Tu incentivo de agosto ($ 1.040.000,00) fue directo a Lollapalooza.')
+    expect(highlightSentence(report.highlight)).toBe('Tu aporte de agosto ($ 1.040.000,00) fue a Lollapalooza.')
     expect(duesSentence(9, 10)).toBe('Quedaron pagos a tiempo 9 de 10 vencimientos. ¡Bien ahí!')
-    expect(gustosSentence(40_000, 450_000, 300_000)).toContain('67%')
     expect(yearHasData(report, today)).toBe(true)
   })
 })

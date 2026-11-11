@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   movementExpenseSubtitle,
   movementExpenseTitle,
+  movementSavingTitle,
   movementTextFields,
   movementTypeIsLocked,
   showSharedPayerPicker,
@@ -19,6 +20,7 @@ describe('edición con el formulario único', () => {
     expect(showSharedPayerPicker({ tipo: 'gasto', shared: true, hasPartner: false })).toBe(false)
     expect(showSharedPayerPicker({ tipo: 'ingreso', shared: true, hasPartner: true })).toBe(false)
     expect(showSharedPayerPicker({ tipo: 'transferencia', shared: true, hasPartner: true })).toBe(false)
+    expect(showSharedPayerPicker({ tipo: 'ahorro', shared: true, hasPartner: true })).toBe(false)
   })
 })
 
@@ -110,5 +112,13 @@ describe('bajada de la fila de Movimientos', () => {
         categoryName: null,
       }),
     ).toBe('')
+  })
+})
+
+describe('título de aporte o retiro', () => {
+  it('usa nombre, si no ahorro, si no el tipo', () => {
+    expect(movementSavingTitle({ title: 'Arreglo', savingName: 'Colchón', kind: 'retiro' })).toBe('Arreglo')
+    expect(movementSavingTitle({ title: null, savingName: 'Colchón', kind: 'aporte' })).toBe('Colchón')
+    expect(movementSavingTitle({ title: null, savingName: null, kind: 'retiro' })).toBe('Retiro')
   })
 })

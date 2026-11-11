@@ -11,8 +11,6 @@ export type NavItem = {
   label: string
   icon: string
   end?: boolean
-  /** Cargar: botón mostaza fijo, nunca queda activo. */
-  action?: 'cargar'
 }
 
 export const MODULE_META: Record<ModuleId, { label: string; detail: string; icon: string; to: string; tone: string; ink: string }> = {
@@ -34,12 +32,11 @@ export const FINANCE_ROUTES = {
   modulos: '/modulos',
 } as const
 
-/** Pestañas de Finanzas. Sin hub, Resumen apunta a `/` (navFor). */
+/** Pestañas de Finanzas. Sin hub, Resumen apunta a `/` (navFor). Cargar es el botón flotante. */
 export const FINANCE_TABS: readonly NavItem[] = [
   { to: FINANCE_ROUTES.resumen, label: 'Resumen', icon: 'wallet', end: true },
   { to: FINANCE_ROUTES.movimientos, label: 'Movimientos', icon: 'list' },
   { to: FINANCE_ROUTES.ahorros, label: 'Ahorros', icon: 'piggy-bank' },
-  { to: FINANCE_ROUTES.cargar, label: 'Cargar', icon: 'plus', action: 'cargar' },
 ]
 
 const RESUMEN_ALIASES = new Set<string>([FINANCE_ROUTES.avisos, FINANCE_ROUTES.anio, FINANCE_ROUTES.sueldo, FINANCE_ROUTES.compartir])
@@ -92,9 +89,10 @@ export function navFor(pathname: string, enabled: readonly ModuleId[], from?: st
   if (pathname === FINANCE_ROUTES.modulos) return { items: general, activeTo: '/' }
   const onFinance =
     pathname === FINANCE_ROUTES.resumen ||
-    tabs.some((item) => item.to === pathname && item.action !== 'cargar') ||
+    tabs.some((item) => item.to === pathname) ||
     RESUMEN_ALIASES.has(pathname) ||
     pathname === FINANCE_ROUTES.cargar ||
+    pathname.startsWith(`${FINANCE_ROUTES.ahorros}/`) ||
     pathname === '/se-me-fue' ||
     pathname === '/compartidos' ||
     pathname === '/prestamos'
@@ -103,13 +101,15 @@ export function navFor(pathname: string, enabled: readonly ModuleId[], from?: st
     return { items: general, activeTo: active }
   }
   if (pathname === FINANCE_ROUTES.cargar) {
-    const origin =
-      from && tabs.some((item) => item.to === from && item.action !== 'cargar') ? from : resumen
+    const origin = from && tabs.some((item) => item.to === from) ? from : resumen
     return { items: tabs, activeTo: origin }
   }
   if (RESUMEN_ALIASES.has(pathname) || pathname === '/compartidos') return { items: tabs, activeTo: resumen }
   if (pathname === '/se-me-fue' || pathname === '/prestamos') {
     return { items: tabs, activeTo: FINANCE_ROUTES.movimientos }
+  }
+  if (pathname.startsWith(`${FINANCE_ROUTES.ahorros}/`)) {
+    return { items: tabs, activeTo: FINANCE_ROUTES.ahorros }
   }
   return { items: tabs, activeTo: tabs.find((item) => item.to === pathname)?.to ?? resumen }
 }

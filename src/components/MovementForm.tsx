@@ -12,13 +12,18 @@ import {
   createCategory,
   createExpense,
   createExtra,
+  createSavingMove,
   deleteExpense,
   loadSettledMonths,
   saveSalaryRevision,
   updateExpense,
   type Category,
   type ExpenseItem,
+  type SavingItem,
 } from '../lib/api.ts'
+import { NewSavingSheet } from '../screens/SavingsScreen.tsx'
+import { savingBalances, withdrawableByUser } from '../lib/saving-balance.ts'
+import { activeSavings, groupSavings } from '../lib/savings.ts'
 import { monthPocket, monthSplit, partnerId } from '../lib/derive.ts'
 import { formatMoney, moneyDraftFromAmount, normalizeMoney } from '../lib/format.ts'
 import { homeAccountingCard } from '../lib/home-card.ts'
@@ -29,13 +34,15 @@ import { catamarcaToday, isAfterDay, monthKey, monthName, monthTitle, shiftMonth
 import { periodFollowsDate, periodFromDate, sharedMonthSettled } from '../lib/period.ts'
 import { debtSentence } from '../lib/split.ts'
 
-export type MovementType = 'gasto' | 'ingreso' | 'transferencia'
+export type MovementType = 'gasto' | 'ingreso' | 'transferencia' | 'ahorro'
 
 export type MovementPrefill = {
   amount?: number | null
   title?: string | null
   spentOn?: string | null
   tipo?: MovementType
+  savingId?: string | null
+  savingKind?: 'aporte' | 'retiro'
   missingAmount?: boolean
   missingTitle?: boolean
   missingDate?: boolean
@@ -49,9 +56,12 @@ const settledHelp =
   'Los meses saldados están cerrados. Para cargar ahí, deshacé el saldo en Resumen.'
 
 type SavedView = {
-  kind: MovementType | 'edit'
+  kind: MovementType | 'edit' | 'aporte' | 'retiro'
   amount: number
   summary: string
+  saving?: SavingItem
+  savingBalance?: number
+  mineBalance?: number
 }
 
 export function MovementForm({
@@ -75,7 +85,8 @@ export function MovementForm({
   const [savedDebt, setSavedDebt] = useState<string | null>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
 
-  const stateTipo = (location.state as { tipo?: MovementType; from?: string } | null)?.tipo
+  const locationState = (location.state as { tipo?: MovementType; from?: string; savingId?: string } | null)
+  const stateTipo = locationState?.tipo
   const fromPath = (location.state as { from?: string } | null)?.from
 
   useEffect(() => {
@@ -104,7 +115,11 @@ export function MovementForm({
           ? 'Gasto guardado'
           : saved.kind === 'ingreso'
             ? 'Ingreso guardado'
-            : 'Transferencia guardada'
+            : saved.kind === 'aporte'
+              ? 'Aporte guardado'
+              : saved.kind === 'retiro'
+                ? 'Retiro guardado'
+                : 'Transferencia guardada'
     return (
       <div className="min-h-dvh bg-crema pb-8">
         <section className="scallop-b bg-azul px-4 pb-4 pt-[max(0.5rem,env(safe-area-inset-top))]">
@@ -142,7 +157,13 @@ export function MovementForm({
                   <span className="text-gris">{line.label}</span>
                   <span
                     className={`whitespace-nowrap font-display text-lg ${
-                      line.role === 'income' ? 'text-mostaza-ink' : line.role === 'loan' ? 'text-ciruela-ink' : 'text-tinta'
+                      line.role === 'income'
+                        ? 'text-mostaza-ink'
+                        : line.role === 'loan'
+                          ? 'text-ciruela-ink'
+                          : line.role === 'ahorro'
+                            ? 'text-azul-ink'
+                            : 'text-tinta'
                     }`}
                   >
                     {line.amount}
@@ -151,7 +172,24 @@ export function MovementForm({
               ))}
             </div>
           </section>
-          {savedDebt ? (
+          {saved.saving ? (
+            <section className="rounded-2xl border-2 border-azul-ink bg-tarjeta p-4">
+              <div className="flex items-center gap-3">
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-full border-2 border-azul-ink bg-azul-claro text-azul-ink">
+                  <AppIcon name={saved.saving.icon} />
+                </span>
+                <div>
+                  <p className="text-sm font-semibold text-gris">
+                    {saved.saving.isShared ? `En ${saved.saving.name} juntaron` : `En ${saved.saving.name} quedan`}
+                  </p>
+                  <p className="font-display text-lg font-semibold text-tinta">{formatMoney(saved.savingBalance ?? 0)}</p>
+                  {saved.saving.isShared ? (
+                    <p className="text-sm font-semibold text-gris">Lo tuyo {formatMoney(saved.mineBalance ?? 0)}</p>
+                  ) : null}
+                </div>
+              </div>
+            </section>
+          ) : savedDebt ? (
             <section className="rounded-2xl border-2 border-azul-ink bg-tarjeta p-4">
               <div className="flex items-center gap-3">
                 <span className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-rosa-claro text-tinta">
@@ -204,6 +242,9 @@ export function MovementForm({
       expense={expense}
       prefill={prefill}
       initialTipo={expense ? 'gasto' : prefill?.tipo ?? stateTipo ?? null}
+      initialSavingId={prefill?.savingId ?? locationState?.savingId ?? null}
+      savings={data.savings}
+      savingMoves={data.savingMoves}
       editing={Boolean(expense)}
       settledMonths={settledMonths}
       salaryHistory={data.salaryHistory}
@@ -219,6 +260,11 @@ export function MovementForm({
         )
         const partner = partnerId(finance, profile.id)
         const partnerLabel = partner ? finance.names[partner] ?? 'tu compañera' : ''
+        const myMoves = finance.savingMoves.filter(
+          (row) => row.userId === profile.id && row.period.slice(0, 7) === monthKey().slice(0, 7),
+        )
+        const savedIn = myMoves.filter((row) => row.kind === 'aporte').reduce((sum, row) => sum + row.amount, 0)
+        const savedOut = myMoves.filter((row) => row.kind === 'retiro').reduce((sum, row) => sum + row.amount, 0)
         const pocket = monthPocket({
           base: finance.bases[profile.id] ?? 0,
           privateSpent: finance.monthExpenses
@@ -228,6 +274,8 @@ export function MovementForm({
             .filter((row) => row.isShared && row.payerId === profile.id)
             .reduce((sum, row) => sum + row.amount, 0),
           extras: finance.extrasThisMonth.reduce((sum, row) => sum + row.amount, 0),
+          savedIn,
+          savedOut,
         })
         const moves = await loadLoanMovements()
         const effect = loanMonthEffect(profile.id, monthKey(), moves.loans, moves.repayments)
@@ -259,6 +307,9 @@ function MovementFormBody({
   expense,
   prefill,
   initialTipo,
+  initialSavingId,
+  savings,
+  savingMoves,
   editing,
   settledMonths,
   salaryHistory,
@@ -272,6 +323,9 @@ function MovementFormBody({
   expense: ExpenseItem | null
   prefill?: MovementPrefill
   initialTipo: MovementType | null
+  initialSavingId: string | null
+  savings: SavingItem[]
+  savingMoves: import('../lib/api.ts').SavingMove[]
   editing: boolean
   settledMonths: readonly string[]
   salaryHistory: { id: string; amount: number; effectiveFrom: string }[]
@@ -296,6 +350,15 @@ function MovementFormBody({
   const [draftIcon, setDraftIcon] = useState(DEFAULT_ICON)
   const [incomeKind, setIncomeKind] = useState<IncomeKind>('puntual')
   const [transferDir, setTransferDir] = useState<TransferDir>('sent')
+  const [savingAction, setSavingAction] = useState<'aporte' | 'retiro'>(prefill?.savingKind ?? 'aporte')
+  const activeSavingList = activeSavings(savings)
+  const grouped = groupSavings(activeSavingList)
+  const orderedSavings = [...grouped.shared, ...grouped.own]
+  const [savingId, setSavingId] = useState<string | null>(() => {
+    if (initialSavingId && orderedSavings.some((item) => item.id === initialSavingId)) return initialSavingId
+    return orderedSavings.length === 1 ? orderedSavings[0]!.id : null
+  })
+  const [newSavingOpen, setNewSavingOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
   const [spentOn, setSpentOn] = useState(expense?.spentOn ?? prefill?.spentOn ?? catamarcaToday())
   const [period, setPeriod] = useState(expense?.period ?? periodFromDate(prefill?.spentOn || catamarcaToday()))
@@ -341,10 +404,23 @@ function MovementFormBody({
 
   function missingReason(): string | null {
     if (!tipo && amount <= 0) return 'Elegí el tipo y poné el monto.'
-    if (!tipo) return 'Elegí si es gasto, ingreso o transferencia.'
+    if (!tipo) return 'Elegí si es gasto, ingreso, transferencia o ahorro.'
     if (amount <= 0) return 'Poné el monto.'
     if (gastoBlocked) return settledHelp
     if (tipo === 'transferencia' && !partnerIdValue) return 'Para cargar transferencias, primero sumá a tu compañera.'
+    if (tipo === 'ahorro') {
+      if (orderedSavings.length === 0) return 'Primero creá un ahorro.'
+      if (!savingId) return savingAction === 'aporte' ? 'Elegí a qué ahorro va.' : 'Elegí de qué ahorro sale.'
+      const chosen = orderedSavings.find((item) => item.id === savingId)
+      if (chosen && savingAction === 'retiro') {
+        const bal = savingBalances(
+          chosen.openings,
+          savingMoves.filter((row) => row.savingId === chosen.id),
+        )
+        const ceiling = chosen.isShared ? withdrawableByUser(bal, meId) : bal.total
+        if (amount > ceiling) return 'Bajá el monto o elegí otro ahorro.'
+      }
+    }
     return null
   }
 
@@ -451,7 +527,6 @@ function MovementFormBody({
             amount,
             receivedOn: spentOn,
             notes: text.notes,
-            allocations: [],
           })
         }
         await onSaved({
@@ -460,6 +535,33 @@ function MovementFormBody({
           summary: `${formatMoney(amount)} · ${
             incomeKind === 'sueldo' ? 'Sueldo' : text.title ?? 'Algo puntual'
           }`,
+        })
+      } else if (tipo === 'ahorro') {
+        if (!savingId) throw new Error(savingAction === 'aporte' ? 'Elegí a qué ahorro va.' : 'Elegí de qué ahorro sale.')
+        await createSavingMove({
+          savingId,
+          householdId,
+          userId: meId,
+          kind: savingAction,
+          amount,
+          spentOn,
+          period: nextPeriod,
+          title: text.title,
+          notes: text.notes,
+        })
+        const chosen = savings.find((item) => item.id === savingId)!
+        const moves = [
+          ...savingMoves.filter((row) => row.savingId === savingId),
+          { userId: meId, kind: savingAction, amount },
+        ]
+        const bal = savingBalances(chosen.openings, moves)
+        await onSaved({
+          kind: savingAction,
+          amount,
+          summary: `${formatMoney(amount)} · ${chosen.name}${text.title ? ` · ${text.title}` : chosen.isShared ? ` · Con ${partnerLabel}` : ''}`,
+          saving: chosen,
+          savingBalance: bal.total,
+          mineBalance: bal.byUser[meId] ?? 0,
         })
       } else if (partnerIdValue) {
         const fromId = transferDir === 'sent' ? meId : partnerIdValue
@@ -543,15 +645,16 @@ function MovementFormBody({
         <div
           ref={tipoRef}
           tabIndex={-1}
-          className="mt-3 grid grid-cols-3 gap-2"
+          className="mt-3 grid grid-cols-2 gap-2"
           role="radiogroup"
           aria-label="Tipo de movimiento"
         >
           {(
             [
-              { id: 'gasto', label: 'Gasto', icon: 'receipt', tone: 'bg-rosa-claro' },
-              { id: 'ingreso', label: 'Ingreso', icon: 'sack-dollar', tone: 'bg-mostaza-claro' },
-              { id: 'transferencia', label: 'Transferencia', icon: 'right-left', tone: 'bg-ciruela-claro' },
+              { id: 'gasto', label: 'Gasto', icon: 'receipt', soft: 'bg-rosa-claro', ink: 'text-rosa-texto', ring: 'border-rosa-texto' },
+              { id: 'ingreso', label: 'Ingreso', icon: 'sack-dollar', soft: 'bg-mostaza-claro', ink: 'text-mostaza-ink', ring: 'border-mostaza-ink' },
+              { id: 'transferencia', label: 'Transferencia', icon: 'right-left', soft: 'bg-ciruela-claro', ink: 'text-ciruela-ink', ring: 'border-ciruela-ink' },
+              { id: 'ahorro', label: 'Ahorro', icon: 'piggy-bank', soft: 'bg-azul-claro', ink: 'text-azul-ink', ring: 'border-azul-ink' },
             ] as const
           ).map((option) => {
             const selected = tipo === option.id
@@ -565,9 +668,9 @@ function MovementFormBody({
                 aria-checked={selected}
                 disabled={locked || transferOff || undefined}
                 aria-disabled={locked || transferOff || undefined}
-                className={`relative flex h-16 flex-col items-center justify-center rounded-2xl text-sm ${
+                className={`relative flex h-16 items-center gap-2 rounded-2xl px-2.5 text-sm whitespace-nowrap ${
                   selected
-                    ? `${option.tone} border-2 border-tinta font-bold text-tinta`
+                    ? `${option.soft} border-2 border-tinta font-bold text-tinta`
                     : locked || transferOff
                       ? 'border-[1.5px] border-dashed border-gris-claro bg-fondo-desactivado font-semibold text-gris'
                       : 'border-[1.5px] border-azul-ink bg-tarjeta font-semibold text-tinta'
@@ -577,9 +680,11 @@ function MovementFormBody({
                   chooseTipo(option.id)
                 }}
               >
-                {selected ? <AppIcon name="check" className="absolute right-2 top-2 text-xs" /> : null}
-                <AppIcon name={option.icon} />
-                <span className="mt-1">{option.label}</span>
+                {selected ? <AppIcon name="check" className="absolute right-2 top-1.5 text-xs" /> : null}
+                <span className={`grid h-8 w-8 place-items-center rounded-full border-2 ${option.ring} ${selected ? 'bg-tarjeta' : option.soft} ${option.ink}`}>
+                  <AppIcon name={option.icon} className="text-[15px]" />
+                </span>
+                <span>{option.label}</span>
               </button>
             )
           })}
@@ -597,7 +702,7 @@ function MovementFormBody({
         ) : null}
         {showErrors && fieldError === 'tipo' ? (
           <p className="mt-2 flex items-center gap-1 text-sm font-bold text-tinta" role="alert">
-            <AppIcon name="circle-exclamation" /> Elegí si es gasto, ingreso o transferencia.
+            <AppIcon name="circle-exclamation" /> Elegí si es gasto, ingreso, transferencia o ahorro.
           </p>
         ) : null}
       </section>
@@ -630,6 +735,22 @@ function MovementFormBody({
             }
           />
         </div>
+
+        {tipo === 'ahorro' ? (
+          <AhorroFields
+            action={savingAction}
+            onAction={setSavingAction}
+            savings={orderedSavings}
+            savingId={savingId}
+            onSavingId={setSavingId}
+            meId={meId}
+            partnerLabel={partnerLabel}
+            savingMoves={savingMoves}
+            amount={amount}
+            showErrors={showErrors}
+            onCreateSaving={() => setNewSavingOpen(true)}
+          />
+        ) : null}
 
         {tipo === 'gasto' ? (
           <>
@@ -882,6 +1003,20 @@ function MovementFormBody({
         ) : null}
       </div>
 
+      <NewSavingSheet
+        open={newSavingOpen}
+        onClose={() => setNewSavingOpen(false)}
+        householdId={householdId}
+        meId={meId}
+        partnerId={partnerIdValue}
+        partnerLabel={partnerLabel}
+        onSaved={async (id) => {
+          await refresh()
+          setSavingId(id)
+          setNewSavingOpen(false)
+        }}
+      />
+
       <div
         className="fixed inset-x-0 bottom-0 border-t border-linea-punteada bg-crema px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3"
         style={{ bottom: keyboard }}
@@ -951,3 +1086,165 @@ function summaryLine(
   }
   return parts.join(' · ')
 }
+
+
+function AhorroFields({
+  action,
+  onAction,
+  savings,
+  savingId,
+  onSavingId,
+  meId,
+  partnerLabel,
+  savingMoves,
+  amount,
+  showErrors,
+  onCreateSaving,
+}: {
+  action: 'aporte' | 'retiro'
+  onAction: (value: 'aporte' | 'retiro') => void
+  savings: SavingItem[]
+  savingId: string | null
+  onSavingId: (id: string) => void
+  meId: string
+  partnerLabel: string
+  savingMoves: import('../lib/api.ts').SavingMove[]
+  amount: number
+  showErrors: boolean
+  onCreateSaving: () => void
+}) {
+  const chosen = savings.find((item) => item.id === savingId) ?? null
+  const bal = chosen
+    ? savingBalances(
+        chosen.openings,
+        savingMoves.filter((row) => row.savingId === chosen.id),
+      )
+    : null
+  const mine = bal ? withdrawableByUser(bal, meId) : 0
+  const over =
+    action === 'retiro' && chosen && amount > 0
+      ? chosen.isShared
+        ? amount > mine
+        : amount > (bal?.total ?? 0)
+      : false
+  const overMessage =
+    chosen && over
+      ? chosen.isShared
+        ? `Podés retirar hasta ${formatMoney(mine)}: es lo que pusiste vos en ${chosen.name}.`
+        : `En ${chosen.name} hay ${formatMoney(bal?.total ?? 0)}. No podés retirar más que eso.`
+      : ''
+
+  return (
+    <>
+      {overMessage ? (
+        <p className="flex items-center gap-1 text-sm font-bold text-tinta" role="alert">
+          <AppIcon name="circle-exclamation" /> {overMessage}
+        </p>
+      ) : null}
+      <div>
+        <p className="text-sm font-semibold text-gris">¿Qué hacés?</p>
+        <div className="mt-2 grid h-[52px] grid-cols-2 gap-2" role="radiogroup" aria-label="Aportar o retirar">
+          {(['aporte', 'retiro'] as const).map((value) => (
+            <button
+              key={value}
+              type="button"
+              role="radio"
+              aria-checked={action === value}
+              onClick={() => onAction(value)}
+              className={`rounded-2xl text-sm font-semibold ${
+                action === value ? 'border-2 border-tinta bg-azul-claro text-tinta' : 'border-[1.5px] border-azul-ink bg-tarjeta text-tinta'
+              }`}
+            >
+              {value === 'aporte' ? 'Aportar' : 'Retirar'}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <p className="text-sm font-semibold text-gris">
+          {action === 'aporte' ? '¿A qué ahorro va?' : '¿De qué ahorro sale?'}
+        </p>
+        {savings.length === 0 ? (
+          <div className="mt-2 rounded-2xl border-2 border-azul-ink bg-tarjeta p-4 text-center">
+            <p className="font-display text-lg font-semibold text-tinta">Todavía no tenés ahorros</p>
+            <p className="mt-1 text-sm font-semibold text-gris">
+              Creá uno y seguí cargando: lo que pusiste acá no se pierde.
+            </p>
+            <button type="button" onClick={onCreateSaving} className="mt-3 inline-flex min-h-11 items-center font-bold text-mostaza-ink">
+              <AppIcon name="plus" className="mr-1" /> Crear un ahorro
+            </button>
+          </div>
+        ) : (
+          <div className="mt-2 space-y-2" role="radiogroup">
+            {savings.map((item) => {
+              const itemBal = savingBalances(
+                item.openings,
+                savingMoves.filter((row) => row.savingId === item.id),
+              )
+              const itemMine = withdrawableByUser(itemBal, meId)
+              const selected = savingId === item.id
+              const sub =
+                action === 'aporte'
+                  ? item.isShared
+                    ? `Con ${partnerLabel} · juntaron ${formatMoney(itemBal.total)}`
+                    : `Solo vos · hay ${formatMoney(itemBal.total)}`
+                  : item.isShared
+                    ? `Con ${partnerLabel} · lo tuyo ${formatMoney(itemMine)}`
+                    : `Solo vos · hay ${formatMoney(itemBal.total)}`
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => onSavingId(item.id)}
+                  className={`grid min-h-16 w-full grid-cols-[40px_1fr_24px] items-center gap-3 rounded-2xl px-3 py-2.5 text-left ${
+                    selected ? 'border-2 border-azul-ink bg-azul-claro' : 'border-[1.5px] border-azul bg-tarjeta'
+                  }`}
+                >
+                  <span className="grid h-10 w-10 place-items-center rounded-full border-2 border-azul-ink bg-azul-claro text-azul-ink">
+                    <AppIcon name={item.icon} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block font-display text-lg font-semibold text-tinta">{item.name}</span>
+                    <span className="block text-sm font-semibold text-gris">{sub}</span>
+                  </span>
+                  <span
+                    className={`grid h-6 w-6 place-items-center rounded-full ${
+                      selected ? 'bg-tinta text-tarjeta' : 'border-[1.5px] border-azul-ink'
+                    }`}
+                  >
+                    {selected ? <AppIcon name="check" className="text-xs" /> : null}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        )}
+        {showErrors && !savingId && savings.length > 0 ? (
+          <p className="mt-2 flex items-center gap-1 text-sm font-bold text-tinta" role="alert">
+            <AppIcon name="circle-exclamation" />
+            {action === 'aporte' ? 'Elegí a qué ahorro va.' : 'Elegí de qué ahorro sale.'}
+          </p>
+        ) : null}
+        {showErrors && savings.length === 0 ? (
+          <p className="mt-2 flex items-center gap-1 text-sm font-bold text-tinta" role="alert">
+            <AppIcon name="circle-exclamation" /> Primero creá un ahorro.
+          </p>
+        ) : null}
+      </div>
+      {chosen ? (
+        <p className="text-sm font-semibold text-gris">
+          {action === 'aporte'
+            ? chosen.isShared
+              ? `Te descuenta solo a vos de lo que te queda y suma a ${chosen.name}. No entra en el reparto.`
+              : `Te descuenta de lo que te queda y suma a ${chosen.name}.`
+            : chosen.isShared
+              ? `Vuelve solo a lo que te queda a vos y baja el saldo de ${chosen.name}. No entra en el reparto.`
+              : `Vuelve a lo que te queda y baja el saldo de ${chosen.name}.`}
+        </p>
+      ) : null}
+    </>
+  )
+}
+

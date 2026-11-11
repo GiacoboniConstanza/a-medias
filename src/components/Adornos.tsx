@@ -45,6 +45,27 @@ export function SheetStar() {
   return <img src={estrellaChica} alt="" width={20} height={22} aria-hidden="true" className="h-[22px] w-5 shrink-0" />
 }
 
+export function EstrellaGouache({
+  width = 40,
+  height = 37,
+  className = '',
+}: {
+  width?: number
+  height?: number
+  className?: string
+}) {
+  return (
+    <img
+      src={estrellaChica}
+      alt=""
+      width={width}
+      height={height}
+      aria-hidden="true"
+      className={`shrink-0 object-contain ${className}`}
+    />
+  )
+}
+
 export function MonthStar() {
   return <img src={estrellaChica} alt="" width={10} height={11} aria-hidden="true" className="h-[11px] w-2.5 shrink-0" />
 }

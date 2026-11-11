@@ -11,27 +11,11 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Secciones"
-      className="scallop-t fixed inset-x-0 bottom-0 z-20 flex h-[76px] w-screen items-center justify-around bg-azul pb-1.5 text-tinta"
+      className="scallop-t fixed inset-x-0 bottom-0 z-20 flex h-[76px] w-screen items-center justify-evenly bg-azul pb-1.5 text-tinta"
       style={{ paddingInline: 'max(16px, calc((100vw - var(--ancho-columna)) / 2 + 16px))' }}
     >
       {items.map((link) => {
-        const active = link.action === 'cargar' ? false : link.to === activeTo
-        if (link.action === 'cargar') {
-          return (
-            <Link
-              key={link.to}
-              to={link.to}
-              state={{ from: location.pathname }}
-              aria-label={link.label}
-              className="flex min-h-14 min-w-12 shrink-0 flex-col items-center justify-center gap-0.5 whitespace-nowrap px-1 text-sm font-semibold leading-none text-tinta"
-            >
-              <span className="grid h-12 w-12 place-items-center rounded-full border-[1.5px] border-tinta bg-mostaza text-tinta">
-                <AppIcon name="plus" className="text-lg" />
-              </span>
-              <span className="max-[359px]:sr-only font-medium">{link.label}</span>
-            </Link>
-          )
-        }
+        const active = link.to === activeTo
         return (
           <Link
             key={link.to}

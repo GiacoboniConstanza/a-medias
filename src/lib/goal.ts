@@ -1,21 +1,11 @@
 import { formatMoney, fromCents, toCents } from './format.ts'
-import { monthEnd, monthKey, monthTitle, shiftMonth, todayISO } from './month.ts'
+import { monthTitle } from './month.ts'
 
 export function goalProgress(saved: number, target: number): { label: string; arc: number } {
   if (target <= 0 || saved <= 0) return { label: '0%', arc: 0 }
   const ratio = saved / target
   if (ratio < 0.01) return { label: '<1%', arc: 0.015 }
   return { label: `${Math.round(ratio * 100)}%`, arc: Math.min(ratio, 1) }
-}
-
-export function goalPhrase(saved: number, target: number): string {
-  if (target <= 0 || saved <= 0) return '¡Arrancaron! Cada aporte suma'
-  const ratio = saved / target
-  if (ratio < 0.25) return 'Van sumando. Cada aporte cuenta'
-  if (ratio < 0.5) return 'Ya se nota. Sigan así'
-  if (ratio < 0.75) return 'Van por buen camino'
-  if (ratio < 1) return 'Ya casi llegan'
-  return '¡Llegaron a la meta!'
 }
 
 export function monthsUntil(targetDate: string, today = new Date()): number {
@@ -36,13 +26,6 @@ export function evenMonthlyShare(remaining: number, months: number): number | nu
   return fromCents(Math.max(1, Math.ceil(toCents(remaining / 2 / months))))
 }
 
-export function salaryShare(remaining: number, months: number, percent: number): number | null {
-  if (remaining <= 0 || percent <= 0) return null
-  const base = months > 0 ? remaining / months : remaining
-  const share = fromCents(Math.round(toCents(base * (percent / 100))))
-  return share > 0 ? share : null
-}
-
 export function shareLabel(amount: number, total: number): string {
   if (amount <= 0 || total <= 0) return '0%'
   const ratio = amount / total
@@ -50,38 +33,11 @@ export function shareLabel(amount: number, total: number): string {
   return `${Math.round(ratio * 100)}%`
 }
 
-export function contributionInMonth(createdAt: string, month: string): boolean {
-  const day = todayISO(new Date(createdAt))
-  return day >= month && day <= monthEnd(month)
-}
-
+/** Ritmo del detalle compartido con meta y fecha (P8). */
 export function goalPaceLine(targetDate: string | null, months: number, monthlyEach: number | null): string {
-  const parts: string[] = []
-  if (targetDate) {
-    parts.push(monthTitle(targetDate))
-    parts.push(monthsLeftCopy(months))
+  if (!monthlyEach) {
+    if (!targetDate) return ''
+    return `${monthTitle(targetDate)} · ${monthsLeftCopy(months)}`
   }
-  if (monthlyEach) parts.push(`Si cada una suma ${formatMoney(monthlyEach)} por mes, llegan`)
-  return parts.join(' · ')
-}
-
-export function contributionMonths(contributions: { createdAt: string; amount: number }[]): { month: string; amount: number }[] {
-  const totals = new Map<string, number>()
-  for (const item of contributions) {
-    const key = monthKey(new Date(item.createdAt))
-    totals.set(key, (totals.get(key) ?? 0) + item.amount)
-  }
-  const keys = [...totals.keys()].sort()
-  const first = keys[0]
-  const last = keys[keys.length - 1]
-  if (!first || !last) return []
-  const rows: { month: string; amount: number }[] = []
-  let cursor = first
-  while (cursor <= last) {
-    rows.push({ month: cursor, amount: totals.get(cursor) ?? 0 })
-    const next = shiftMonth(cursor, 1)
-    if (next <= cursor) break
-    cursor = next
-  }
-  return rows
+  return `Si cada una suma ${formatMoney(monthlyEach)} por mes, llegan.`
 }

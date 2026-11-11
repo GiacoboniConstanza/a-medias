@@ -1,4 +1,3 @@
-export type ContributionMode = 'free' | 'percentage'
 export type AppModule = 'finanzas' | 'habitos' | 'comidas' | 'memos'
 
 type Table<Row, Insert, Update> = {
@@ -107,80 +106,6 @@ export type Database = {
         },
         { label?: string; amount?: number; notes?: string | null }
       >
-      savings_funds: Table<
-        {
-          id: string
-          user_id: string
-          name: string
-          emoji: string
-          icon: string
-          target_amount: number
-          target_date: string | null
-          archived_at: string | null
-          created_at: string
-        },
-        {
-          id?: string
-          user_id: string
-          name: string
-          emoji: string
-          icon: string
-          target_amount: number
-          target_date?: string | null
-          archived_at?: string | null
-          created_at?: string
-        },
-        {
-          name?: string
-          emoji?: string
-          icon?: string
-          target_amount?: number
-          target_date?: string | null
-          archived_at?: string | null
-        }
-      >
-      bag_movements: Table<
-        {
-          id: string
-          user_id: string
-          kind: string
-          fund_id: string | null
-          expense_id: string | null
-          amount: number
-          label: string
-          happened_on: string
-          created_at: string
-        },
-        {
-          id?: string
-          user_id: string
-          kind: string
-          fund_id?: string | null
-          expense_id?: string | null
-          amount: number
-          label?: string
-          happened_on: string
-          created_at?: string
-        },
-        { label?: string; amount?: number }
-      >
-      extra_allocations: Table<
-        {
-          id: string
-          extra_id: string
-          user_id: string
-          fund_id: string | null
-          amount: number
-        },
-        {
-          id?: string
-          extra_id: string
-          user_id: string
-          fund_id: string | null
-          amount: number
-        },
-        { amount?: number }
-      >
       categories: Table<
         {
           id: string
@@ -242,57 +167,6 @@ export type Database = {
           paid_from_bag?: boolean
           notes?: string | null
         }
-      >
-      shared_goals: Table<
-        {
-          id: string
-          household_id: string
-          name: string
-          emoji: string
-          icon: string
-          target_amount: number
-          target_date: string | null
-          archived_at: string | null
-          created_at: string
-        },
-        {
-          id?: string
-          household_id: string
-          name: string
-          emoji: string
-          icon: string
-          target_amount: number
-          target_date?: string | null
-          archived_at?: string | null
-          created_at?: string
-        },
-        {
-          name?: string
-          emoji?: string
-          icon?: string
-          target_amount?: number
-          target_date?: string | null
-          archived_at?: string | null
-        }
-      >
-      goal_contributions: Table<
-        {
-          id: string
-          goal_id: string
-          user_id: string
-          amount: number
-          mode: ContributionMode
-          created_at: string
-        },
-        {
-          id?: string
-          goal_id: string
-          user_id: string
-          amount: number
-          mode: ContributionMode
-          created_at?: string
-        },
-        { amount?: number }
       >
       savings: Table<
         {
@@ -762,20 +636,6 @@ export type Database = {
     Functions: {
       create_household: { Args: Record<string, never>; Returns: string }
       join_household: { Args: { invite: string }; Returns: string }
-      spend_from_gustos: {
-        Args: { expense_title: string; category_id: string; expense_amount: number; spent_on: string }
-        Returns: string
-      }
-      move_bag_money: {
-        Args: {
-          movement_kind: string
-          target_fund: string
-          movement_amount: number
-          happened_on: string
-          movement_label: string
-        }
-        Returns: string
-      }
       household_split_percents: {
         Args: { target_month: string }
         Returns: { user_id: string; percent: number }[]
@@ -812,16 +672,6 @@ export type Database = {
       undo_shared_month: {
         Args: { p_settlement: string }
         Returns: undefined
-      }
-      replace_active_shared_goal: {
-        Args: {
-          p_restore: string | null
-          p_name: string | null
-          p_icon: string | null
-          p_target: number | null
-          p_target_date: string | null
-        }
-        Returns: string
       }
     }
   }

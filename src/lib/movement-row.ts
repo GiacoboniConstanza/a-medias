@@ -1,6 +1,6 @@
 import { clampNotes } from './format.ts'
 
-/** Título y bajada de una fila de Movimientos (nombre > categoría > tipo). */
+/** Título y bajada de una fila de Movimientos (nombre > categoría/ahorro > tipo). */
 
 /** En edición el tipo queda fijo: hay que borrar y cargar de nuevo para cambiarlo. */
 export function movementTypeIsLocked(editing: boolean): boolean {
@@ -9,7 +9,7 @@ export function movementTypeIsLocked(editing: boolean): boolean {
 
 /** "Quién pagó" solo aplica a gastos compartidos con compañera en el hogar. */
 export function showSharedPayerPicker(input: {
-  tipo: 'gasto' | 'ingreso' | 'transferencia' | null
+  tipo: 'gasto' | 'ingreso' | 'transferencia' | 'ahorro' | null
   shared: boolean
   hasPartner: boolean
 }): boolean {
@@ -39,6 +39,33 @@ export function movementExpenseTitle(input: {
   return input.fallback ?? 'Gasto'
 }
 
+/** Título de aporte/retiro: nombre > ahorro > Aporte/Retiro (P17). */
+export function movementSavingTitle(input: {
+  title?: string | null
+  savingName?: string | null
+  kind: 'aporte' | 'retiro'
+}): string {
+  const name = input.title?.trim()
+  if (name) return name
+  const saving = input.savingName?.trim()
+  if (saving) return saving
+  return input.kind === 'aporte' ? 'Aporte' : 'Retiro'
+}
+
+export function movementSavingSubtitle(input: {
+  title?: string | null
+  savingName?: string | null
+  kind: 'aporte' | 'retiro'
+  isShared: boolean
+  partnerName: string
+}): string {
+  const name = input.title?.trim() || null
+  const parts: string[] = [input.kind === 'aporte' ? 'Aporte' : 'Retiro']
+  if (name && input.savingName?.trim()) parts.push(input.savingName.trim())
+  if (input.isShared) parts.push(`Con ${input.partnerName}`)
+  return parts.join(' · ')
+}
+
 export function movementExpenseSubtitle(input: {
   isShared: boolean
   paidByMe: boolean
@@ -56,7 +83,6 @@ export function movementExpenseSubtitle(input: {
     parts.push('Compartido')
     if (category && name) parts.push(category)
   } else if (category && name) {
-    // Privado: sin "Pagaste vos"; solo categoría u otros datos si quedan.
     parts.push(category)
   }
 

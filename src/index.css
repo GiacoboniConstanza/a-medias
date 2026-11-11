@@ -84,6 +84,9 @@ input {
   --alto-fab: 52px;
   --espacio-fab-abajo: 105px;
   --espacio-final-con-fab: 84px;
+  --espacio-aviso-abajo: 86px;
+  --espacio-aviso-abajo-con-fab: 169px;
+  --espacio-final-con-aviso: 148px;
   --ancho-plantita: 46px;
   --alto-plantita: 60px;
   --alto-maceta-fila: 44px;

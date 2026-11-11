@@ -16,102 +16,56 @@ where id in (
   'cafe0002-cafe-42ca-82fe-000000000002'
 );
 
--- Fondo Coty con allocations → fund_saved = 100.
-insert into public.savings_funds (id, user_id, name, emoji, icon, target_amount)
-values (
-  'cafe1001-cafe-41ca-81fe-000000000001',
-  'cafe0001-cafe-41ca-81fe-000000000001',
-  'Colchón',
-  'couch',
-  'couch',
-  500000
-);
-
-insert into public.income_extras (id, user_id, household_id, amount, label, received_on)
-values (
-  'cafe2001-cafe-41ca-81fe-000000000001',
-  'cafe0001-cafe-41ca-81fe-000000000001',
-  'cafe0000-cafe-40ca-80fe-000000000001',
-  150,
-  'Bonus',
-  '2026-10-01'
-);
-
-insert into public.extra_allocations (extra_id, user_id, fund_id, amount) values
-  ('cafe2001-cafe-41ca-81fe-000000000001', 'cafe0001-cafe-41ca-81fe-000000000001', 'cafe1001-cafe-41ca-81fe-000000000001', 100),
-  ('cafe2001-cafe-41ca-81fe-000000000001', 'cafe0001-cafe-41ca-81fe-000000000001', null, 50);
-
-insert into public.shared_goals (id, household_id, name, emoji, icon, target_amount, target_date)
-values (
-  'cafe3001-cafe-41ca-81fe-000000000001',
-  'cafe0000-cafe-40ca-80fe-000000000001',
-  'Vacaciones',
-  'umbrella-beach',
-  'umbrella-beach',
-  1200000,
-  '2027-01-15'
-);
-
-insert into public.goal_contributions (goal_id, user_id, amount, mode) values
-  ('cafe3001-cafe-41ca-81fe-000000000001', 'cafe0001-cafe-41ca-81fe-000000000001', 200, 'free'),
-  ('cafe3001-cafe-41ca-81fe-000000000001', 'cafe0002-cafe-42ca-82fe-000000000002', 150, 'free');
-
--- Simula la migración de saldo inicial sobre estos datos.
+-- Datos de prueba ya en el modelo unificado (sin tablas viejas).
 insert into public.savings (
-  id, household_id, name, emoji, icon, target_amount, target_date, is_shared, owner_id, archived_at, created_at
-)
-select
-  f.id, p.household_id, f.name, f.emoji, f.icon, f.target_amount, f.target_date, false, f.user_id, f.archived_at, f.created_at
-from public.savings_funds as f
-join public.profiles as p on p.id = f.user_id
-where f.id = 'cafe1001-cafe-41ca-81fe-000000000001';
+  id, household_id, name, emoji, icon, target_amount, target_date, is_shared, owner_id
+) values
+  (
+    'cafe1001-cafe-41ca-81fe-000000000001',
+    'cafe0000-cafe-40ca-80fe-000000000001',
+    'Colchón',
+    'couch',
+    'couch',
+    500000,
+    null,
+    false,
+    'cafe0001-cafe-41ca-81fe-000000000001'
+  ),
+  (
+    'cafe3001-cafe-41ca-81fe-000000000001',
+    'cafe0000-cafe-40ca-80fe-000000000001',
+    'Vacaciones',
+    'umbrella-beach',
+    'umbrella-beach',
+    1200000,
+    '2027-01-15',
+    true,
+    null
+  ),
+  (
+    'cafe3002-cafe-42ca-82fe-000000000002',
+    'cafe0000-cafe-40ca-80fe-000000000001',
+    'Gustos',
+    'bag-shopping',
+    'bag-shopping',
+    null,
+    null,
+    false,
+    'cafe0001-cafe-41ca-81fe-000000000001'
+  );
 
-insert into public.saving_opening_balances (saving_id, user_id, amount)
-select f.id, f.user_id, private.fund_saved(f.user_id, f.id)
-from public.savings_funds as f
-where f.id = 'cafe1001-cafe-41ca-81fe-000000000001'
-  and private.fund_saved(f.user_id, f.id) > 0;
-
-insert into public.savings (
-  id, household_id, name, emoji, icon, target_amount, target_date, is_shared, owner_id, archived_at, created_at
-)
-select g.id, g.household_id, g.name, g.emoji, g.icon, g.target_amount, g.target_date, true, null, g.archived_at, g.created_at
-from public.shared_goals as g
-where g.id = 'cafe3001-cafe-41ca-81fe-000000000001';
-
-insert into public.saving_opening_balances (saving_id, user_id, amount)
-select c.goal_id, c.user_id, sum(c.amount)
-from public.goal_contributions as c
-where c.goal_id = 'cafe3001-cafe-41ca-81fe-000000000001'
-group by c.goal_id, c.user_id
-having sum(c.amount) > 0;
-
-insert into public.savings (
-  id, household_id, name, emoji, icon, target_amount, is_shared, owner_id
-) values (
-  'cafe3002-cafe-42ca-82fe-000000000002',
-  'cafe0000-cafe-40ca-80fe-000000000001',
-  'Gustos',
-  'bag-shopping',
-  'bag-shopping',
-  null,
-  false,
-  'cafe0001-cafe-41ca-81fe-000000000001'
-);
-
-insert into public.saving_opening_balances (saving_id, user_id, amount)
-values (
-  'cafe3002-cafe-42ca-82fe-000000000002',
-  'cafe0001-cafe-41ca-81fe-000000000001',
-  private.gustos_free('cafe0001-cafe-41ca-81fe-000000000001')
-);
+insert into public.saving_opening_balances (saving_id, user_id, amount) values
+  ('cafe1001-cafe-41ca-81fe-000000000001', 'cafe0001-cafe-41ca-81fe-000000000001', 100),
+  ('cafe3001-cafe-41ca-81fe-000000000001', 'cafe0001-cafe-41ca-81fe-000000000001', 200),
+  ('cafe3001-cafe-41ca-81fe-000000000001', 'cafe0002-cafe-42ca-82fe-000000000002', 150),
+  ('cafe3002-cafe-42ca-82fe-000000000002', 'cafe0001-cafe-41ca-81fe-000000000001', 50);
 
 select is(
   (select amount from public.saving_opening_balances
     where saving_id = 'cafe1001-cafe-41ca-81fe-000000000001'
       and user_id = 'cafe0001-cafe-41ca-81fe-000000000001'),
   100::numeric,
-  'saldo inicial del fondo = fund_saved'
+  'saldo inicial del fondo'
 );
 
 select is(
@@ -134,7 +88,7 @@ select is(
   (select amount from public.saving_opening_balances
     where saving_id = 'cafe3002-cafe-42ca-82fe-000000000002'),
   50::numeric,
-  'Gustos arranca con gustos_free'
+  'Gustos arranca con saldo libre'
 );
 
 select set_config('request.jwt.claim.sub', 'cafe0002-cafe-42ca-82fe-000000000002', true);
