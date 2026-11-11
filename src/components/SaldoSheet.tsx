@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import { AppIcon } from './AppIcon.tsx'
 import { Plantita } from './Adornos.tsx'
 import { ConfirmSheet } from './ConfirmSheet.tsx'

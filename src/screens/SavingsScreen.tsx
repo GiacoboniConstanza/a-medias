@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { EstrellaGouache } from '../components/Adornos.tsx'
 import { Fab, FabSpace } from '../components/Fab.tsx'

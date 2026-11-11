@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router'
 import { useModules } from '../context/ModulesProvider.tsx'
 import { MODULES, MODULE_META, type ModuleId } from '../lib/modules.ts'
 import { AppIcon } from './AppIcon.tsx'

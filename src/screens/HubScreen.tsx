@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { Bird, OrnamentDivider, Plantita } from '../components/Adornos.tsx'
 import { Progress } from '../components/ui.tsx'

@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router'
 import { useModules } from '../context/ModulesProvider.tsx'
 import { navFor } from '../lib/modules.ts'
 import { AppIcon } from './AppIcon.tsx'

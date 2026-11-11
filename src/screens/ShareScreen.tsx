@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { ExpenseScreen, type ExpensePrefill } from './ExpenseScreen.tsx'
 import { extractShareText } from '../lib/extractShareText.ts'

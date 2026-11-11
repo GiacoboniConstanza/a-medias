@@ -50,6 +50,19 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    // pdfjs ya entra por import() (pdfText); el aviso de Vite mira cualquier chunk.
+    chunkSizeWarningLimit: 520,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/@supabase/')) return 'supabase'
+          if (id.includes('node_modules/@fortawesome/')) return 'icons'
+          if (id.includes('node_modules/pdfjs-dist/')) return 'pdfjs'
+        },
+      },
+    },
+  },
   test: {
     environment: 'node',
     include: ['src/**/*.test.ts'],

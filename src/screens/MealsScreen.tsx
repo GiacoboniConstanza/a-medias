@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate } from 'react-router'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { ModuleTitle } from '../components/ModulePill.tsx'
 import { ModuleSwitch } from '../components/ModuleSwitch.tsx'

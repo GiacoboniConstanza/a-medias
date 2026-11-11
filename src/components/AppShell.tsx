@@ -1,4 +1,4 @@
-import { Navigate, Outlet, useLocation } from 'react-router-dom'
+import { Navigate, Outlet, useLocation } from 'react-router'
 import { BottomNav } from '../components/BottomNav.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { FinanceProvider } from '../context/FinanceProvider.tsx'
