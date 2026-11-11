@@ -74,12 +74,3 @@ export function SectionHeader({
     </header>
   )
 }
-
-export function AudiencePill({ icon, children }: { icon: string; children: ReactNode }) {
-  return (
-    <span className="inline-flex min-h-7 shrink-0 items-center gap-1.5 rounded-full border border-line bg-card px-3 py-1.5 text-sm font-semibold leading-normal text-title shadow-soft">
-      <AppIcon name={icon} className="text-sm" />
-      {children}
-    </span>
-  )
-}

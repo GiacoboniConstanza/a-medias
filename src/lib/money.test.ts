@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import { monthPocket } from './derive.ts'
 import { formatMoney, parseMoneyInput, toCents } from './format.ts'
 import { iconByName, ICON_CHOICES, DEFAULT_ICON } from './icons.ts'
-import { jarStatus } from './jar.ts'
 import { monthTitle } from './month.ts'
 import { debtSentence, splitShared } from './split.ts'
 
@@ -25,32 +24,6 @@ describe('reparto del boceto', () => {
   })
 })
 
-describe('frasco', () => {
-  it('pide el sueldo base si todavía no está', () => {
-    const status = jarStatus({
-      base: 0,
-      privateSpent: 0,
-      sharedPaid: 0,
-      dayOfMonth: 16,
-      daysInMonth: 31,
-      isCurrentMonth: true,
-    })
-    expect(status.tone).toBe('empty')
-  })
-
-  it('se pone rojo si el gasto se pasó del sueldo', () => {
-    const status = jarStatus({
-      base: 100_000,
-      privateSpent: 80_000,
-      sharedPaid: 40_000,
-      dayOfMonth: 10,
-      daysInMonth: 31,
-      isCurrentMonth: true,
-    })
-    expect(status.tone).toBe('red')
-    expect(status.remaining).toBe(-20_000)
-  })
-})
 
 describe('inicio del mes', () => {
   it('resta lo pagado y no la parte teórica del reparto', () => {

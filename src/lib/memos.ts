@@ -62,9 +62,3 @@ export function plantLine(pending: number, checkedWeek: number): { title: string
   }
   return { title: 'Tu plantita', detail: 'Cuando anotes un memo, suma una flor.' }
 }
-
-export function weekCheer(checkedWeek: number): string {
-  if (checkedWeek <= 0) return 'Cuando taches uno, tu plantita florece.'
-  if (checkedWeek === 1) return 'Esta semana tachaste 1. Tu plantita florece.'
-  return `Esta semana tachaste ${checkedWeek}. Tu plantita florece.`
-}

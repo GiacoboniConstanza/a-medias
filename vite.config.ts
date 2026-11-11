@@ -9,7 +9,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon-v3.ico', 'favicon.svg', 'icons/icon.svg', 'icons/apple-touch-icon-v3.png', 'icons/icon-192-v3.png', 'icons/icon-512-v3.png', 'icons/icon-maskable-192-v3.png', 'icons/icon-maskable-512-v3.png'],
+      includeAssets: ['favicon-v3.ico', 'icons/icon.svg', 'icons/apple-touch-icon-v3.png', 'icons/icon-192-v3.png', 'icons/icon-512-v3.png', 'icons/icon-maskable-192-v3.png', 'icons/icon-maskable-512-v3.png'],
       manifest: {
         name: 'A Medias',
         short_name: 'A Medias',

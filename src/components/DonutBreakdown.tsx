@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { formatMoney } from '../lib/format.ts'
-import { DONUT_MIN_ARC, donutArcs } from '../lib/donut.ts'
+import { donutArcs } from '../lib/donut.ts'
 
 export type DonutSlice = {
   id: string
@@ -98,33 +98,6 @@ export function DonutBreakdown({
         ))}
       </div>
     </div>
-  )
-}
-
-export function MonthBars({
-  rows,
-  color,
-}: {
-  rows: { key: string; label: string; amount: number }[]
-  color: string
-}) {
-  const max = Math.max(...rows.map((row) => row.amount), 0)
-  return (
-    <ul>
-      {rows.map((row) => {
-        const ratio = max > 0 ? row.amount / max : 0
-        const width = row.amount > 0 ? Math.max(ratio, DONUT_MIN_ARC) * 100 : 0
-        return (
-          <li key={row.key} className="flex min-h-11 items-center gap-3">
-            <span className="w-28 shrink-0 text-sm font-semibold">{row.label}</span>
-            <span className="h-3 flex-1 overflow-hidden rounded-full border-[1.5px] border-azul-ink bg-card" aria-hidden="true">
-              <span className="donut-arc block h-full rounded-full" style={{ width: `${width}%`, background: color }} />
-            </span>
-            <span className="w-24 shrink-0 text-right font-display text-sm font-semibold">{formatMoney(row.amount)}</span>
-          </li>
-        )
-      })}
-    </ul>
   )
 }
 

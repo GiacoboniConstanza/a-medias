@@ -1,6 +1,5 @@
 import { money } from './format.ts'
 import { DEFAULT_ICON } from './icons.ts'
-import type { ExpenseSpan } from './expense-range.ts'
 import { amountForMonth, type AmountRevision } from './fixed.ts'
 import { monthEnd, monthKey } from './month.ts'
 import { periodFromDate } from './period.ts'
@@ -354,57 +353,10 @@ function mapExpense(expense: {
   }
 }
 
-/** Gastos visibles del mes de `period`, propios y compartidos que pagó la otra persona. */
-export async function loadVisibleExpenses(span: ExpenseSpan, period: string): Promise<ExpenseItem[]> {
-  if (span.kind === 'dates' && span.dates.length === 0) return []
-
-  const ranked = supabase
-    .from('expenses')
-    .select(EXPENSE_COLUMNS)
-    .eq('period', period)
-    .order('spent_on', { ascending: true })
-    .order('created_at', { ascending: true })
-
-  const fullMonth = span.kind === 'range' && span.from === period && span.to === monthEnd(period)
-  const filtered = fullMonth
-    ? ranked
-    : span.kind === 'dates'
-      ? ranked.in('spent_on', span.dates)
-      : ranked.gte('spent_on', span.from).lte('spent_on', span.to)
-
-  const { data, error } = await filtered
-  fail(error)
-  return (data ?? []).map(mapExpense)
-}
-
 export async function loadSettledMonths(): Promise<string[]> {
   const { data, error } = await supabase.from('settlements').select('month')
   fail(error)
   return (data ?? []).map((row) => String(row.month).slice(0, 10))
-}
-
-/** Gastos que pagó esta persona en el mes de `period`. Un recorte de días usa la fecha real. */
-export async function loadPayerExpenses(payerId: string, span: ExpenseSpan, period: string): Promise<ExpenseItem[]> {
-  if (span.kind === 'dates' && span.dates.length === 0) return []
-
-  const ranked = supabase
-    .from('expenses')
-    .select(EXPENSE_COLUMNS)
-    .eq('payer_id', payerId)
-    .eq('period', period)
-    .order('spent_on', { ascending: true })
-    .order('created_at', { ascending: true })
-
-  const fullMonth = span.kind === 'range' && span.from === period && span.to === monthEnd(period)
-  const filtered = fullMonth
-    ? ranked
-    : span.kind === 'dates'
-      ? ranked.in('spent_on', span.dates)
-      : ranked.gte('spent_on', span.from).lte('spent_on', span.to)
-
-  const { data, error } = await filtered
-  fail(error)
-  return (data ?? []).map(mapExpense)
 }
 
 export async function loadCategoryYearExpenses(categoryId: string, year: number): Promise<ExpenseItem[]> {
@@ -907,19 +859,6 @@ export async function loadSavingMoves(savingId: string): Promise<SavingMove[]> {
     .from('saving_moves')
     .select('id, saving_id, household_id, user_id, kind, amount, spent_on, period, title, notes')
     .eq('saving_id', savingId)
-    .order('spent_on', { ascending: false })
-  fail(error)
-  return (data ?? []).map(mapSavingMove)
-}
-
-export async function loadSavingMovesThisMonth(householdId: string, month: string): Promise<SavingMove[]> {
-  const end = monthEnd(month)
-  const { data, error } = await supabase
-    .from('saving_moves')
-    .select('id, saving_id, household_id, user_id, kind, amount, spent_on, period, title, notes')
-    .eq('household_id', householdId)
-    .gte('spent_on', month)
-    .lte('spent_on', end)
     .order('spent_on', { ascending: false })
   fail(error)
   return (data ?? []).map(mapSavingMove)

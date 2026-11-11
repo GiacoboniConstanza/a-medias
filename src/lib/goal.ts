@@ -1,13 +1,6 @@
 import { formatMoney, fromCents, toCents } from './format.ts'
 import { monthTitle } from './month.ts'
 
-export function goalProgress(saved: number, target: number): { label: string; arc: number } {
-  if (target <= 0 || saved <= 0) return { label: '0%', arc: 0 }
-  const ratio = saved / target
-  if (ratio < 0.01) return { label: '<1%', arc: 0.015 }
-  return { label: `${Math.round(ratio * 100)}%`, arc: Math.min(ratio, 1) }
-}
-
 export function monthsUntil(targetDate: string, today = new Date()): number {
   const [year, month] = targetDate.split('-').map(Number)
   if (!year || !month) return 0

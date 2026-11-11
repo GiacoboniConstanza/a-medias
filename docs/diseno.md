@@ -1,5 +1,7 @@
 # Guía de diseño de A Medias
 
+> **Desactualizado** tras las reestructuras del 10–11/11/2026 (Movimientos, formulario único, Ahorros unificados). No usar como criterio hasta que diseño lo actualice.
+
 > Esta es la fuente de verdad visual de la app. Va en `docs/diseno.md`, y las imágenes de referencia van en `docs/diseno/`.
 > Base: rama `develop`, commit `1caab7c` (1/11/2026, 21:34, hora de Catamarca), más los bocetos aprobados de Inicio de Finanzas (opción B y Amigable), Compartidos (v2 y Amigable) y la navegación por módulo, la paleta unificada del 2/11/2026 y las respuestas de Coty del 2/11/2026 (cuatro tandas, la última con la simplificación aprobada), y las decisiones de la corrida 1 (commit `7b6a19f`, informadas el 2/11/2026 a las 12:31, hora de Catamarca; N21 a N27). Versión 10.
 > Lo marcado **"Decisión de diseño (Art Attack)"** es firme: Coty delegó las decisiones de diseño y se implementa igual que lo aprobado. La sección 10 (simplificación, aprobada por Coty) es la regla vigente del encabezado y de la densidad: si algo de las secciones 4 y 5 choca con la 10, gana la 10. No quedan dudas de negocio abiertas (8.2).

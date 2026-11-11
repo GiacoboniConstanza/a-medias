@@ -66,23 +66,6 @@ export type Database = {
         },
         { recipient_percent?: number; partner_percent?: number }
       >
-      monthly_incomes: Table<
-        {
-          id: string
-          user_id: string
-          household_id: string
-          month: string
-          base_amount: number
-        },
-        {
-          id?: string
-          user_id: string
-          household_id: string
-          month: string
-          base_amount: number
-        },
-        { base_amount?: number }
-      >
       income_extras: Table<
         {
           id: string

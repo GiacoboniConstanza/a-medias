@@ -68,16 +68,3 @@ export function daysInMonth(monthStart: string): number {
 export function isCurrentMonth(monthStart: string, today = new Date()): boolean {
   return monthStart === monthKey(today)
 }
-
-export function daysLeftInMonth(today = new Date()): number {
-  const total = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate()
-  return total - today.getDate() + 1
-}
-
-export function longDate(date = new Date()): string {
-  return new Intl.DateTimeFormat('es-AR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  }).format(date)
-}

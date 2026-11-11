@@ -94,20 +94,6 @@ export function proteinLabel(eaten: number, goal: number | null): string {
   return `${formatAmount(eaten)} de ${formatAmount(goal)} g de proteína`
 }
 
-export function foodPlantCopy(protein: number, goal: number | null): { title: string; detail: string } {
-  if (goal == null || goal <= 0) {
-    return {
-      title: 'Tu plantita',
-      detail: protein > 0 ? `Hoy sumaste ${formatAmount(protein)} g de proteína.` : 'Cuando anotes una comida, le crece el fruto.',
-    }
-  }
-  const percent = proteinPercent(protein, goal) ?? 0
-  return {
-    title: percent >= 100 ? 'Tu plantita dio fruto' : 'Tu plantita',
-    detail: proteinLabel(protein, goal) + '.',
-  }
-}
-
 export function parseMacro(value: string): number | null {
   const trimmed = value.trim().replace(',', '.')
   if (!trimmed) return null

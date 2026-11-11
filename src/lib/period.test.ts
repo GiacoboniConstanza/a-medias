@@ -1,10 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { catamarcaToday, isAfterDay } from './month.ts'
 import {
-  deleteExpenseConfirm,
   expenseIsReadOnly,
   monthSharedTotal,
-  movementInMonth,
   ownerCanMakePrivate,
   periodFollowsDate,
   periodFromDate,
@@ -44,26 +42,6 @@ describe('totales del mes', () => {
     expect(monthSharedTotal(expenses, '2026-10-01')).toBe(40)
   })
 
-  it('manda el gusto de la bolsa al mes del período', () => {
-    expect(
-      movementInMonth(
-        { kind: 'gusto', happenedOn: '2026-10-28', linkedToPeriod: true },
-        '2026-11-01',
-      ),
-    ).toBe(true)
-    expect(
-      movementInMonth(
-        { kind: 'gusto', happenedOn: '2026-11-02', linkedToPeriod: false },
-        '2026-11-01',
-      ),
-    ).toBe(false)
-    expect(
-      movementInMonth(
-        { kind: 'to_fund', happenedOn: '2026-11-04', linkedToPeriod: false },
-        '2026-11-01',
-      ),
-    ).toBe(true)
-  })
 })
 
 describe('fecha de Catamarca', () => {
@@ -112,7 +90,4 @@ describe('permisos de un gasto', () => {
     ).toBe(100)
   })
 
-  it('mantiene el texto de confirmar el borrado', () => {
-    expect(deleteExpenseConfirm).toBe('¿Eliminar este gasto? No se puede deshacer.')
-  })
 })
