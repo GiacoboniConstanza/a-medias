@@ -18,10 +18,10 @@ import { expenseSpan, type DatePreset, type ExpenseSpan } from '../lib/expense-r
 import { matchesCategories, matchesScope, matchesSpan, type ScopeFilter } from '../lib/finance-filters.ts'
 import { formatMoney, normalizeMoney } from '../lib/format.ts'
 import { iconSurface } from '../lib/icons.ts'
-import { loadLoanMovements, type PeriodLoan } from '../lib/loans.ts'
+import { loadTransfers, type Transfer } from '../lib/transfers.ts'
 import { movementExpenseSubtitle, movementExpenseTitle, movementSavingSubtitle, movementSavingTitle } from '../lib/movement-row.ts'
 import { catamarcaToday, monthEnd, monthName, shortDate } from '../lib/month.ts'
-import type { ExpenseItem } from '../lib/api.ts'
+import type { ExpenseItem, SavingMove } from '../lib/api.ts'
 
 type MovementKind = 'todos' | 'gastos' | 'ingresos' | 'transferencias' | 'ahorros'
 
@@ -42,6 +42,8 @@ type MovementRow = {
   fill: string
   border: string
   expense?: ExpenseItem
+  transfer?: Transfer
+  savingMove?: SavingMove
 }
 
 const EMPTY_FILTERS: ExpenseFilters = {
@@ -59,8 +61,10 @@ export function MovementsScreen() {
   const { month } = useMonth()
   const { data, loading, error, refresh } = useFinance()
   const [params, setParams] = useSearchParams()
-  const [transfers, setTransfers] = useState<PeriodLoan[]>([])
-  const [editing, setEditing] = useState<ExpenseItem | null>(null)
+  const [transfers, setTransfers] = useState<Transfer[]>([])
+  const [editingExpense, setEditingExpense] = useState<ExpenseItem | null>(null)
+  const [editingTransfer, setEditingTransfer] = useState<Transfer | null>(null)
+  const [editingSavingMove, setEditingSavingMove] = useState<SavingMove | null>(null)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const location = useLocation()
   const tipo = (params.get('tipo') as MovementKind | null) ?? 'todos'
@@ -78,9 +82,9 @@ export function MovementsScreen() {
 
   useEffect(() => {
     let active = true
-    loadLoanMovements()
+    loadTransfers()
       .then((rows) => {
-        if (active) setTransfers(rows.loans)
+        if (active) setTransfers(rows)
       })
       .catch(() => {
         if (active) setTransfers([])
@@ -305,7 +309,9 @@ export function MovementsScreen() {
                       type="button"
                       className="grid min-h-[62px] w-full grid-cols-[52px_1fr_auto] items-center gap-2 border-t border-dashed border-linea-punteada py-2 text-left"
                       onClick={() => {
-                        if (row.expense) setEditing(row.expense)
+                        if (row.expense) setEditingExpense(row.expense)
+                        else if (row.transfer) setEditingTransfer(row.transfer)
+                        else if (row.savingMove) setEditingSavingMove(row.savingMove)
                       }}
                     >
                       <span
@@ -376,13 +382,21 @@ export function MovementsScreen() {
         partnerName={partnerName}
       />
 
-      {editing ? (
+      {editingExpense || editingTransfer || editingSavingMove ? (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-crema">
           <MovementForm
-            expense={editing}
-            onClose={() => setEditing(null)}
+            expense={editingExpense}
+            transfer={editingTransfer}
+            savingMove={editingSavingMove}
+            onClose={() => {
+              setEditingExpense(null)
+              setEditingTransfer(null)
+              setEditingSavingMove(null)
+            }}
             onDone={async () => {
-              setEditing(null)
+              setEditingExpense(null)
+              setEditingTransfer(null)
+              setEditingSavingMove(null)
               await refresh()
             }}
           />
@@ -424,7 +438,7 @@ function buildRows(input: {
   preset: DatePreset
   span: ExpenseSpan
   tipo: MovementKind
-  transfers: PeriodLoan[]
+  transfers: Transfer[]
 }): MovementRow[] {
   const { data, meId, month, partnerName, otherId, scope, who, categoryIds, savingId, preset, span, tipo, transfers } = input
   const items: MovementRow[] = []
@@ -508,28 +522,29 @@ function buildRows(input: {
     }
   }
   for (const transfer of transfers.filter((row) => row.period.slice(0, 10) === month.slice(0, 10))) {
-    if (preset !== 'month' && !matchesSpan(transfer.period, span)) continue
-    const sent = transfer.lenderId === meId
+    if (preset !== 'month' && !matchesSpan(transfer.transferredOn, span) && !matchesSpan(transfer.period, span)) continue
+    const sent = transfer.fromId === meId
     if (who === 'me' && !sent) continue
     if (who === 'partner') {
       if (!otherId) continue
-      if (sent ? transfer.borrowerId !== otherId : transfer.lenderId !== otherId) continue
+      if (sent ? transfer.toId !== otherId : transfer.fromId !== otherId) continue
     }
     items.push({
-      id: `xfer-${transfer.lenderId}-${transfer.borrowerId}-${transfer.amount}-${transfer.period}`,
+      id: transfer.id,
       kind: 'transferencia',
       title: 'Transferencia',
       subtitle: sent ? `Le pasaste a ${partnerName}` : `${partnerName} te pasó`,
       amount: transfer.amount,
       signed: sent ? -transfer.amount : transfer.amount,
-      spentOn: transfer.period,
+      spentOn: transfer.transferredOn,
       period: transfer.period,
       isShared: false,
       private: false,
-      payerId: transfer.lenderId,
+      payerId: transfer.fromId,
       icon: 'right-left',
       fill: 'var(--color-ciruela-claro)',
       border: 'var(--color-ciruela-ink)',
+      transfer,
     })
   }
   for (const move of data.savingMoves) {
@@ -560,6 +575,7 @@ function buildRows(input: {
       icon: saving.icon,
       fill: 'var(--color-azul-claro)',
       border: 'var(--color-azul-ink)',
+      savingMove: move,
     })
   }
 

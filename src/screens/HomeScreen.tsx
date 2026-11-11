@@ -18,7 +18,7 @@ import { debtCopy, monthPocket, monthSplit, myPrivateSpent, partnerId } from '..
 import { sumPaidBy } from '../lib/period.ts'
 import { homeAccountingCard, type HomeCardLine } from '../lib/home-card.ts'
 import { formatMoney } from '../lib/format.ts'
-import { loanMonthEffect, loadLoanMovements, type PeriodLoan, type PeriodRepayment } from '../lib/loans.ts'
+import { loanMonthEffect, loadLoanMovements, type PeriodLoan, type PeriodRepayment } from '../lib/transfers.ts'
 import { isHubHome } from '../lib/modules.ts'
 
 function yearBannerKey(userId: string, year: number) {
@@ -42,7 +42,7 @@ export function HomeScreen() {
   const [params, setParams] = useSearchParams()
   const [toast, setToast] = useState('')
   const [closedBanner, setClosedBanner] = useState<string | null>(null)
-  const [loanMoves, setLoanMoves] = useState<{ loans: PeriodLoan[]; repayments: PeriodRepayment[] }>({
+  const [transferMoves, setTransferMoves] = useState<{ loans: PeriodLoan[]; repayments: PeriodRepayment[] }>({
     loans: [],
     repayments: [],
   })
@@ -65,10 +65,10 @@ export function HomeScreen() {
     let active = true
     loadLoanMovements()
       .then((rows) => {
-        if (active) setLoanMoves(rows)
+        if (active) setTransferMoves(rows)
       })
       .catch(() => {
-        if (active) setLoanMoves({ loans: [], repayments: [] })
+        if (active) setTransferMoves({ loans: [], repayments: [] })
       })
     return () => {
       active = false
@@ -118,9 +118,9 @@ export function HomeScreen() {
   const savedIn = mySavingMoves.filter((row) => row.kind === 'aporte').reduce((sum, row) => sum + row.amount, 0)
   const savedOut = mySavingMoves.filter((row) => row.kind === 'retiro').reduce((sum, row) => sum + row.amount, 0)
   const pocket = monthPocket({ base, privateSpent, sharedPaid, extras, savedIn, savedOut })
-  const loanEffect = loanMonthEffect(meId, month, loanMoves.loans, loanMoves.repayments)
+  const transferEffect = loanMonthEffect(meId, month, transferMoves.loans, transferMoves.repayments)
   const partnerName = (otherId && data.names[otherId]) || 'tu compañera'
-  const card = homeAccountingCard(pocket, loanEffect, partnerName)
+  const card = homeAccountingCard(pocket, transferEffect, partnerName)
   const remaining = card.remaining
   const amountTone = remaining < 0 ? 'text-rosa-texto' : 'text-title'
   const aMano = hasShared && split.amount === 0
@@ -292,12 +292,12 @@ function Row({ line }: { line: HomeCardLine }) {
     income: 'font-semibold text-mostaza-ink',
     spent: 'font-semibold text-rosa-texto',
     ahorro: 'font-semibold text-azul-ink',
-    loan: 'font-normal text-ciruela-ink',
+    transfer: 'font-normal text-ciruela-ink',
   }[line.role]
   return (
     <div className={`flex items-baseline justify-between gap-3 text-[14px] ${tone}`}>
       <span className="inline-flex min-w-0 items-center gap-1.5">
-        {line.role === 'loan' ? <AppIcon name="right-left" /> : null}
+        {line.role === 'transfer' ? <AppIcon name="right-left" /> : null}
         {line.role === 'ahorro' ? <AppIcon name="piggy-bank" /> : null}
         {line.label}
       </span>

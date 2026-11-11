@@ -1,5 +1,5 @@
 begin;
-select plan(31);
+select plan(35);
 
 insert into auth.users (id, email, raw_user_meta_data)
 values
@@ -38,24 +38,81 @@ insert into public.savings (
   id, household_id, name, emoji, icon, target_amount, target_date, is_shared, owner_id
 ) values
   ('f1f1f1f1-a001-4000-8000-000000000001', 'c3333333-3333-4333-8333-333333333333', 'Lollapalooza', 'music', 'music', 600000, null, false, 'a1111111-1111-4111-8111-111111111111'),
-  ('f9f9f9f9-a001-4000-8000-000000000001', 'c3333333-3333-4333-8333-333333333333', 'Vacaciones', 'umbrella-beach', 'umbrella-beach', 1200000, '2027-01-15', true, null);
+  ('f9f9f9f9-a001-4000-8000-000000000001', 'c3333333-3333-4333-8333-333333333333', 'Vacaciones', 'umbrella-beach', 'umbrella-beach', 1200000, '2027-01-15', true, null),
+  ('f8f8f8f8-a001-4000-8000-000000000001', 'c3333333-3333-4333-8333-333333333333', 'Archivo con año', 'box-archive', 'box-archive', null, null, false, 'a1111111-1111-4111-8111-111111111111'),
+  ('f7f7f7f7-a001-4000-8000-000000000001', 'c3333333-3333-4333-8333-333333333333', 'Archivo viejo', 'box', 'box', null, null, false, 'a1111111-1111-4111-8111-111111111111');
 
 insert into public.saving_opening_balances (saving_id, user_id, amount) values
   ('f1f1f1f1-a001-4000-8000-000000000001', 'a1111111-1111-4111-8111-111111111111', 300000),
   ('f9f9f9f9-a001-4000-8000-000000000001', 'a1111111-1111-4111-8111-111111111111', 330000),
   ('f9f9f9f9-a001-4000-8000-000000000001', 'b2222222-2222-4222-8222-222222222222', 210000);
 
-insert into public.saving_moves (saving_id, household_id, user_id, kind, amount, spent_on, period, title)
-values (
-  'f1f1f1f1-a001-4000-8000-000000000001',
-  'c3333333-3333-4333-8333-333333333333',
-  'a1111111-1111-4111-8111-111111111111',
-  'aporte',
-  300000,
-  '2026-03-10',
-  '2026-03-01',
-  'Incentivo'
-);
+-- Los movimientos van antes de archivar; el archivo exige saldo 0.
+insert into public.saving_moves (id, saving_id, household_id, user_id, kind, amount, spent_on, period, title)
+values
+  (
+    'f1f1f1f1-b001-4000-8000-000000000001',
+    'f1f1f1f1-a001-4000-8000-000000000001',
+    'c3333333-3333-4333-8333-333333333333',
+    'a1111111-1111-4111-8111-111111111111',
+    'aporte',
+    300000,
+    '2026-03-10',
+    '2026-03-01',
+    'Incentivo'
+  ),
+  (
+    'f8f8f8f8-b001-4000-8000-000000000001',
+    'f8f8f8f8-a001-4000-8000-000000000001',
+    'c3333333-3333-4333-8333-333333333333',
+    'a1111111-1111-4111-8111-111111111111',
+    'aporte',
+    25000,
+    '2026-02-12',
+    '2026-02-01',
+    'Antes de archivar'
+  ),
+  (
+    'f8f8f8f8-b002-4000-8000-000000000001',
+    'f8f8f8f8-a001-4000-8000-000000000001',
+    'c3333333-3333-4333-8333-333333333333',
+    'a1111111-1111-4111-8111-111111111111',
+    'retiro',
+    25000,
+    '2026-05-20',
+    '2026-05-01',
+    'Vaciar para archivar'
+  ),
+  (
+    'f7f7f7f7-b001-4000-8000-000000000001',
+    'f7f7f7f7-a001-4000-8000-000000000001',
+    'c3333333-3333-4333-8333-333333333333',
+    'a1111111-1111-4111-8111-111111111111',
+    'aporte',
+    10000,
+    '2025-03-01',
+    '2025-03-01',
+    'Año pasado'
+  ),
+  (
+    'f7f7f7f7-b002-4000-8000-000000000001',
+    'f7f7f7f7-a001-4000-8000-000000000001',
+    'c3333333-3333-4333-8333-333333333333',
+    'a1111111-1111-4111-8111-111111111111',
+    'retiro',
+    10000,
+    '2025-04-01',
+    '2025-04-01',
+    'Vaciar año pasado'
+  );
+
+update public.savings
+set archived_at = timestamptz '2026-06-01 12:00:00+00'
+where id = 'f8f8f8f8-a001-4000-8000-000000000001';
+
+update public.savings
+set archived_at = timestamptz '2025-06-01 12:00:00+00'
+where id = 'f7f7f7f7-a001-4000-8000-000000000001';
 
 
 insert into public.expenses (
@@ -196,17 +253,56 @@ select is(
 
 select is(position('Guardia ajena' in (select payload::text from balance_a)), 0, 'no aparece el extra de la otra');
 select is(position('1000000' in (select payload::text from balance_a)), 0, 'no aparece el sueldo de la otra');
-select ok(((select payload from balance_a) ->> 'gustos_spent') is null, 'ya no hay gustos desde la bolsa');
+select ok(((select payload from balance_a) -> 'gustos_spent') is null, 'ya no hay gustos_spent');
+select ok(((select payload from balance_a) -> 'extras_saved') is null, 'ya no hay extras_saved');
+select ok(((select payload from balance_a) -> 'goal') is null, 'ya no hay goal');
+select ok(((select payload from balance_a) -> 'funds') is null, 'ya no hay funds');
 select is(((select payload from balance_a) ->> 'extras_total'), '450000', 'suma solo mis extras');
-select is(((select payload from balance_a) ->> 'extras_saved'), '300000', 'al ahorro fue lo que aparté a un fondo');
-select is(((select payload from balance_a) -> 'goal' ->> 'mine'), '330000', 'la meta muestra solo mi aporte');
-select is(((select payload from balance_a) -> 'goal' ->> 'total'), '540000', 'la meta muestra el progreso total');
 select is(
-  position('b2222222-2222-4222-8222-222222222222' in ((select payload from balance_a) -> 'goal')::text),
-  0,
-  'la meta no identifica el aporte de la otra'
+  (
+    select count(*)
+    from jsonb_array_elements((select payload from balance_a) -> 'savings') as item
+  ),
+  3::bigint,
+  'lista ahorros activos y archivados con movimientos del año'
 );
-select is(((select payload from balance_a) -> 'highlight' ->> 'fund_name'), 'Lollapalooza', 'el extra más grande fue al fondo propio');
+select is(
+  (
+    select item ->> 'year_in'
+    from jsonb_array_elements((select payload from balance_a) -> 'savings') as item
+    where item ->> 'name' = 'Lollapalooza'
+  ),
+  '300000',
+  'el propio muestra aportes del año'
+);
+select is(
+  (
+    select item ->> 'mine'
+    from jsonb_array_elements((select payload from balance_a) -> 'savings') as item
+    where item ->> 'name' = 'Vacaciones'
+  ),
+  '330000',
+  'el compartido muestra solo mi saldo'
+);
+select is(
+  (
+    select item ->> 'balance'
+    from jsonb_array_elements((select payload from balance_a) -> 'savings') as item
+    where item ->> 'name' = 'Vacaciones'
+  ),
+  '540000',
+  'el compartido muestra el saldo total'
+);
+select is(
+  (
+    select count(*)
+    from jsonb_array_elements((select payload from balance_a) -> 'savings') as item
+    where item ->> 'name' = 'Archivo viejo'
+  ),
+  0::bigint,
+  'archivado sin movimientos del año no entra'
+);
+select is(((select payload from balance_a) -> 'highlight' ->> 'saving_name'), 'Lollapalooza', 'el aporte más grande fue a un ahorro propio');
 select is(((select payload from balance_a) -> 'dues' ->> 'on_time'), '3', 'cuenta los vencimientos pagados a tiempo');
 select is(((select payload from balance_a) -> 'dues' ->> 'expected'), '10', 'no cuenta el vencimiento privado de la otra');
 

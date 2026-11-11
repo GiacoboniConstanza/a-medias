@@ -29,7 +29,9 @@ import {
   yearTotals,
   type YearCategory,
   type YearReport,
+  type YearSaving,
 } from '../lib/year.ts'
+import { savingPercent } from '../lib/savings.ts'
 
 const ARROW = 'grid h-11 w-11 shrink-0 place-items-center rounded-full bg-card text-lg text-mostaza-ink shadow-soft disabled:opacity-40'
 
@@ -246,32 +248,13 @@ function FriendlyView({
         <h2 className="mb-3 flex items-center gap-2 font-display text-[17px] font-semibold">
           <AppIcon name="piggy-bank" className="text-mostaza-ink" /> Tus ahorros
         </h2>
-        {report.funds.length === 0 && !report.goal ? (
+        {report.savings.length === 0 ? (
           <p className="text-sm font-semibold text-muted">Cuando cargues un aporte, lo vas a ver acá.</p>
         ) : (
-          <div className="flex flex-wrap justify-center gap-3">
-            {report.funds.map((fund) => (
-              <Ring
-                key={fund.id}
-                icon={fund.icon}
-                color="var(--color-mostaza)"
-                ratio={fund.target > 0 ? fund.saved / fund.target : 0}
-                title={fund.name}
-                detail={`${formatMoney(fund.saved)} / ${formatMoney(fund.target)}`}
-                note={fund.target > 0 ? `${Math.round((fund.saved / fund.target) * 100)}%` : '—'}
-              />
+          <div className="space-y-3">
+            {report.savings.map((saving) => (
+              <YearSavingCard key={saving.id} saving={saving} />
             ))}
-            {report.goal ? (
-              <Ring
-                icon={report.goal.icon}
-                color="var(--color-azul)"
-                ratio={report.goal.target > 0 ? report.goal.total / report.goal.target : 0}
-                title={report.goal.name}
-                detail={`${formatMoney(report.goal.total)} / ${formatMoney(report.goal.target)}`}
-                note={`${report.goal.target > 0 ? Math.round((report.goal.total / report.goal.target) * 100) : 0}% · compartida`}
-                extra={`Tu aporte ${formatMoney(report.goal.mine)}`}
-              />
-            ) : null}
           </div>
         )}
       </Card>
@@ -428,28 +411,23 @@ function AccountingView({
               <th className="py-2 text-left font-semibold">Extras del año</th>
               <td className="py-2 text-right font-bold">{yearCell(report.extrasTotal)}</td>
             </tr>
-            {report.funds.map((fund) => (
-              <tr key={fund.id}>
-                <th className="border-t border-dashed border-line py-2 text-left font-semibold">{fund.name}</th>
-                <td className="border-t border-dashed border-line py-2 text-right">
-                  {formatMoney(fund.saved)} / {formatMoney(fund.target)}
-                </td>
-              </tr>
-            ))}
-            {report.goal ? (
-              <>
-                <tr>
-                  <th className="border-t border-dashed border-line py-2 text-left font-semibold">{report.goal.name} (total)</th>
+            {report.savings.map((saving) => {
+              const shown = saving.isShared ? saving.balance : saving.mine
+              return (
+                <tr key={saving.id}>
+                  <th className="border-t border-dashed border-line py-2 text-left font-semibold">
+                    {saving.name}
+                    {saving.archived ? ' (archivado)' : ''}
+                  </th>
                   <td className="border-t border-dashed border-line py-2 text-right">
-                    {formatMoney(report.goal.total)} / {formatMoney(report.goal.target)}
+                    {formatMoney(shown)}
+                    {saving.yearIn > 0 || saving.yearOut > 0
+                      ? ` · +${formatMoney(saving.yearIn)}${saving.yearOut > 0 ? ` / −${formatMoney(saving.yearOut)}` : ''}`
+                      : ''}
                   </td>
                 </tr>
-                <tr>
-                  <th className="border-t border-dashed border-line py-2 text-left font-semibold">Tu aporte a la meta</th>
-                  <td className="border-t border-dashed border-line py-2 text-right">{formatMoney(report.goal.mine)}</td>
-                </tr>
-              </>
-            ) : null}
+              )
+            })}
           </tbody>
         </Table>
         <ul className="mt-3">
@@ -592,65 +570,42 @@ function CategoryDetail({
   )
 }
 
-function Ring({
-  icon,
-  color,
-  ratio,
-  title,
-  detail,
-  note,
-  extra,
-}: {
-  icon: string
-  color: string
-  ratio: number
-  title: string
-  detail: string
-  note: string
-  extra?: string
-}) {
-  const [drawn, setDrawn] = useState(false)
-  useEffect(() => {
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (reduce) {
-      setDrawn(true)
-      return
-    }
-    const frame = requestAnimationFrame(() => setDrawn(true))
-    return () => cancelAnimationFrame(frame)
-  }, [])
-  const radius = 26
-  const circumference = 2 * Math.PI * radius
-  const dash = (drawn ? Math.max(0, Math.min(ratio, 1)) : 0) * circumference
+function YearSavingCard({ saving }: { saving: YearSaving }) {
+  const shown = saving.isShared ? saving.balance : saving.mine
+  const pct = saving.target != null && saving.target > 0 ? savingPercent(shown, saving.target) : null
   return (
-    <div className="flex w-[9.5rem] flex-col items-center gap-1 text-center">
-      <div className="relative h-[70px] w-[70px]">
-        <svg viewBox="0 0 70 70" className="h-full w-full" aria-hidden="true">
-          <circle cx="35" cy="35" r={radius} fill="none" stroke="var(--color-sand)" strokeWidth="8" />
-          <circle
-            className="year-ring"
-            cx="35"
-            cy="35"
-            r={radius}
-            fill="none"
-            stroke={color}
-            strokeWidth="8"
-            strokeLinecap="round"
-            strokeDasharray={`${dash} ${circumference}`}
-            transform="rotate(-90 35 35)"
-          />
-        </svg>
-        <span className="absolute inset-0 grid place-items-center text-[15px]" style={{ color }}>
-          <AppIcon name={icon} />
+    <article className="rounded-2xl border-2 border-azul-ink bg-tarjeta p-4 text-tinta">
+      <div className="flex items-center gap-3">
+        <span className="grid h-10 w-10 place-items-center rounded-full border-2 border-azul-ink bg-azul-claro text-azul-ink">
+          <AppIcon name={saving.icon || 'piggy-bank'} />
         </span>
+        <p className="min-w-0 flex-1 font-display text-lg font-semibold">{saving.name}</p>
+        {saving.isShared ? <span className="text-sm font-semibold text-gris">Compartido</span> : null}
+        {saving.archived ? <span className="text-sm font-semibold text-gris">Archivado</span> : null}
       </div>
-      <p className="text-sm font-bold">{title}</p>
-      <p className="text-sm text-muted">{detail}</p>
-      <p className="text-sm font-semibold" style={{ color }}>
-        {note}
-      </p>
-      {extra ? <p className="text-sm font-semibold text-muted">{extra}</p> : null}
-    </div>
+      <p className="mt-3 whitespace-nowrap font-display text-[36px] font-semibold leading-none">{formatMoney(shown)}</p>
+      {pct != null ? (
+        <div className="mt-3">
+          <div className="h-[10px] overflow-hidden rounded-full border-[1.5px] border-tinta bg-tarjeta">
+            <div className="h-full border-r-[1.5px] border-tinta bg-mostaza" style={{ width: `${pct}%` }} />
+          </div>
+          <p className="mt-1 text-sm font-semibold text-gris">
+            {pct} % de {formatMoney(saving.target ?? 0)}
+          </p>
+        </div>
+      ) : null}
+      {saving.isShared ? (
+        <p className="mt-2 text-sm font-semibold text-gris">
+          Lo tuyo: <span className="font-display text-tinta">{formatMoney(saving.mine)}</span>
+        </p>
+      ) : null}
+      {saving.yearIn > 0 || saving.yearOut > 0 ? (
+        <p className="mt-2 text-sm font-semibold text-gris">
+          Este año: +{formatMoney(saving.yearIn)}
+          {saving.yearOut > 0 ? ` / −${formatMoney(saving.yearOut)}` : ''}
+        </p>
+      ) : null}
+    </article>
   )
 }
 

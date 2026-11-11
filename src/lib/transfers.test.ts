@@ -7,7 +7,7 @@ import {
   loanMonthEffect,
   remainingAfterLoans,
   sharedSignedBalance,
-} from './loans.ts'
+} from './transfers.ts'
 import { splitByPercents } from './split.ts'
 
 const coty = 'coty'

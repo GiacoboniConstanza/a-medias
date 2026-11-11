@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { monthPocket } from './derive.ts'
-import { loanMonthEffect, remainingAfterLoans } from './loans.ts'
+import { loanMonthEffect, remainingAfterLoans } from './transfers.ts'
 import { passPhrase, planMonthSettlement } from './settle.ts'
 import { splitByPercents, type SplitResult } from './split.ts'
 

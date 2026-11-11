@@ -1,5 +1,5 @@
 import { formatMoney } from './format.ts'
-import { loanEffectLines, remainingAfterLoans, type LoanMonthEffect } from './loans.ts'
+import { loanEffectLines, remainingAfterLoans, type LoanMonthEffect } from './transfers.ts'
 
 export type HomePocket = {
   income: number
@@ -11,7 +11,7 @@ export type HomePocket = {
 export type HomeCardLine = {
   label: string
   amount: string
-  role: 'income' | 'spent' | 'ahorro' | 'loan'
+  role: 'income' | 'spent' | 'ahorro' | 'transfer'
 }
 
 /** Arma Te quedan. El monto sale de remainingAfterLoans con aportes/retiros aparte de Gastaste. */
@@ -24,7 +24,7 @@ export function homeAccountingCard(pocket: HomePocket, effect: LoanMonthEffect, 
   ]
   if (pocket.savedIn > 0) lines.push(line('Pusiste en ahorros', formatMoney(pocket.savedIn), 'ahorro'))
   if (pocket.savedOut > 0) lines.push(line('Sacaste de ahorros', formatMoney(pocket.savedOut), 'ahorro'))
-  lines.push(...loanEffectLines(partnerName, effect).map((row) => line(row.label, formatMoney(row.amount), 'loan')))
+  lines.push(...loanEffectLines(partnerName, effect).map((row) => line(row.label, formatMoney(row.amount), 'transfer')))
   return {
     remaining,
     remainingText: formatMoney(remaining),

@@ -174,6 +174,7 @@ export async function loadFinance(householdId: string, userId: string, month: st
       .from('expenses')
       .select('spent_on')
       .eq('owner_id', userId)
+      .eq('paid_from_bag', false)
       .order('spent_on', { ascending: false })
       .limit(1)
       .maybeSingle(),
@@ -273,7 +274,7 @@ export async function loadFinance(householdId: string, userId: string, month: st
       name: category.name,
       icon: category.icon || DEFAULT_ICON,
     })),
-    monthExpenses: (monthExpenses.data ?? []).map(mapExpense),
+    monthExpenses: withoutBagExpenses((monthExpenses.data ?? []).map(mapExpense)),
     lastLoggedOn: lastExpense.data?.spent_on ?? null,
     extrasThisMonth,
     savings,
@@ -353,6 +354,11 @@ function mapExpense(expense: {
   }
 }
 
+/** Los gastos viejos de la bolsa no cuentan en Movimientos, Te quedan ni totales. */
+export function withoutBagExpenses(items: readonly ExpenseItem[]): ExpenseItem[] {
+  return items.filter((item) => !item.paidFromBag)
+}
+
 export async function loadSettledMonths(): Promise<string[]> {
   const { data, error } = await supabase.from('settlements').select('month')
   fail(error)
@@ -369,7 +375,7 @@ export async function loadCategoryYearExpenses(categoryId: string, year: number)
     .order('spent_on', { ascending: true })
     .order('created_at', { ascending: true })
   fail(error)
-  return (data ?? []).map(mapExpense)
+  return withoutBagExpenses((data ?? []).map(mapExpense))
 }
 
 

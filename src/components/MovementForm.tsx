@@ -14,10 +14,12 @@ import {
   createExtra,
   createSavingMove,
   deleteExpense,
+  deleteSavingMove,
   loadFinance,
   loadSettledMonths,
   saveSalaryRevision,
   updateExpense,
+  updateSavingMove,
   type Category,
   type ExpenseItem,
   type SavingItem,
@@ -31,7 +33,7 @@ import { sumPaidBy } from '../lib/period.ts'
 import { formatMoney, moneyDraftFromAmount, normalizeMoney } from '../lib/format.ts'
 import { homeAccountingCard } from '../lib/home-card.ts'
 import { DEFAULT_ICON } from '../lib/icons.ts'
-import { loanMonthEffect, loadLoanMovements, saveTransfer } from '../lib/loans.ts'
+import { deleteLoan, loanMonthEffect, loadLoanMovements, saveTransfer, type Transfer } from '../lib/transfers.ts'
 import { movementTextFields, movementTypeIsLocked, showSharedPayerPicker } from '../lib/movement-row.ts'
 import { catamarcaToday, isAfterDay, monthKey, monthName, monthTitle, shiftMonth, shortDate } from '../lib/month.ts'
 import { periodFollowsDate, periodFromDate, sharedMonthSettled } from '../lib/period.ts'
@@ -69,11 +71,15 @@ type SavedView = {
 
 export function MovementForm({
   expense = null,
+  transfer = null,
+  savingMove = null,
   prefill,
   onClose,
   onDone,
 }: {
   expense?: ExpenseItem | null
+  transfer?: Transfer | null
+  savingMove?: SavingMove | null
   prefill?: MovementPrefill
   onClose?: () => void
   onDone?: () => void | Promise<void>
@@ -162,7 +168,7 @@ export function MovementForm({
                     className={`whitespace-nowrap font-display text-lg ${
                       line.role === 'income'
                         ? 'text-mostaza-ink'
-                        : line.role === 'loan'
+                        : line.role === 'transfer'
                           ? 'text-ciruela-ink'
                           : line.role === 'ahorro'
                             ? 'text-azul-ink'
@@ -243,12 +249,22 @@ export function MovementForm({
       names={data.names}
       categories={data.categories}
       expense={expense}
+      transfer={transfer}
+      savingMove={savingMove}
       prefill={prefill}
-      initialTipo={expense ? 'gasto' : prefill?.tipo ?? stateTipo ?? null}
-      initialSavingId={prefill?.savingId ?? locationState?.savingId ?? null}
+      initialTipo={
+        expense
+          ? 'gasto'
+          : transfer
+            ? 'transferencia'
+            : savingMove
+              ? 'ahorro'
+              : prefill?.tipo ?? stateTipo ?? null
+      }
+      initialSavingId={savingMove?.savingId ?? prefill?.savingId ?? locationState?.savingId ?? null}
       savings={data.savings}
       savingMoves={data.savingMoves}
-      editing={Boolean(expense)}
+      editing={Boolean(expense || transfer || savingMove)}
       settledMonths={settledMonths}
       salaryHistory={data.salaryHistory}
       onClose={() => {
@@ -301,6 +317,8 @@ function MovementFormBody({
   names,
   categories,
   expense,
+  transfer,
+  savingMove,
   prefill,
   initialTipo,
   initialSavingId,
@@ -317,6 +335,8 @@ function MovementFormBody({
   names: Record<string, string>
   categories: Category[]
   expense: ExpenseItem | null
+  transfer: Transfer | null
+  savingMove: SavingMove | null
   prefill?: MovementPrefill
   initialTipo: MovementType | null
   initialSavingId: string | null
@@ -335,7 +355,7 @@ function MovementFormBody({
   const partnerLabel = partner?.[1] ?? 'tu compañera'
 
   const [tipo, setTipo] = useState<MovementType | null>(initialTipo)
-  const [digits, setDigits] = useState(() => moneyDraftFromAmount(expense?.amount ?? prefill?.amount ?? null))
+  const [digits, setDigits] = useState(() => moneyDraftFromAmount(expense?.amount ?? transfer?.amount ?? savingMove?.amount ?? prefill?.amount ?? null))
   const [shared, setShared] = useState(expense ? expense.isShared : true)
   const [payerId, setPayerId] = useState(expense?.payerId ?? meId)
   const [rememberedPayer, setRememberedPayer] = useState(expense?.payerId ?? meId)
@@ -345,26 +365,49 @@ function MovementFormBody({
   const [draftName, setDraftName] = useState('')
   const [draftIcon, setDraftIcon] = useState(DEFAULT_ICON)
   const [incomeKind, setIncomeKind] = useState<IncomeKind>('puntual')
-  const [transferDir, setTransferDir] = useState<TransferDir>('sent')
-  const [savingAction, setSavingAction] = useState<'aporte' | 'retiro'>(prefill?.savingKind ?? 'aporte')
+  const [transferDir, setTransferDir] = useState<TransferDir>(() =>
+    transfer && transfer.toId === meId ? 'received' : 'sent',
+  )
+  const [savingAction, setSavingAction] = useState<'aporte' | 'retiro'>(
+    savingMove?.kind ?? prefill?.savingKind ?? 'aporte',
+  )
   const activeSavingList = activeSavings(savings)
   const grouped = groupSavings(activeSavingList)
-  const orderedSavings = [...grouped.shared, ...grouped.own]
+  const orderedSavings = (() => {
+    const list = [...grouped.shared, ...grouped.own]
+    if (savingMove && !list.some((item) => item.id === savingMove.savingId)) {
+      const current = savings.find((item) => item.id === savingMove.savingId)
+      if (current) list.unshift(current)
+    }
+    return list
+  })()
   const [savingId, setSavingId] = useState<string | null>(() => {
-    if (initialSavingId && orderedSavings.some((item) => item.id === initialSavingId)) return initialSavingId
+    if (initialSavingId && (orderedSavings.some((item) => item.id === initialSavingId) || savingMove)) {
+      return initialSavingId
+    }
     return orderedSavings.length === 1 ? orderedSavings[0]!.id : null
   })
   const [newSavingOpen, setNewSavingOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
-  const [spentOn, setSpentOn] = useState(expense?.spentOn ?? prefill?.spentOn ?? catamarcaToday())
-  const [period, setPeriod] = useState(expense?.period ?? periodFromDate(prefill?.spentOn || catamarcaToday()))
-  const [periodTouched, setPeriodTouched] = useState(Boolean(expense))
-  const [title, setTitle] = useState(expense?.title ?? prefill?.title ?? '')
-  const [notes, setNotes] = useState(expense?.notes ?? '')
+  const [spentOn, setSpentOn] = useState(
+    expense?.spentOn ?? transfer?.transferredOn ?? savingMove?.spentOn ?? prefill?.spentOn ?? catamarcaToday(),
+  )
+  const [period, setPeriod] = useState(
+    expense?.period ??
+      transfer?.period ??
+      savingMove?.period ??
+      periodFromDate(prefill?.spentOn || catamarcaToday()),
+  )
+  const [periodTouched, setPeriodTouched] = useState(Boolean(expense || transfer || savingMove))
+  const [title, setTitle] = useState(
+    expense?.title ?? savingMove?.title ?? (transfer?.notes ?? prefill?.title ?? ''),
+  )
+  const [notes, setNotes] = useState(expense?.notes ?? savingMove?.notes ?? '')
   const [showErrors, setShowErrors] = useState(false)
   const [fieldError, setFieldError] = useState<'tipo' | 'monto' | null>(null)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [keyboard, setKeyboard] = useState(0)
   const montoRef = useRef<HTMLDivElement>(null)
   const tipoRef = useRef<HTMLDivElement>(null)
@@ -534,25 +577,43 @@ function MovementFormBody({
         })
       } else if (tipo === 'ahorro') {
         if (!savingId) throw new Error(savingAction === 'aporte' ? 'Elegí a qué ahorro va.' : 'Elegí de qué ahorro sale.')
-        await createSavingMove({
-          savingId,
-          householdId,
-          userId: meId,
-          kind: savingAction,
-          amount,
-          spentOn,
-          period: nextPeriod,
-          title: text.title,
-          notes: text.notes,
-        })
+        if (savingMove) {
+          await updateSavingMove({
+            id: savingMove.id,
+            savingId,
+            amount,
+            spentOn,
+            period: nextPeriod,
+            title: text.title,
+            notes: text.notes,
+          })
+        } else {
+          await createSavingMove({
+            savingId,
+            householdId,
+            userId: meId,
+            kind: savingAction,
+            amount,
+            spentOn,
+            period: nextPeriod,
+            title: text.title,
+            notes: text.notes,
+          })
+        }
         const chosen = savings.find((item) => item.id === savingId)!
-        const moves = [
-          ...savingMoves.filter((row) => row.savingId === savingId),
-          { userId: meId, kind: savingAction, amount },
-        ]
+        const moves = savingMove
+          ? savingMoves.map((row) =>
+              row.id === savingMove.id
+                ? { userId: meId, kind: savingAction, amount }
+                : { userId: row.userId, kind: row.kind, amount: row.amount },
+            )
+          : [
+              ...savingMoves.filter((row) => row.savingId === savingId),
+              { userId: meId, kind: savingAction, amount },
+            ]
         const bal = savingBalances(chosen.openings, moves)
         await onSaved({
-          kind: savingAction,
+          kind: savingMove ? 'edit' : savingAction,
           amount,
           summary: `${formatMoney(amount)} · ${chosen.name}${text.title ? ` · ${text.title}` : chosen.isShared ? ` · Con ${partnerLabel}` : ''}`,
           saving: chosen,
@@ -560,6 +621,9 @@ function MovementFormBody({
           mineBalance: bal.byUser[meId] ?? 0,
         })
       } else if (partnerIdValue) {
+        if (transfer) {
+          throw new Error('Las transferencias se borran; no se editan acá.')
+        }
         const fromId = transferDir === 'sent' ? meId : partnerIdValue
         const toId = transferDir === 'sent' ? partnerIdValue : meId
         await saveTransfer({
@@ -611,18 +675,79 @@ function MovementFormBody({
   }
 
   async function remove() {
-    if (!expense || saving) return
+    if (saving) return
+    if (!expense && !transfer && !savingMove) return
     setSaving(true)
+    setError('')
     try {
-      await deleteExpense(expense.id)
+      if (expense) await deleteExpense(expense.id)
+      else if (transfer) await deleteLoan(transfer.id)
+      else if (savingMove) await deleteSavingMove(savingMove.id)
       onClose()
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'No pude eliminar el gasto.')
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : expense
+            ? 'No pude eliminar el gasto.'
+            : transfer
+              ? 'No pude eliminar la transferencia.'
+              : 'No pude eliminar el movimiento de ahorro.',
+      )
       setSaving(false)
+      setConfirmingDelete(false)
     }
   }
 
   const moreSummary = `${monthName(period)} · ${spentOn === today ? 'Hoy' : shortDate(spentOn)}`
+
+  if (transfer) {
+    const sent = transfer.fromId === meId
+    return (
+      <div className="min-h-dvh bg-crema">
+        <section className="scallop-b bg-azul px-4 pb-4 pt-[max(0.5rem,env(safe-area-inset-top))]">
+          <div className="flex items-center gap-2">
+            <button type="button" className="grid h-11 w-11 place-items-center rounded-full bg-crema text-tinta" onClick={onClose}>
+              <AppIcon name="arrow-left" />
+            </button>
+            <h1 className="font-display text-xl font-semibold text-tinta">Transferencia</h1>
+          </div>
+        </section>
+        <div className="space-y-4 px-4 py-6">
+          <p className="font-display text-3xl font-semibold">{formatMoney(transfer.amount)}</p>
+          <p className="text-sm font-semibold text-gris">
+            {sent ? `Le pasaste a ${partnerLabel}` : `${partnerLabel} te pasó`} · {shortDate(transfer.transferredOn)}
+          </p>
+          {transfer.notes ? <p className="text-sm font-semibold text-tinta">{transfer.notes}</p> : null}
+          {error ? (
+            <p className="flex items-center gap-1 text-sm font-bold text-tinta" role="alert">
+              <AppIcon name="circle-exclamation" /> {error}
+            </p>
+          ) : null}
+          {confirmingDelete ? (
+            <div className="space-y-3">
+              <p className="font-display text-xl font-semibold">¿Eliminar esta transferencia?</p>
+              <p className="text-sm font-semibold text-gris">Se saca de Te quedan. No se puede deshacer.</p>
+              <Button type="button" variant="danger" className="w-full" onClick={() => void remove()} disabled={saving}>
+                Eliminar
+              </Button>
+              <Button type="button" variant="alt" className="w-full" onClick={() => setConfirmingDelete(false)} disabled={saving}>
+                Volver
+              </Button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="flex min-h-11 w-full items-center justify-center font-semibold text-tinta"
+              onClick={() => setConfirmingDelete(true)}
+            >
+              <AppIcon name="trash" className="mr-1" /> Eliminar
+            </button>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-dvh bg-crema">
@@ -736,6 +861,7 @@ function MovementFormBody({
           <AhorroFields
             action={savingAction}
             onAction={setSavingAction}
+            actionLocked={Boolean(savingMove)}
             savings={orderedSavings}
             savingId={savingId}
             onSavingId={setSavingId}
@@ -1046,14 +1172,28 @@ function MovementFormBody({
         >
           <AppIcon name="check" /> {saving ? 'Guardando…' : 'Guardar'}
         </Button>
-        {editing ? (
-          <button
-            type="button"
-            className="mt-2 flex min-h-11 w-full items-center justify-center font-semibold text-tinta"
-            onClick={() => void remove()}
-          >
-            <AppIcon name="trash" className="mr-1" /> Eliminar
-          </button>
+        {editing && (expense || savingMove) ? (
+          confirmingDelete ? (
+            <div className="mt-3 space-y-2">
+              <p className="text-center font-display text-lg font-semibold">
+                {expense ? '¿Eliminar este gasto?' : '¿Eliminar este movimiento de ahorro?'}
+              </p>
+              <Button type="button" variant="danger" className="w-full" onClick={() => void remove()} disabled={saving}>
+                Eliminar
+              </Button>
+              <Button type="button" variant="alt" className="w-full" onClick={() => setConfirmingDelete(false)} disabled={saving}>
+                Volver
+              </Button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="mt-2 flex min-h-11 w-full items-center justify-center font-semibold text-tinta"
+              onClick={() => setConfirmingDelete(true)}
+            >
+              <AppIcon name="trash" className="mr-1" /> Eliminar
+            </button>
+          )
         ) : null}
       </div>
     </div>
@@ -1087,6 +1227,7 @@ function summaryLine(
 function AhorroFields({
   action,
   onAction,
+  actionLocked = false,
   savings,
   savingId,
   onSavingId,
@@ -1099,6 +1240,7 @@ function AhorroFields({
 }: {
   action: 'aporte' | 'retiro'
   onAction: (value: 'aporte' | 'retiro') => void
+  actionLocked?: boolean
   savings: SavingItem[]
   savingId: string | null
   onSavingId: (id: string) => void
@@ -1146,7 +1288,11 @@ function AhorroFields({
               type="button"
               role="radio"
               aria-checked={action === value}
-              onClick={() => onAction(value)}
+              disabled={actionLocked && action !== value}
+              onClick={() => {
+                if (actionLocked) return
+                onAction(value)
+              }}
               className={`rounded-2xl text-sm font-semibold ${
                 action === value ? 'border-2 border-tinta bg-azul-claro text-tinta' : 'border-[1.5px] border-azul-ink bg-tarjeta text-tinta'
               }`}
