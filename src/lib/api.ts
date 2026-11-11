@@ -1131,6 +1131,235 @@ export async function loadYearBalance(year: number): Promise<YearReport> {
   return parseYearBalance(data)
 }
 
+export type SavingItem = {
+  id: string
+  householdId: string
+  name: string
+  icon: string
+  target: number | null
+  targetDate: string | null
+  isShared: boolean
+  ownerId: string | null
+  archivedAt: string | null
+  openings: { userId: string; amount: number }[]
+}
+
+export type SavingMove = {
+  id: string
+  savingId: string
+  householdId: string
+  userId: string
+  kind: 'aporte' | 'retiro'
+  amount: number
+  spentOn: string
+  period: string
+  title: string | null
+  notes: string | null
+}
+
+function mapSaving(
+  row: {
+    id: string
+    household_id: string
+    name: string
+    icon: string
+    target_amount: number | null
+    target_date: string | null
+    is_shared: boolean
+    owner_id: string | null
+    archived_at: string | null
+  },
+  openings: { user_id: string; amount: number }[],
+): SavingItem {
+  return {
+    id: row.id,
+    householdId: row.household_id,
+    name: row.name,
+    icon: row.icon || DEFAULT_ICON,
+    target: row.target_amount == null ? null : money(row.target_amount),
+    targetDate: row.target_date,
+    isShared: row.is_shared,
+    ownerId: row.owner_id,
+    archivedAt: row.archived_at,
+    openings: openings.map((opening) => ({
+      userId: opening.user_id,
+      amount: money(opening.amount),
+    })),
+  }
+}
+
+function mapSavingMove(row: {
+  id: string
+  saving_id: string
+  household_id: string
+  user_id: string
+  kind: 'aporte' | 'retiro'
+  amount: number
+  spent_on: string
+  period: string
+  title: string | null
+  notes: string | null
+}): SavingMove {
+  return {
+    id: row.id,
+    savingId: row.saving_id,
+    householdId: row.household_id,
+    userId: row.user_id,
+    kind: row.kind,
+    amount: money(row.amount),
+    spentOn: row.spent_on,
+    period: row.period,
+    title: row.title,
+    notes: row.notes,
+  }
+}
+
+export async function loadSavings(householdId: string): Promise<SavingItem[]> {
+  const [savings, openings] = await Promise.all([
+    supabase
+      .from('savings')
+      .select('id, household_id, name, icon, target_amount, target_date, is_shared, owner_id, archived_at')
+      .eq('household_id', householdId)
+      .order('created_at'),
+    supabase.from('saving_opening_balances').select('saving_id, user_id, amount'),
+  ])
+  fail(savings.error)
+  fail(openings.error)
+  const bySaving = new Map<string, { user_id: string; amount: number }[]>()
+  for (const opening of openings.data ?? []) {
+    const list = bySaving.get(opening.saving_id) ?? []
+    list.push(opening)
+    bySaving.set(opening.saving_id, list)
+  }
+  return (savings.data ?? []).map((row) => mapSaving(row, bySaving.get(row.id) ?? []))
+}
+
+export async function loadSavingMovesThisMonth(householdId: string, month: string): Promise<SavingMove[]> {
+  const end = monthEnd(month)
+  const { data, error } = await supabase
+    .from('saving_moves')
+    .select('id, saving_id, household_id, user_id, kind, amount, spent_on, period, title, notes')
+    .eq('household_id', householdId)
+    .gte('spent_on', month)
+    .lte('spent_on', end)
+    .order('spent_on', { ascending: false })
+  fail(error)
+  return (data ?? []).map(mapSavingMove)
+}
+
+export async function createSaving(input: {
+  householdId: string
+  name: string
+  icon: string
+  target: number | null
+  targetDate: string | null
+  isShared: boolean
+  ownerId: string | null
+}): Promise<string> {
+  const { data, error } = await supabase
+    .from('savings')
+    .insert({
+      household_id: input.householdId,
+      name: input.name.trim(),
+      emoji: input.icon,
+      icon: input.icon,
+      target_amount: input.target,
+      target_date: input.targetDate,
+      is_shared: input.isShared,
+      owner_id: input.isShared ? null : input.ownerId,
+    })
+    .select('id')
+    .single()
+  fail(error)
+  return data.id
+}
+
+export async function updateSaving(input: {
+  id: string
+  name: string
+  icon: string
+  target: number | null
+  targetDate: string | null
+}): Promise<void> {
+  const { error } = await supabase
+    .from('savings')
+    .update({
+      name: input.name.trim(),
+      emoji: input.icon,
+      icon: input.icon,
+      target_amount: input.target,
+      target_date: input.targetDate,
+    })
+    .eq('id', input.id)
+  fail(error)
+}
+
+export async function setSavingArchived(id: string, archived: boolean): Promise<void> {
+  const { error } = await supabase
+    .from('savings')
+    .update({ archived_at: archived ? new Date().toISOString() : null })
+    .eq('id', id)
+  fail(error)
+}
+
+export async function createSavingMove(input: {
+  savingId: string
+  householdId: string
+  userId: string
+  kind: 'aporte' | 'retiro'
+  amount: number
+  spentOn: string
+  period: string
+  title: string | null
+  notes: string | null
+}): Promise<string> {
+  const { data, error } = await supabase
+    .from('saving_moves')
+    .insert({
+      saving_id: input.savingId,
+      household_id: input.householdId,
+      user_id: input.userId,
+      kind: input.kind,
+      amount: input.amount,
+      spent_on: input.spentOn,
+      period: input.period,
+      title: optionalTitle(input.title),
+      notes: input.notes,
+    })
+    .select('id')
+    .single()
+  fail(error)
+  return data.id
+}
+
+export async function updateSavingMove(input: {
+  id: string
+  savingId: string
+  amount: number
+  spentOn: string
+  period: string
+  title: string | null
+  notes: string | null
+}): Promise<void> {
+  const { error } = await supabase
+    .from('saving_moves')
+    .update({
+      saving_id: input.savingId,
+      amount: input.amount,
+      spent_on: input.spentOn,
+      period: input.period,
+      title: optionalTitle(input.title),
+      notes: input.notes,
+    })
+    .eq('id', input.id)
+  fail(error)
+}
+
+export async function deleteSavingMove(id: string): Promise<void> {
+  const { error } = await supabase.from('saving_moves').delete().eq('id', id)
+  fail(error)
+}
+
 export async function undoFixedPayment(payment: FixedPayment): Promise<void> {
   if (payment.expenseId) {
     const removed = await supabase.from('expenses').delete().eq('id', payment.expenseId)
