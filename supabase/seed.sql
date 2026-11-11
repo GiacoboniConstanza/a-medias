@@ -112,9 +112,6 @@ insert into public.categories (id, household_id, name, emoji, icon) values
   ('aaaaaaaa-000a-4000-8000-00000000000a', '01010101-0101-4101-8101-010101010101', 'Café', '☕', 'mug-hot'),
   ('aaaaaaaa-000b-4000-8000-00000000000b', '01010101-0101-4101-8101-010101010101', 'Salud', '🩺', 'stethoscope');
 
-insert into public.monthly_incomes (user_id, household_id, month, base_amount) values
-  ('11111111-1111-4111-8111-111111111111', '01010101-0101-4101-8101-010101010101', '2026-10-01', 900000),
-  ('22222222-2222-4222-8222-222222222222', '01010101-0101-4101-8101-010101010101', '2026-10-01', 600000);
 
 insert into public.base_salaries (user_id, amount, effective_from) values
   ('11111111-1111-4111-8111-111111111111', 900000, '2026-10-01'),

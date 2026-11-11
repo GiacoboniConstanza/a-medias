@@ -278,7 +278,7 @@ export function MovementsScreen() {
           <p className="mt-1 text-sm font-medium text-gris">
             {activeCount > 0 || tipo !== 'todos'
               ? '0 movimientos'
-              : `Todavía no hay movimientos en ${monthName(month)}. Tocá Cargar para sumar el primero.`}
+              : `Todavía no hay movimientos en ${monthName(month)}. Tocá el botón + para sumar el primero.`}
           </p>
           {activeCount > 0 || tipo !== 'todos' ? (
             <button

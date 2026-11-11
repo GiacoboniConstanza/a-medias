@@ -14,21 +14,24 @@ import {
   createExtra,
   createSavingMove,
   deleteExpense,
+  loadFinance,
   loadSettledMonths,
   saveSalaryRevision,
   updateExpense,
   type Category,
   type ExpenseItem,
   type SavingItem,
+  type SavingMove,
 } from '../lib/api.ts'
 import { NewSavingSheet } from '../screens/SavingsScreen.tsx'
 import { savingBalances, withdrawableByUser } from '../lib/saving-balance.ts'
 import { activeSavings, groupSavings } from '../lib/savings.ts'
-import { monthPocket, monthSplit, partnerId } from '../lib/derive.ts'
+import { monthPocket, monthSplit, myPrivateSpent, partnerId } from '../lib/derive.ts'
+import { sumPaidBy } from '../lib/period.ts'
 import { formatMoney, moneyDraftFromAmount, normalizeMoney } from '../lib/format.ts'
 import { homeAccountingCard } from '../lib/home-card.ts'
 import { DEFAULT_ICON } from '../lib/icons.ts'
-import { loanMonthEffect, loadLoanMovements, saveTransfer, sharedSignedBalance } from '../lib/loans.ts'
+import { loanMonthEffect, loadLoanMovements, saveTransfer } from '../lib/loans.ts'
 import { movementTextFields, movementTypeIsLocked, showSharedPayerPicker } from '../lib/movement-row.ts'
 import { catamarcaToday, isAfterDay, monthKey, monthName, monthTitle, shiftMonth, shortDate } from '../lib/month.ts'
 import { periodFollowsDate, periodFromDate, sharedMonthSettled } from '../lib/period.ts'
@@ -255,9 +258,7 @@ export function MovementForm({
       }}
       onSaved={async (view) => {
         await refresh()
-        const finance = await import('../lib/api.ts').then((mod) =>
-          mod.loadFinance(profile.householdId!, profile.id, monthKey()),
-        )
+        const finance = await loadFinance(profile.householdId!, profile.id, monthKey())
         const partner = partnerId(finance, profile.id)
         const partnerLabel = partner ? finance.names[partner] ?? 'tu compañera' : ''
         const myMoves = finance.savingMoves.filter(
@@ -267,12 +268,11 @@ export function MovementForm({
         const savedOut = myMoves.filter((row) => row.kind === 'retiro').reduce((sum, row) => sum + row.amount, 0)
         const pocket = monthPocket({
           base: finance.bases[profile.id] ?? 0,
-          privateSpent: finance.monthExpenses
-            .filter((row) => !row.isShared && row.payerId === profile.id)
-            .reduce((sum, row) => sum + row.amount, 0),
-          sharedPaid: finance.monthExpenses
-            .filter((row) => row.isShared && row.payerId === profile.id)
-            .reduce((sum, row) => sum + row.amount, 0),
+          privateSpent: myPrivateSpent(finance, profile.id),
+          sharedPaid: sumPaidBy(
+            finance.monthExpenses.filter((row) => row.isShared),
+            profile.id,
+          ),
           extras: finance.extrasThisMonth.reduce((sum, row) => sum + row.amount, 0),
           savedIn,
           savedOut,
@@ -281,11 +281,7 @@ export function MovementForm({
         const effect = loanMonthEffect(profile.id, monthKey(), moves.loans, moves.repayments)
         setSavedPocket(homeAccountingCard(pocket, effect, partnerLabel || 'tu compañera'))
         const split = monthSplit(finance)
-        const signed = sharedSignedBalance(profile.id, split)
         setSavedDebt(partner ? debtSentence(profile.id, split) : null)
-        if (!partner || signed === 0 && split.amount === 0) {
-          // keep debt sentence even when a mano
-        }
         setSaved(view)
         await onDone?.()
         queueMicrotask(() => headingRef.current?.focus())
@@ -325,7 +321,7 @@ function MovementFormBody({
   initialTipo: MovementType | null
   initialSavingId: string | null
   savings: SavingItem[]
-  savingMoves: import('../lib/api.ts').SavingMove[]
+  savingMoves: SavingMove[]
   editing: boolean
   settledMonths: readonly string[]
   salaryHistory: { id: string; amount: number; effectiveFrom: string }[]
@@ -1108,7 +1104,7 @@ function AhorroFields({
   onSavingId: (id: string) => void
   meId: string
   partnerLabel: string
-  savingMoves: import('../lib/api.ts').SavingMove[]
+  savingMoves: SavingMove[]
   amount: number
   showErrors: boolean
   onCreateSaving: () => void

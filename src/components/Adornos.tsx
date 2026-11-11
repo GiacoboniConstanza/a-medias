@@ -1,6 +1,5 @@
 import estrellaChica from '../assets/adornos/estrella-chica.png'
 import estrellaGrande from '../assets/adornos/estrella-grande.png'
-import flor from '../assets/adornos/flor-5-petalos.png'
 import ondita from '../assets/adornos/ondita-mostaza.png'
 import pajaroCrema from '../assets/adornos/pajaro-crema.png'
 import plantita from '../assets/marca/plantita.svg'
@@ -69,11 +68,6 @@ export function EstrellaGouache({
 export function MonthStar() {
   return <img src={estrellaChica} alt="" width={10} height={11} aria-hidden="true" className="h-[11px] w-2.5 shrink-0" />
 }
-
-export function ListFlower() {
-  return <img src={flor} alt="" width={30} height={29} aria-hidden="true" className="h-[29px] w-[30px] shrink-0" />
-}
-
 export function OrnamentDivider() {
   return (
     <div className="mb-4 mt-1 flex items-center justify-center gap-[18px]" aria-hidden="true">

@@ -10,7 +10,6 @@
   --color-sand: #dfe2ec;
   --color-sand-soft: #fef4e8;
   --color-line: rgb(27 36 46 / 30%);
-  --color-line-strong: rgb(27 36 46 / 45%);
   --color-title: #1b242e;
   --color-tinta: #1b242e;
   --color-muted: #5f6266;
@@ -89,17 +88,10 @@ input {
   --espacio-final-con-aviso: 148px;
   --ancho-plantita: 46px;
   --alto-plantita: 60px;
-  --alto-maceta-fila: 44px;
-  --ancho-estrella-mes: 30px;
-  --alto-estrella-mes: 33px;
-  --espacio-estrella-mes: 10px;
-  --burbuja-espacio: 8px;
-  --alto-enlace-accion: 44px;
   --alto-fila-aviso: 72px;
   --alto-casilla: 28px;
   --radio-casilla: 8px;
   --borde-desactivado: 1.5px dashed var(--color-gris-claro);
-  --alto-franja-fab: 100px;
   --alto-barra-reparto: 12px;
   --feston-radio: 12.5px;
   --feston-borde: 13px;
@@ -140,35 +132,6 @@ input {
   background-repeat: round no-repeat;
 }
 
-@keyframes bubble-enter {
-  from {
-    opacity: 0;
-    scale: 0.84;
-  }
-  to {
-    opacity: 1;
-    scale: 1;
-  }
-}
-
-@keyframes bubble-float {
-  0%,
-  100% {
-    translate: 0 0;
-  }
-  50% {
-    translate: 0 -4px;
-  }
-}
-
-.bubble-motion {
-  animation-name: bubble-enter, bubble-float;
-  animation-duration: 0.45s, 5s;
-  animation-timing-function: ease-out, ease-in-out;
-  animation-iteration-count: 1, infinite;
-  animation-fill-mode: both, none;
-}
-
 .donut-arc {
   transition: stroke-dasharray 700ms ease-out, stroke-dashoffset 700ms ease-out, width 700ms ease-out;
 }
@@ -203,14 +166,12 @@ input {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bubble-motion,
   .sheet-motion,
   .donut-arc,
   .year-rise,
   .year-bar,
   .year-line,
-  .year-ring,
-  .swipe-motion {
+  .year-ring {
     animation: none !important;
     transition: none !important;
   }

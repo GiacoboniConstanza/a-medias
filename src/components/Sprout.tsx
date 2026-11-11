@@ -8,23 +8,6 @@ export function Sprout({ module, muted = false, size = 44 }: { module: ModuleId;
   return <Plantita width={size} height={height} className={muted ? 'opacity-55' : ''} />
 }
 
-export function HubPlant({
-  bloom,
-  solid = 3,
-  dashed = 0,
-  fruit,
-}: {
-  bloom: boolean
-  solid?: number
-  dashed?: number
-  fruit?: number
-}) {
-  void bloom
-  void solid
-  void dashed
-  void fruit
-  return <Plantita width={66} height={86} />
-}
 
 export function DaySprout({ stage }: { stage: SproutStage }) {
   void stage

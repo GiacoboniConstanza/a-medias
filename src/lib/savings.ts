@@ -1,5 +1,4 @@
 import type { SavingItem } from './api.ts'
-import { savingBalances, type SavingBalanceMove } from './saving-balance.ts'
 
 export function activeSavings<T extends { archivedAt?: string | null }>(items: readonly T[]): T[] {
   return items.filter((item) => !item.archivedAt)
@@ -27,14 +26,6 @@ export function savingPercent(saved: number, target: number | null): number {
   if (target == null || target <= 0) return 0
   return Math.max(0, Math.min(100, Math.round((saved / target) * 100)))
 }
-
-export function savingTotalFor(
-  saving: SavingItem,
-  moves: readonly SavingBalanceMove[],
-): ReturnType<typeof savingBalances> {
-  return savingBalances(saving.openings, moves)
-}
-
 export function legacySavingsLocation(pathname: string): string | null {
   if (pathname === '/bolsa' || pathname === '/meta') return '/ahorros'
   return null

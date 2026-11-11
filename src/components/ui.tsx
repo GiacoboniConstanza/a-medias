@@ -33,28 +33,6 @@ export function Button({
   )
 }
 
-export function FilterBar({
-  options,
-  value,
-  onChange,
-  label = 'Filtro',
-}: {
-  options: readonly { id: string; label: string }[]
-  value: string
-  onChange: (id: string) => void
-  label?: string
-}) {
-  return (
-    <div className="mb-3 flex flex-wrap gap-2" role="group" aria-label={label}>
-      {options.map((option) => (
-        <Chip key={option.id} active={value === option.id} onClick={() => onChange(option.id)}>
-          {option.label}
-        </Chip>
-      ))}
-    </div>
-  )
-}
-
 export function Chip({
   active = false,
   children,

@@ -54,16 +54,6 @@ export function suggestCategoryName(merchant: string | null): string | null {
   return null
 }
 
-export function suggestCategoryId(
-  merchant: string | null,
-  categories: readonly { id: string; name: string }[],
-): string | null {
-  const wanted = suggestCategoryName(merchant)
-  if (!wanted) return null
-  const target = fold(wanted)
-  return categories.find((category) => fold(category.name) === target)?.id ?? null
-}
-
 function readAmount(text: string): number | null {
   const matches = text.match(/\$\s*\d[\d.]*(?:,\d{1,2})?/g)
   if (!matches) return null

@@ -1,16 +1,16 @@
 # A Medias
 
-PWA mobile-first para las finanzas de dos personas que conviven. El sueldo base de cada una define el porcentaje de los gastos compartidos. Los extras, los fondos y los gastos privados los ve solo quien los cargó: eso lo exige Postgres con RLS, no solo la pantalla.
+PWA mobile-first para las finanzas de dos personas que conviven. El sueldo base de cada una define el porcentaje de los gastos compartidos. Los extras, los ahorros propios y los gastos privados los ve solo quien los cargó: eso lo exige Postgres con RLS, no solo la pantalla.
 
 El trabajo de la app vive en la rama `develop`.
 
 ## Qué incluye
 
-- Resumen con saldo compartido y Te quedan; Movimientos con filtros; Ahorros.
-- Formulario único en `/cargar` para Gasto, Ingreso y Transferencia, con el teclado del teléfono (sin teclado dibujado). El nombre del gasto es opcional.
-- Transferencias entre las dos (gasto para quien manda, ingreso para quien recibe): solo mueven “Te quedan”, no el saldo compartido. Los préstamos viejos y sus devoluciones migran a transferencias.
+- Resumen con saldo compartido y Te quedan; Movimientos con filtros; Ahorros unificados.
+- Formulario único en `/cargar` (también el botón flotante +) para Gasto, Ingreso, Transferencia y Ahorro (aporte o retiro), con el teclado del teléfono. El nombre del gasto es opcional.
+- Transferencias entre las dos (gasto para quien manda, ingreso para quien recibe): solo mueven “Te quedan”, no el saldo compartido.
 - Saldar mes cierra solo el reparto de gastos compartidos.
-- Movimientos (gastos, ingresos y transferencias), bolsa de extras, meta compartida, recordatorios de vencimiento.
+- Ahorros propios y compartidos con saldo, meta opcional, aportes y retiros; el detalle muestra el historial.
 - Auth por correo, hogar de dos personas con código de invitación.
 - Estructura de push web (tabla y textos), sin enviarla todavía.
 
@@ -54,7 +54,7 @@ Eso aplica las migraciones y `supabase/seed.sql`. Podés entrar como:
 | Coty | coty@example.com | amedias-demo |
 | Maru | maru@example.com | amedias-demo |
 
-Octubre 2026 queda con sueldos 900.000 y 600.000 (60/40). Los compartidos suman 352.000 y Maru le debe 84.000 a Coty. La bolsa de Coty avisa que le quedan 18.000 de gustos.
+Octubre 2026 queda con sueldos 900.000 y 600.000 (60/40). Los compartidos suman 352.000 y Maru le debe 84.000 a Coty. Hay ahorros unificados (Viaje, Sillón, Notebook, Curso, Vacaciones juntas y Gustos de cada una) con saldos iniciales; en noviembre Coty aporta y retira del Sillón.
 
 En un proyecto remoto de prueba, y solo ahí:
 
@@ -97,11 +97,9 @@ Flujo sin seed: crear cuenta, crear el hogar, pasarle el código a la otra perso
 
 ## Cómo se reparte
 
-El porcentaje sale solo del sueldo base del mes. Si alguna no lo cargó, el mes se parte 50/50 y la vista contable lo avisa. Lo que cada una pagó de los gastos compartidos se compara con lo que le tocaba. El saldo dice “X te debe $ Y” o “le debés $ Y a Z”. **Saldar mes** guarda ese saldo; se puede deshacer.
+El porcentaje sale solo del sueldo base del mes (`base_salaries`). Si alguna no lo cargó, el mes se parte 50/50. Lo que cada una pagó de los gastos compartidos se compara con lo que le tocaba. El saldo dice “X te debe $ Y” o “le debés $ Y a Z”. **Saldar mes** guarda ese saldo; se puede deshacer.
 
-Los gastos privados y las categorías con dueña no los devuelve la API a la otra persona. Los fondos y los extras tampoco. Las dos ven los aportes a la meta compartida.
-
-La bolsa reparte cada extra entre fondos y gustos. Los gastos privados consumen gustos. Si queda un cuarto o menos, avisa. Si el gasto privado supera los gustos, avisa que ya está usando los fondos.
+Los gastos privados, los extras y los ahorros propios no los ve la otra persona. En un ahorro compartido cada una aporta lo suyo; el saldo junta las dos, pero “Te quedan” solo descuenta lo propio. Los aportes y retiros no entran en el reparto ni en “estamos a mano”.
 
 ## Push (preparado, no activo)
 

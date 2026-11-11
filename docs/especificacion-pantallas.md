@@ -1,5 +1,7 @@
 # A Medias · Especificación de pantallas con la identidad nueva
 
+> **Desactualizado** tras las reestructuras del 10–11/11/2026 (Movimientos, formulario único, Ahorros unificados). No usar como criterio hasta que diseño lo actualice.
+
 Fecha: 5/11/2026 (ronda 8: 09f–09h aprobadas). Fuentes: manual de marca (láminas 04 a 09c), `manual/entrega/tokens.css`, muestras aprobadas `muestras-v3/inicio.html` y `muestras-v3/finanzas.html` (lámina 09b), la guía de diseño anterior y las 9 capturas de la app publicada (01 a 09).
 
 Cómo leer este documento:

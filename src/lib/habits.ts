@@ -98,7 +98,7 @@ export function weekCounterLabel(touched: number, elapsed: number): string {
   return `${touched} de ${elapsed} días`
 }
 
-/** Día futuro o sin hábitos: maceta vacía. Sin cumplir: semilla. Después crece como la maceta de la bolsa. */
+/** Día futuro o sin hábitos: maceta vacía. Sin cumplir: semilla. Después crece según lo cumplido. */
 export function sproutStage(done: number, scheduled: number, when: DayMoment): SproutStage {
   if (when === 'future' || scheduled <= 0) return 'empty'
   if (done <= 0) return 'seed'
@@ -106,29 +106,6 @@ export function sproutStage(done: number, scheduled: number, when: DayMoment): S
   if (percent < 25) return 'sprout'
   if (percent < 75) return 'medium'
   return 'grown'
-}
-
-export function visibleLeaves(done: number, total: number): { solid: number; dashed: number } {
-  const safeTotal = Math.max(0, total)
-  const safeDone = Math.min(Math.max(0, done), safeTotal)
-  const solid = Math.min(safeDone, 5)
-  const dashed = Math.min(safeTotal - safeDone, 5 - solid)
-  return { solid, dashed }
-}
-
-export function habitPlantCopy(done: number, total: number): { title: string; detail: string } {
-  if (total <= 0) return { title: 'Tu plantita', detail: 'Cuando marques un hábito, le crece una hoja.' }
-  const missing = Math.max(total - done, 0)
-  if (done <= 0) {
-    return {
-      title: 'Tu plantita',
-      detail: missing === 1 ? 'Te falta 1 hábito para completarla.' : `Te faltan ${missing} hábitos para completarla.`,
-    }
-  }
-  const leaves = done === 1 ? '1 hoja nueva' : `${done} hojas nuevas`
-  if (missing === 0) return { title: 'Tu plantita creció hoy', detail: `${leaves}. Completaste los hábitos de hoy.` }
-  const rest = missing === 1 ? 'Te falta 1 hábito para completarla.' : `Te faltan ${missing} hábitos para completarla.`
-  return { title: 'Tu plantita creció hoy', detail: `${leaves}. ${rest}` }
 }
 
 export function weekTitle(weekStart: Date, today: Date): string {

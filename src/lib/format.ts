@@ -77,27 +77,6 @@ export function sanitizeMoneyDraft(raw: string): string {
   if (/^\d{1,3}(\.\d{3})+$/.test(text)) return text.replace(/\./g, '').slice(0, 10)
   return text.replace(/\./g, '').slice(0, 10)
 }
-
-export function applyMoneyKey(current: string, key: string): string {
-  if (key === '⌫') return current.slice(0, -1)
-  if (key === ',' || key === '.') {
-    if (current.includes(',')) return current
-    return current === '' ? '0,' : `${current},`
-  }
-  if (key !== '000' && !/^\d$/.test(key)) return current
-  const chunk = key === '000' ? '000' : key
-  const comma = current.indexOf(',')
-  if (comma >= 0) {
-    if (key === '000') return current
-    const room = 2 - current.slice(comma + 1).length
-    if (room <= 0) return current
-    return `${current}${chunk.slice(0, room)}`
-  }
-  const next = `${current}${chunk}`.replace(/^0+(?=\d)/, '')
-  if (next.length > 10) return current
-  return next
-}
-
 const WHOLE_MAX = 10
 
 /** Borrador canónico (sin puntos de miles) con los miles de es-AR, para mostrar mientras se escribe. */
