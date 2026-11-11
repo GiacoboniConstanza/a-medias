@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router'
 import { Button, ErrorText, Field } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { authMessage } from '../lib/auth-message.ts'

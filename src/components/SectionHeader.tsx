@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import type { ModuleId } from '../lib/modules.ts'
 import { AppIcon } from './AppIcon.tsx'
 import { ModuleCrumb, ModuleTitle } from './ModulePill.tsx'

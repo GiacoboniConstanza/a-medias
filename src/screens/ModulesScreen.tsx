@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { ModuleSwitch } from '../components/ModuleSwitch.tsx'
 import { Planter, Sprout } from '../components/Sprout.tsx'

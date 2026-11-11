@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router'
 import { AppIcon } from './AppIcon.tsx'
 import { Plantita } from './Adornos.tsx'
 import { IconPicker } from './IconPicker.tsx'

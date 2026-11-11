@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router'
 import { RequireHousehold } from './components/AppShell.tsx'
 import { AuthProvider } from './context/AuthProvider.tsx'
 import { useModules } from './context/ModulesProvider.tsx'

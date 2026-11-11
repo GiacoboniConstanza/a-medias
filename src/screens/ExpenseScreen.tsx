@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 import { MovementForm, type MovementPrefill } from '../components/MovementForm.tsx'
 
 export type { MovementPrefill as ExpensePrefill }

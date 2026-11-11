@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { EstrellaGouache } from '../components/Adornos.tsx'
 import { Fab, FabSpace } from '../components/Fab.tsx'
