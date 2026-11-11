@@ -28,15 +28,17 @@ export type ExpenseFilters = {
   paid?: PaidFilter
   scope?: ScopeFilter
   who?: WhoFilter
+  savingId?: string | null
 }
 
-export type MovementFilterTipo = 'todos' | 'gastos' | 'ingresos' | 'transferencias'
+export type MovementFilterTipo = 'todos' | 'gastos' | 'ingresos' | 'transferencias' | 'ahorros'
 
 export function FilterSheet({
   open,
   month,
   end,
   categories,
+  savings = [],
   initial,
   onClose,
   onApply,
@@ -50,6 +52,7 @@ export function FilterSheet({
   month: string
   end: string
   categories: FilterCategory[]
+  savings?: { id: string; name: string; icon: string }[]
   initial: ExpenseFilters
   onClose: () => void
   onApply: (filters: ExpenseFilters) => void
@@ -73,7 +76,8 @@ export function FilterSheet({
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
   const showExpenseGroups = tipo == null || tipo === 'gastos'
-  const showWho = Boolean(partnerName)
+  const showSavingGroups = tipo === 'ahorros'
+  const showWho = Boolean(partnerName) && !showSavingGroups
   const [preset, setPreset] = useState(initial.preset)
   const [customFrom, setCustomFrom] = useState(initial.customFrom)
   const [customTo, setCustomTo] = useState(initial.customTo)
@@ -81,6 +85,7 @@ export function FilterSheet({
   const [paid, setPaid] = useState<PaidFilter>(initial.paid ?? 'all')
   const [scope, setScope] = useState<ScopeFilter>(initial.scope ?? 'all')
   const [who, setWho] = useState<WhoFilter>(initial.who ?? 'all')
+  const [savingId, setSavingId] = useState<string | null>(initial.savingId ?? null)
   const [seenOpen, setSeenOpen] = useState(open)
   if (open !== seenOpen) {
     setSeenOpen(open)
@@ -93,6 +98,7 @@ export function FilterSheet({
       setPaid(current.paid ?? 'all')
       setScope(current.scope ?? 'all')
       setWho(current.who ?? 'all')
+      setSavingId(current.savingId ?? null)
     }
   }
 
@@ -175,6 +181,7 @@ export function FilterSheet({
     setPaid('all')
     setScope('all')
     setWho('all')
+    setSavingId(null)
   }
 
   function onPointerDown(event: PointerEvent<HTMLDivElement>) {
@@ -235,6 +242,21 @@ export function FilterSheet({
           </button>
         </div>
         <div className="overflow-y-auto px-5 pb-3">
+          {showSavingGroups ? (
+            <>
+              <p className="mb-2 font-display text-base font-semibold">Ahorro</p>
+              <div className="mb-3 flex flex-wrap gap-2" role="group" aria-label="Ahorro">
+                <SheetChip active={!savingId} onClick={() => setSavingId(null)}>
+                  Todos
+                </SheetChip>
+                {savings.map((item) => (
+                  <SheetChip key={item.id} active={savingId === item.id} onClick={() => setSavingId(item.id)}>
+                    <AppIcon name={item.icon} /> {item.name}
+                  </SheetChip>
+                ))}
+              </div>
+            </>
+          ) : null}
           {showExpenseGroups ? (
             <>
               <p className="mb-2 font-display text-base font-semibold">Compartido o privado</p>
@@ -278,7 +300,7 @@ export function FilterSheet({
               </div>
             </>
           ) : null}
-          <p className="mb-2 mt-5 font-display text-base font-semibold">¿Cuándo?</p>
+          <p className="mb-2 mt-5 font-display text-base font-semibold">{showSavingGroups ? 'Período' : '¿Cuándo?'}</p>
           <div className="flex flex-wrap gap-2" role="group" aria-label="Período">
             {PERIODS.map((period) => (
               <SheetChip key={period.id} active={preset === period.id} onClick={() => choosePreset(period.id)}>
@@ -339,6 +361,7 @@ export function FilterSheet({
                 categoryIds: showExpenseGroups ? categoryIds : [],
                 scope: showExpenseGroups ? scope : 'all',
                 who: showWho ? who : 'all',
+                savingId: showSavingGroups ? savingId : null,
                 ...(showPaid ? { paid } : {}),
               })
             }

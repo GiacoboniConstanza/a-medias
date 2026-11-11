@@ -224,7 +224,7 @@ export function Toast({
       onFocus={() => setPaused(true)}
       onBlur={() => setPaused(false)}
       className={`fixed left-1/2 z-50 flex w-[min(398px,calc(100%-2rem))] -translate-x-1/2 items-center gap-2 rounded-2xl bg-aviso py-1 pl-4 pr-1.5 text-base text-aviso-texto shadow-toast ${
-        aboveFab ? 'bottom-40' : 'bottom-[86px]'
+        aboveFab ? 'bottom-[var(--espacio-aviso-abajo-con-fab)]' : 'bottom-[var(--espacio-aviso-abajo,86px)]'
       }`}
     >
       <AppIcon name="circle-check" className="shrink-0" />

@@ -22,7 +22,7 @@ export function monthSplit(data: FinanceData): SplitResult {
 
 export function myPrivateSpent(data: FinanceData, meId: string): number {
   return data.monthExpenses
-    .filter((expense) => !expense.isShared && !expense.paidFromBag && expense.ownerId === meId)
+    .filter((expense) => !expense.isShared && expense.ownerId === meId)
     .reduce((sum, expense) => sum + expense.amount, 0)
 }
 
@@ -42,17 +42,28 @@ export function debtCopy(meId: string, result: SplitResult): string {
   return debtSentence(meId, result)
 }
 
-/** Gastado es plata que salió: privados y compartidos que pagué. La parte del reparto no entra. */
-export function monthPocket(input: { base: number; privateSpent: number; sharedPaid: number; extras: number }) {
+/** Gastado es plata que salió en gastos. Los aportes/retiros van aparte (P14). */
+export function monthPocket(input: {
+  base: number
+  privateSpent: number
+  sharedPaid: number
+  extras: number
+  savedIn?: number
+  savedOut?: number
+}) {
   const spent = input.privateSpent + input.sharedPaid
   const income = input.base + input.extras
+  const savedIn = input.savedIn ?? 0
+  const savedOut = input.savedOut ?? 0
   return {
-    remaining: income - spent,
+    remaining: income - spent - savedIn + savedOut,
     spent,
     privateSpent: input.privateSpent,
     sharedPaid: input.sharedPaid,
     base: input.base,
     extras: input.extras,
     income,
+    savedIn,
+    savedOut,
   }
 }

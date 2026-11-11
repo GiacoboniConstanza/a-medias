@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useLocation, useSearchParams } from 'react-router-dom'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { Plantita } from '../components/Adornos.tsx'
 import { MovementForm } from '../components/MovementForm.tsx'
@@ -7,6 +7,7 @@ import { FilterSheet, type ExpenseFilters, type WhoFilter } from '../components/
 import { MonthSwitcher } from '../components/MonthSwitcher.tsx'
 import { NotificationBell } from '../components/NotificationBell.tsx'
 import { SectionHeader } from '../components/SectionHeader.tsx'
+import { Fab, FabSpace } from '../components/Fab.tsx'
 import { Chip } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
@@ -18,15 +19,15 @@ import { matchesCategories, matchesScope, matchesSpan, type ScopeFilter } from '
 import { formatMoney, normalizeMoney } from '../lib/format.ts'
 import { iconSurface } from '../lib/icons.ts'
 import { loadLoanMovements, type PeriodLoan } from '../lib/loans.ts'
-import { movementExpenseSubtitle, movementExpenseTitle } from '../lib/movement-row.ts'
+import { movementExpenseSubtitle, movementExpenseTitle, movementSavingSubtitle, movementSavingTitle } from '../lib/movement-row.ts'
 import { catamarcaToday, monthEnd, monthName, shortDate } from '../lib/month.ts'
 import type { ExpenseItem } from '../lib/api.ts'
 
-type MovementKind = 'todos' | 'gastos' | 'ingresos' | 'transferencias'
+type MovementKind = 'todos' | 'gastos' | 'ingresos' | 'transferencias' | 'ahorros'
 
 type MovementRow = {
   id: string
-  kind: 'gasto' | 'ingreso' | 'transferencia'
+  kind: 'gasto' | 'ingreso' | 'transferencia' | 'aporte' | 'retiro'
   title: string
   subtitle: string
   amount: number
@@ -50,6 +51,7 @@ const EMPTY_FILTERS: ExpenseFilters = {
   categoryIds: [],
   scope: 'all',
   who: 'all',
+  savingId: null,
 }
 
 export function MovementsScreen() {
@@ -60,6 +62,7 @@ export function MovementsScreen() {
   const [transfers, setTransfers] = useState<PeriodLoan[]>([])
   const [editing, setEditing] = useState<ExpenseItem | null>(null)
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const location = useLocation()
   const tipo = (params.get('tipo') as MovementKind | null) ?? 'todos'
   const scopeParam = params.get('scope')
   const [filters, setFilters] = useState<ExpenseFilters>(() => ({
@@ -90,8 +93,8 @@ export function MovementsScreen() {
   useEffect(() => {
     if (tipo === 'gastos') return
     setFilters((current) => {
-      if ((current.scope ?? 'all') === 'all' && current.categoryIds.length === 0) return current
-      return { ...current, scope: 'all', categoryIds: [] }
+      if ((current.scope ?? 'all') === 'all' && current.categoryIds.length === 0 && !current.savingId) return current
+      return { ...current, scope: 'all', categoryIds: [], savingId: tipo === 'ahorros' ? current.savingId : null }
     })
   }, [tipo])
 
@@ -133,6 +136,7 @@ export function MovementsScreen() {
     scope,
     who,
     categoryIds: filters.categoryIds,
+    savingId: filters.savingId ?? null,
     preset: filters.preset,
     span,
     tipo,
@@ -145,8 +149,15 @@ export function MovementsScreen() {
     (filters.preset === 'month' ? 0 : 1) +
     (tipo === 'gastos' && scope !== 'all' ? 1 : 0) +
     (tipo === 'gastos' ? filters.categoryIds.length : 0) +
-    (who !== 'all' ? 1 : 0)
-  const showing = showingLabel({ scope, who, tipo, partnerName })
+    (tipo === 'ahorros' && filters.savingId ? 1 : 0) +
+    (who !== 'all' && tipo !== 'ahorros' ? 1 : 0)
+  const showing = showingLabel({
+    scope,
+    who,
+    tipo,
+    partnerName,
+    savingName: filters.savingId ? data.savings.find((s) => s.id === filters.savingId)?.name ?? null : null,
+  })
 
   function setTipo(next: MovementKind) {
     const nextParams = new URLSearchParams(params)
@@ -187,28 +198,45 @@ export function MovementsScreen() {
         </p>
       ) : null}
 
-      <div className="mb-3 flex h-[50px] items-center gap-1 rounded-full border-[1.5px] border-azul bg-tarjeta p-1" role="tablist" aria-label="Tipo">
-        {(
-          [
-            { id: 'todos', label: 'Todos' },
-            { id: 'gastos', label: 'Gastos' },
-            { id: 'ingresos', label: 'Ingresos' },
-            { id: 'transferencias', label: 'Transferencias' },
-          ] as const
-        ).map((option) => (
-          <button
-            key={option.id}
-            type="button"
-            role="tab"
-            aria-selected={tipo === option.id}
-            className={`flex h-[46px] flex-1 items-center justify-center rounded-full px-1 text-sm ${
-              tipo === option.id ? 'border border-azul-ink bg-azul-claro font-bold text-tinta' : 'font-semibold text-tinta'
-            }`}
-            onClick={() => setTipo(option.id)}
-          >
-            {option.label}
-          </button>
-        ))}
+      <div className="-mx-4 mb-3">
+        <div
+          className="flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          role="radiogroup"
+          aria-label="Tipo"
+          style={{ scrollPaddingInline: 16 }}
+        >
+          {(
+            [
+              { id: 'todos', label: 'Todos' },
+              { id: 'gastos', label: 'Gastos' },
+              { id: 'ingresos', label: 'Ingresos' },
+              { id: 'transferencias', label: 'Transferencias' },
+              { id: 'ahorros', label: 'Ahorros' },
+            ] as const
+          ).map((option) => {
+            const selected = tipo === option.id
+            return (
+              <button
+                key={option.id}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                className={`inline-flex h-11 shrink-0 items-center gap-1 rounded-full border-[1.5px] px-3 text-sm ${
+                  selected
+                    ? 'border-azul-ink bg-azul-claro font-bold text-tinta'
+                    : 'border-azul-ink bg-tarjeta font-semibold text-tinta'
+                }`}
+                onClick={(event) => {
+                  setTipo(option.id)
+                  event.currentTarget.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' })
+                }}
+              >
+                {selected ? <AppIcon name="check" /> : null}
+                {option.label}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       <div className="mb-3 flex items-center justify-between gap-2">
@@ -327,11 +355,15 @@ export function MovementsScreen() {
         </div>
       )}
 
+      <FabSpace />
+      <Fab to="/cargar" label="Cargar un movimiento" state={{ from: location.pathname }} />
+
       <FilterSheet
         open={filtersOpen}
         month={month}
         end={end}
         categories={data.categories}
+        savings={data.savings.filter((item) => !item.archivedAt)}
         initial={{ ...filters, customFrom: filters.customFrom || month, customTo: filters.customTo || end }}
         onClose={() => setFiltersOpen(false)}
         onApply={(next) => {
@@ -365,12 +397,14 @@ function showingLabel(input: {
   who: WhoFilter
   tipo: MovementKind
   partnerName: string | null
+  savingName: string | null
 }): string {
   const parts: string[] = []
   if (input.tipo === 'gastos' && input.scope !== 'all') {
     parts.push(input.scope === 'shared' ? 'Compartidos' : 'Privados')
   }
-  if (input.who !== 'all' && input.partnerName) {
+  if (input.tipo === 'ahorros' && input.savingName) parts.push(input.savingName)
+  if (input.who !== 'all' && input.partnerName && input.tipo !== 'ahorros') {
     if (input.tipo === 'gastos') parts.push(input.who === 'me' ? 'Pagaste vos' : `Pagó ${input.partnerName}`)
     else parts.push(input.who === 'me' ? 'Yo' : `Quién: ${input.partnerName}`)
   }
@@ -386,12 +420,13 @@ function buildRows(input: {
   scope: ScopeFilter
   who: WhoFilter
   categoryIds: string[]
+  savingId: string | null
   preset: DatePreset
   span: ExpenseSpan
   tipo: MovementKind
   transfers: PeriodLoan[]
 }): MovementRow[] {
-  const { data, meId, month, partnerName, otherId, scope, who, categoryIds, preset, span, tipo, transfers } = input
+  const { data, meId, month, partnerName, otherId, scope, who, categoryIds, savingId, preset, span, tipo, transfers } = input
   const items: MovementRow[] = []
   for (const expense of data.monthExpenses) {
     if (!matchesScope(expense.isShared, scope)) continue
@@ -497,14 +532,46 @@ function buildRows(input: {
       border: 'var(--color-ciruela-ink)',
     })
   }
+  for (const move of data.savingMoves) {
+    if (move.userId !== meId) continue
+    if (move.period.slice(0, 7) !== month.slice(0, 7)) continue
+    if (savingId && move.savingId !== savingId) continue
+    if (preset !== 'month' && !matchesSpan(move.spentOn, span)) continue
+    const saving = data.savings.find((item) => item.id === move.savingId)
+    if (!saving) continue
+    items.push({
+      id: move.id,
+      kind: move.kind,
+      title: movementSavingTitle({ title: move.title, savingName: saving.name, kind: move.kind }),
+      subtitle: movementSavingSubtitle({
+        title: move.title,
+        savingName: saving.name,
+        kind: move.kind,
+        isShared: saving.isShared,
+        partnerName,
+      }),
+      amount: move.amount,
+      signed: move.kind === 'aporte' ? -move.amount : move.amount,
+      spentOn: move.spentOn,
+      period: move.period,
+      isShared: saving.isShared,
+      private: !saving.isShared,
+      payerId: move.userId,
+      icon: saving.icon,
+      fill: 'var(--color-azul-claro)',
+      border: 'var(--color-azul-ink)',
+    })
+  }
+
   return items
     .filter((row) => {
       if (tipo === 'gastos') return row.kind === 'gasto'
       if (tipo === 'ingresos') return row.kind === 'ingreso'
       if (tipo === 'transferencias') return row.kind === 'transferencia'
+      if (tipo === 'ahorros') return row.kind === 'aporte' || row.kind === 'retiro'
       return true
     })
-    .sort((a, b) => b.spentOn.localeCompare(a.spentOn))
+    .sort((a, b) => b.spentOn.localeCompare(a.spentOn) || b.id.localeCompare(a.id))
 }
 
 function formatSigned(value: number): string {
@@ -544,6 +611,14 @@ function movementTotals(rows: MovementRow[], tipo: MovementKind): { label: strin
   }
   const entered = rows.filter((row) => (row.signed ?? 0) > 0).reduce((sum, row) => sum + Math.abs(row.signed ?? 0), 0)
   const left = rows.filter((row) => (row.signed ?? 0) < 0).reduce((sum, row) => sum + Math.abs(row.signed ?? 0), 0)
+  if (tipo === 'ahorros') {
+    const put = rows.filter((row) => row.kind === 'aporte').reduce((sum, row) => sum + row.amount, 0)
+    const took = rows.filter((row) => row.kind === 'retiro').reduce((sum, row) => sum + row.amount, 0)
+    return [
+      { label: 'Pusiste', value: formatMoney(-put), tone: 'text-azul-ink' },
+      { label: 'Sacaste', value: took > 0 ? `+${formatMoney(took)}` : formatMoney(0), tone: 'text-azul-ink' },
+    ]
+  }
   if (tipo === 'transferencias' || tipo === 'todos') {
     return [
       { label: 'Entró', value: `+${formatMoney(entered)}`, tone: 'text-mostaza-ink' },

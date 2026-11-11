@@ -8,6 +8,7 @@ import { PartnerMemos } from '../components/PartnerMemos.tsx'
 import { SaldoSheet } from '../components/SaldoSheet.tsx'
 import { SectionHeader } from '../components/SectionHeader.tsx'
 import { SplitNotice } from '../components/SplitNotice.tsx'
+import { Fab, FabSpace } from '../components/Fab.tsx'
 import { Card, Toast } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
@@ -111,7 +112,12 @@ export function HomeScreen() {
     meId,
   )
   const extras = data.extrasThisMonth.reduce((sum, extra) => sum + extra.amount, 0)
-  const pocket = monthPocket({ base, privateSpent, sharedPaid, extras })
+  const mySavingMoves = data.savingMoves.filter(
+    (row) => row.userId === meId && row.period.slice(0, 7) === month.slice(0, 7),
+  )
+  const savedIn = mySavingMoves.filter((row) => row.kind === 'aporte').reduce((sum, row) => sum + row.amount, 0)
+  const savedOut = mySavingMoves.filter((row) => row.kind === 'retiro').reduce((sum, row) => sum + row.amount, 0)
+  const pocket = monthPocket({ base, privateSpent, sharedPaid, extras, savedIn, savedOut })
   const loanEffect = loanMonthEffect(meId, month, loanMoves.loans, loanMoves.repayments)
   const partnerName = (otherId && data.names[otherId]) || 'tu compañera'
   const card = homeAccountingCard(pocket, loanEffect, partnerName)
@@ -255,7 +261,11 @@ export function HomeScreen() {
 
       {error ? <p className="text-center text-sm font-semibold text-tinta">{error}</p> : null}
 
-      <Toast onDone={() => setToast('')}>{toast}</Toast>
+      <FabSpace avisos={Boolean(toast)} />
+      <Fab to="/cargar" label="Cargar un movimiento" state={{ from: location.pathname }} />
+      <Toast aboveFab onDone={() => setToast('')}>
+        {toast}
+      </Toast>
 
       {otherId && hasShared ? (
         <SaldoSheet open={saldoOpen} onClose={closeSaldo} data={data} meId={meId} month={month} onRefresh={refresh} />
@@ -281,12 +291,14 @@ function Row({ line }: { line: HomeCardLine }) {
   const tone = {
     income: 'font-semibold text-mostaza-ink',
     spent: 'font-semibold text-rosa-texto',
+    ahorro: 'font-semibold text-azul-ink',
     loan: 'font-normal text-ciruela-ink',
   }[line.role]
   return (
     <div className={`flex items-baseline justify-between gap-3 text-[14px] ${tone}`}>
       <span className="inline-flex min-w-0 items-center gap-1.5">
         {line.role === 'loan' ? <AppIcon name="right-left" /> : null}
+        {line.role === 'ahorro' ? <AppIcon name="piggy-bank" /> : null}
         {line.label}
       </span>
       <span className="shrink-0 whitespace-nowrap text-right font-display">{line.amount}</span>

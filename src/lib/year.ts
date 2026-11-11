@@ -239,23 +239,6 @@ export function categoryJump(categories: YearCategory[], year: number, today = n
   return `En ${monthName(best.toMonth)} gastaste ${percent}% más en ${best.name.toLowerCase()} que en ${monthName(best.fromMonth)}.`
 }
 
-export function gustosSentence(spent: number | null, extras: number | null, saved: number | null): string {
-  if (extras === null || extras <= 0) {
-    if (spent && spent > 0) return 'salieron de tu bolsa de extras.'
-    return 'Cuando llegue un extra, vas a ver cuánto se fue en gustos y cuánto al ahorro.'
-  }
-  const percent = Math.round(((saved ?? 0) / extras) * 100)
-  if (percent <= 0) {
-    return spent && spent > 0
-      ? 'salieron de tu bolsa de extras. Te diste esos gustos, y está bien.'
-      : 'Tus extras se quedaron para darte un gusto, y está bien.'
-  }
-  if (spent && spent > 0) {
-    return `salieron de tu bolsa de extras. ¡Te diste tus gustos y aun así el ${percent}% de tus extras fue al ahorro!`
-  }
-  return `El ${percent}% de tus extras fue al ahorro. Qué lindo poder guardarlo.`
-}
-
 export function duesSentence(onTime: number, expected: number): string {
   if (expected <= 0) return 'Cuando anotes vencimientos, vamos a celebrar los que queden pagos a tiempo.'
   if (onTime <= 0) return `Tenés ${expected} vencimientos anotados este año. Cada uno que marques va a aparecer acá.`
@@ -268,13 +251,13 @@ export function duesSentence(onTime: number, expected: number): string {
 }
 
 export function highlightSentence(highlight: YearHighlight | null): string {
-  if (!highlight) return 'Cuando un extra vaya a un fondo, lo vamos a recordar acá.'
+  if (!highlight) return 'Cuando cargues un aporte grande, lo vamos a recordar acá.'
   const when = `de ${monthName(highlight.month)}`
   const money = formatMoney(highlight.amount)
   if (highlight.amount >= highlight.extraAmount) {
-    return `Tu ${highlight.label.toLowerCase()} ${when} (${money}) fue directo a ${highlight.fundName}.`
+    return `Tu aporte ${when} (${money}) fue a ${highlight.fundName}.`
   }
-  return `De tu ${highlight.label.toLowerCase()} ${when}, ${money} fue a ${highlight.fundName}.`
+  return `De tu aporte ${when}, ${money} fue a ${highlight.fundName}.`
 }
 
 export function yearMoments(report: YearReport, today = new Date()): YearMoment[] {

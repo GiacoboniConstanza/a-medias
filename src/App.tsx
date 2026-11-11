@@ -7,6 +7,7 @@ import { isHubHome } from './lib/modules.ts'
 import { HouseholdScreen, LoginScreen, RegisterScreen } from './screens/AuthScreens.tsx'
 import { ExpenseScreen } from './screens/ExpenseScreen.tsx'
 import { legacySavingsLocation } from './lib/savings.ts'
+import { SavingDetailScreen } from './screens/SavingDetailScreen.tsx'
 import { SavingsScreen } from './screens/SavingsScreen.tsx'
 import { HomeScreen } from './screens/HomeScreen.tsx'
 import { HabitsScreen } from './screens/HabitsScreen.tsx'
@@ -71,6 +72,7 @@ export function App() {
               <Route path="movimientos" element={<MovementsScreen />} />
               <Route path="se-me-fue" element={<SeMeFueRedirect />} />
               <Route path="ahorros" element={<SavingsScreen />} />
+              <Route path="ahorros/:id" element={<SavingDetailScreen />} />
               <Route path="bolsa" element={<Navigate to={legacySavingsLocation('/bolsa') ?? '/ahorros'} replace />} />
               <Route path="meta" element={<Navigate to={legacySavingsLocation('/meta') ?? '/ahorros'} replace />} />
               <Route path="compartidos" element={<CompartidosRedirect />} />

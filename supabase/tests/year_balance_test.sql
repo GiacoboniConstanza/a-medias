@@ -29,18 +29,34 @@ insert into public.base_salaries (user_id, amount, effective_from) values
   ('b2222222-2222-4222-8222-222222222222', 1000000, '2026-01-01'),
   ('b2222222-2222-4222-8222-222222222222', 600000, '2028-01-01');
 
-insert into public.savings_funds (id, user_id, name, emoji, icon, target_amount) values
-  ('e7777777-7777-4777-8777-777777777777', 'a1111111-1111-4111-8111-111111111111', 'Lollapalooza', '🎵', 'music', 1200000),
-  ('e7777777-7777-4777-8777-777777777778', 'b2222222-2222-4222-8222-222222222222', 'Curso ajeno', '📚', 'book', 200000);
 
 insert into public.income_extras (id, user_id, household_id, amount, label, received_on) values
   ('e1111111-1111-4111-8111-111111111111', 'a1111111-1111-4111-8111-111111111111', 'c3333333-3333-4333-8333-333333333333', 450000, 'Incentivo', '2026-04-10'),
   ('e2222222-2222-4222-8222-222222222222', 'b2222222-2222-4222-8222-222222222222', 'c3333333-3333-4333-8333-333333333333', 80000, 'Guardia ajena', '2026-04-03');
 
-insert into public.extra_allocations (extra_id, user_id, fund_id, amount) values
-  ('e1111111-1111-4111-8111-111111111111', 'a1111111-1111-4111-8111-111111111111', 'e7777777-7777-4777-8777-777777777777', 300000),
-  ('e1111111-1111-4111-8111-111111111111', 'a1111111-1111-4111-8111-111111111111', null, 150000),
-  ('e2222222-2222-4222-8222-222222222222', 'b2222222-2222-4222-8222-222222222222', 'e7777777-7777-4777-8777-777777777778', 80000);
+insert into public.savings (
+  id, household_id, name, emoji, icon, target_amount, target_date, is_shared, owner_id
+) values
+  ('ffffffff-0001-4000-8000-000000000001', 'c3333333-3333-4333-8333-333333333333', 'Lollapalooza', 'music', 'music', 600000, null, false, 'a1111111-1111-4111-8111-111111111111'),
+  ('99999999-0001-4000-8000-000000000001', 'c3333333-3333-4333-8333-333333333333', 'Vacaciones', 'umbrella-beach', 'umbrella-beach', 1200000, '2027-01-15', true, null);
+
+insert into public.saving_opening_balances (saving_id, user_id, amount) values
+  ('ffffffff-0001-4000-8000-000000000001', 'a1111111-1111-4111-8111-111111111111', 300000),
+  ('99999999-0001-4000-8000-000000000001', 'a1111111-1111-4111-8111-111111111111', 330000),
+  ('99999999-0001-4000-8000-000000000001', 'b2222222-2222-4222-8222-222222222222', 210000);
+
+insert into public.saving_moves (saving_id, household_id, user_id, kind, amount, spent_on, period, title)
+values (
+  'ffffffff-0001-4000-8000-000000000001',
+  'c3333333-3333-4333-8333-333333333333',
+  'a1111111-1111-4111-8111-111111111111',
+  'aporte',
+  300000,
+  '2026-03-10',
+  '2026-03-01',
+  'Incentivo'
+);
+
 
 insert into public.expenses (
   household_id, owner_id, payer_id, category_id, title, amount, spent_on, is_shared, paid_from_bag
@@ -68,19 +84,7 @@ insert into public.expenses (
 );
 select set_config('app.bag_write', '', true);
 
-insert into public.shared_goals (id, household_id, name, emoji, icon, target_amount)
-values (
-  'f9999999-9999-4999-8999-999999999999',
-  'c3333333-3333-4333-8333-333333333333',
-  'Vacaciones juntas',
-  '🏖️',
-  'umbrella-beach',
-  1200000
-);
 
-insert into public.goal_contributions (goal_id, user_id, amount, mode) values
-  ('f9999999-9999-4999-8999-999999999999', 'a1111111-1111-4111-8111-111111111111', 330000, 'free'),
-  ('f9999999-9999-4999-8999-999999999999', 'b2222222-2222-4222-8222-222222222222', 210000, 'free');
 
 insert into public.fixed_expenses (
   id, household_id, owner_id, category_id, title, emoji, icon, expected_amount, due_day, is_shared, created_at
@@ -192,7 +196,7 @@ select is(
 
 select is(position('Guardia ajena' in (select payload::text from balance_a)), 0, 'no aparece el extra de la otra');
 select is(position('1000000' in (select payload::text from balance_a)), 0, 'no aparece el sueldo de la otra');
-select is(((select payload from balance_a) ->> 'gustos_spent'), '40000', 'los gustos salen de la bolsa');
+select ok(((select payload from balance_a) ->> 'gustos_spent') is null, 'ya no hay gustos desde la bolsa');
 select is(((select payload from balance_a) ->> 'extras_total'), '450000', 'suma solo mis extras');
 select is(((select payload from balance_a) ->> 'extras_saved'), '300000', 'al ahorro fue lo que aparté a un fondo');
 select is(((select payload from balance_a) -> 'goal' ->> 'mine'), '330000', 'la meta muestra solo mi aporte');

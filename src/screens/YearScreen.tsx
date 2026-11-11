@@ -19,7 +19,6 @@ import {
   bestSavingMonth,
   biggestSpendingMonth,
   categoryPercents,
-  gustosSentence,
   incomeCaption,
   isFutureMonth,
   monthHeading,
@@ -181,7 +180,7 @@ function FriendlyView({
             <AppIcon name="minus" className="text-mostaza-ink" /> Sueldo base
           </span>
           <span className="inline-flex items-center gap-1">
-            <AppIcon name="circle" className="text-[9px] text-mostaza-ink" /> Extras (a la bolsa)
+            <AppIcon name="circle" className="text-[9px] text-mostaza-ink" /> Extras
           </span>
         </p>
         <IncomeChart year={report.year} months={report.months} caption={caption} today={today} />
@@ -243,22 +242,12 @@ function FriendlyView({
         )}
       </Card>
 
-      <Card className="year-rise bg-mostaza-claro">
-        <h2 className="mb-1 flex items-center gap-2 font-display text-[17px] font-semibold">
-          <AppIcon name="bag-shopping" className="text-tinta" /> Tus gustos del año
-        </h2>
-        {report.gustosSpent !== null && report.gustosSpent > 0 ? (
-          <p className="font-display text-[26px] font-semibold text-tinta">{formatMoney(report.gustosSpent)}</p>
-        ) : null}
-        <p className="text-sm text-muted">{gustosSentence(report.gustosSpent, report.extrasTotal, report.extrasSaved)}</p>
-      </Card>
-
       <Card className="year-rise">
         <h2 className="mb-3 flex items-center gap-2 font-display text-[17px] font-semibold">
           <AppIcon name="piggy-bank" className="text-mostaza-ink" /> Tus ahorros
         </h2>
         {report.funds.length === 0 && !report.goal ? (
-          <p className="text-sm font-semibold text-muted">Cuando apartes un extra a un fondo o a la meta, lo vas a ver acá.</p>
+          <p className="text-sm font-semibold text-muted">Cuando cargues un aporte, lo vas a ver acá.</p>
         ) : (
           <div className="flex flex-wrap justify-center gap-3">
             {report.funds.map((fund) => (
@@ -432,20 +421,12 @@ function AccountingView({
         )}
       </Card>
       <Card className="mb-0">
-        <h2 className="mb-3 font-display text-[17px] font-semibold">Gustos, ahorros y momentos</h2>
+        <h2 className="mb-3 font-display text-[17px] font-semibold">Ahorros y momentos</h2>
         <Table>
           <tbody>
             <tr>
-              <th className="py-2 text-left font-semibold">Gustos desde la bolsa</th>
-              <td className="py-2 text-right font-bold">{yearCell(report.gustosSpent)}</td>
-            </tr>
-            <tr>
-              <th className="border-t border-dashed border-line py-2 text-left font-semibold">Extras del año</th>
-              <td className="border-t border-dashed border-line py-2 text-right">{yearCell(report.extrasTotal)}</td>
-            </tr>
-            <tr>
-              <th className="border-t border-dashed border-line py-2 text-left font-semibold">Extras al ahorro</th>
-              <td className="border-t border-dashed border-line py-2 text-right">{yearCell(report.extrasSaved)}</td>
+              <th className="py-2 text-left font-semibold">Extras del año</th>
+              <td className="py-2 text-right font-bold">{yearCell(report.extrasTotal)}</td>
             </tr>
             {report.funds.map((fund) => (
               <tr key={fund.id}>

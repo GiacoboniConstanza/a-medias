@@ -120,25 +120,12 @@ insert into public.base_salaries (user_id, amount, effective_from) values
   ('11111111-1111-4111-8111-111111111111', 900000, '2026-10-01'),
   ('22222222-2222-4222-8222-222222222222', 600000, '2026-10-01');
 
-insert into public.savings_funds (id, user_id, name, emoji, icon, target_amount) values
-  ('ffffffff-0001-4000-8000-000000000001', '11111111-1111-4111-8111-111111111111', 'Viaje', '✈️', 'plane', 600000),
-  ('ffffffff-0002-4000-8000-000000000002', '11111111-1111-4111-8111-111111111111', 'Sillón', '🛋️', 'couch', 250000),
-  ('ffffffff-0003-4000-8000-000000000003', '11111111-1111-4111-8111-111111111111', 'Notebook', '💻', 'laptop', 800000),
-  ('ffffffff-0004-4000-8000-000000000004', '22222222-2222-4222-8222-222222222222', 'Curso', '📚', 'book', 200000);
 
 insert into public.income_extras (id, user_id, household_id, amount, label, received_on) values
   ('eeeeeeee-0001-4000-8000-000000000001', '11111111-1111-4111-8111-111111111111', '01010101-0101-4101-8101-010101010101', 335000, 'Ahorros anteriores', '2026-09-02'),
   ('eeeeeeee-0002-4000-8000-000000000002', '11111111-1111-4111-8111-111111111111', '01010101-0101-4101-8101-010101010101', 300000, 'Incentivo', '2026-10-10'),
   ('eeeeeeee-0003-4000-8000-000000000003', '22222222-2222-4222-8222-222222222222', '01010101-0101-4101-8101-010101010101', 80000, 'Guardia', '2026-10-03');
 
-insert into public.extra_allocations (extra_id, user_id, fund_id, amount) values
-  ('eeeeeeee-0001-4000-8000-000000000001', '11111111-1111-4111-8111-111111111111', 'ffffffff-0001-4000-8000-000000000001', 300000),
-  ('eeeeeeee-0001-4000-8000-000000000001', '11111111-1111-4111-8111-111111111111', 'ffffffff-0003-4000-8000-000000000003', 35000),
-  ('eeeeeeee-0002-4000-8000-000000000002', '11111111-1111-4111-8111-111111111111', 'ffffffff-0001-4000-8000-000000000001', 120000),
-  ('eeeeeeee-0002-4000-8000-000000000002', '11111111-1111-4111-8111-111111111111', 'ffffffff-0002-4000-8000-000000000002', 90000),
-  ('eeeeeeee-0002-4000-8000-000000000002', '11111111-1111-4111-8111-111111111111', null, 90000),
-  ('eeeeeeee-0003-4000-8000-000000000003', '22222222-2222-4222-8222-222222222222', 'ffffffff-0004-4000-8000-000000000004', 50000),
-  ('eeeeeeee-0003-4000-8000-000000000003', '22222222-2222-4222-8222-222222222222', null, 30000);
 
 insert into public.expenses (
   id, household_id, owner_id, payer_id, category_id, title, amount, spent_on, is_shared
@@ -154,20 +141,7 @@ insert into public.expenses (
   ('bbbbbbbb-0009-4000-8000-000000000009', '01010101-0101-4101-8101-010101010101', '11111111-1111-4111-8111-111111111111', '11111111-1111-4111-8111-111111111111', 'aaaaaaaa-000a-4000-8000-00000000000a', 'Café', 7000, '2026-10-15', false),
   ('bbbbbbbb-000a-4000-8000-00000000000a', '01010101-0101-4101-8101-010101010101', '22222222-2222-4222-8222-222222222222', '22222222-2222-4222-8222-222222222222', 'aaaaaaaa-000b-4000-8000-00000000000b', 'Farmacia', 12000, '2026-10-13', false);
 
-insert into public.shared_goals (id, household_id, name, emoji, icon, target_amount, target_date)
-values (
-  '99999999-0001-4000-8000-000000000001',
-  '01010101-0101-4101-8101-010101010101',
-  'Vacaciones juntas',
-  '🏖️',
-  'umbrella-beach',
-  1200000,
-  '2027-01-15'
-);
 
-insert into public.goal_contributions (goal_id, user_id, amount, mode) values
-  ('99999999-0001-4000-8000-000000000001', '11111111-1111-4111-8111-111111111111', 330000, 'free'),
-  ('99999999-0001-4000-8000-000000000001', '22222222-2222-4222-8222-222222222222', 210000, 'free');
 
 insert into public.fixed_expenses (
   id, household_id, owner_id, category_id, title, emoji, icon, expected_amount, due_day, is_shared
@@ -194,8 +168,7 @@ insert into public.fixed_payments (fixed_expense_id, month, paid_on, payer_id, a
   ('dddddddd-0003-4000-8000-000000000003', '2026-10-01', '2026-10-07', '22222222-2222-4222-8222-222222222222', 22700, 'bbbbbbbb-0003-4000-8000-000000000003'),
   ('dddddddd-0004-4000-8000-000000000004', '2026-10-01', '2026-10-12', '22222222-2222-4222-8222-222222222222', 15800, 'bbbbbbbb-0005-4000-8000-000000000005');
 
--- Ahorros unificados (tablas nuevas). Los saldos iniciales replican
--- private.fund_saved / goal_contributions / private.gustos_free del seed de arriba.
+-- Ahorros unificados (saldo inicial ya migrado; sin fondos/meta/bolsa viejos).
 insert into public.savings (
   id, household_id, name, emoji, icon, target_amount, target_date, is_shared, owner_id, archived_at
 ) values

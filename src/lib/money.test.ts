@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { monthPocket } from './derive.ts'
 import { formatMoney, parseMoneyInput, toCents } from './format.ts'
-import { gustosStatus } from './gustos.ts'
 import { iconByName, ICON_CHOICES, DEFAULT_ICON } from './icons.ts'
 import { jarStatus } from './jar.ts'
 import { monthTitle } from './month.ts'
@@ -23,18 +22,6 @@ describe('reparto del boceto', () => {
   it('dice quién le debe a quién', () => {
     expect(debtSentence('coty', result)).toBe('Maru puso de menos $ 84.000,00')
     expect(debtSentence('maru', result)).toBe('Coty puso de más $ 84.000,00')
-  })
-})
-
-describe('bolsa de gustos', () => {
-  it('avisa cuando queda un cuarto o menos', () => {
-    const status = gustosStatus(90_000, 72_000)
-    expect(status.level).toBe('low')
-    expect(status.remaining).toBe(18_000)
-  })
-
-  it('marca cuando el gasto ya entra en los fondos', () => {
-    expect(gustosStatus(90_000, 100_000).level).toBe('over')
   })
 })
 
