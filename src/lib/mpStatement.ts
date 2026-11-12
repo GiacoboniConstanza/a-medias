@@ -72,9 +72,12 @@ export function parseMpStatement(lines: readonly PdfLine[]): MpParsedMove[] {
   const searchFrom = pesosHeader >= 0 ? pesosHeader : 0
   const start = lines.findIndex((line, index) => index >= searchFrom && isPesosDetalleLine(line))
   if (start < 0) return []
-  // Solo corta en dólares: "Fecha de generación" puede aparecer en otro orden y no debe truncar.
+  // Tras el inicio en pesos: corta en "Fecha de generación" o en dólares (el primero).
   let end = lines.findIndex(
-    (line, index) => index > start && /resumen\s+de\s+tenencias\s+en\s+d[oó]lares/i.test(lineText(line)),
+    (line, index) =>
+      index > start &&
+      (/fecha\s+de\s+generaci[oó]n/i.test(lineText(line)) ||
+        /resumen\s+de\s+tenencias\s+en\s+d[oó]lares/i.test(lineText(line))),
   )
   if (end < 0) end = lines.length
   const body = lines.slice(start + 1, end).filter((line) => !isNoiseLine(line))
@@ -346,6 +349,12 @@ function isNoiseLine(line: PdfLine): boolean {
   if (words.every((word) => HEADER_WORDS.has(word))) return true
   if (/^id de la$/i.test(text) || /^operaci[oó]n$/i.test(text)) return true
   if (/detalle de movimientos/i.test(text)) return true
+  if (/fecha\s+de\s+generaci[oó]n/i.test(text)) return true
+  // Pie de página del resumen MP (puede partirse en varios renglones).
+  if (/mercado\s+libre\s+s\.?\s*r\.?\s*l/i.test(text)) return true
+  if (/canales?\s+de\s+consulta/i.test(text) || /nuestros\s+canales/i.test(text)) return true
+  if (/mercadopago\.com\.ar/i.test(text)) return true
+  if (/\bCUIT\b/i.test(text) && /\d{2}-\d{8}-\d/.test(text)) return true
   return false
 }
 

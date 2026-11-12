@@ -219,6 +219,34 @@ Fecha de generación: 12-11-2026
       { x: 500, y: 700, text: '-5.000,00' },
       { x: 560, y: 700, text: '$' },
       { x: 580, y: 700, text: '85.000,00' },
+      { x: 40, y: 640, text: '11-11-2026' },
+      { x: 120, y: 640, text: 'Pago' },
+      { x: 160, y: 640, text: 'Spotify' },
+      { x: 360, y: 640, text: '189136511556' },
+      { x: 480, y: 640, text: '$' },
+      { x: 500, y: 640, text: '-8.232,02' },
+      { x: 560, y: 640, text: '$' },
+      { x: 580, y: 640, text: '7.874,23' },
+      // Pie de página que no debe pegarse a Spotify.
+      { x: 40, y: 120, text: 'Mercado' },
+      { x: 100, y: 120, text: 'Libre' },
+      { x: 150, y: 120, text: 'S.R.L.' },
+      { x: 210, y: 120, text: 'CUIT' },
+      { x: 260, y: 120, text: '30-70308853-4' },
+      { x: 360, y: 120, text: 'Av.' },
+      { x: 390, y: 120, text: 'Caseros' },
+      { x: 450, y: 120, text: '3039,' },
+      { x: 40, y: 100, text: 'Encontrá' },
+      { x: 110, y: 100, text: 'nuestros' },
+      { x: 180, y: 100, text: 'canales' },
+      { x: 40, y: 80, text: 'de' },
+      { x: 70, y: 80, text: 'consulta' },
+      { x: 140, y: 80, text: 'en:' },
+      { x: 180, y: 80, text: 'www.mercadopago.com.ar' },
+      { x: 40, y: 50, text: 'Fecha' },
+      { x: 90, y: 50, text: 'de' },
+      { x: 120, y: 50, text: 'generación:' },
+      { x: 220, y: 50, text: '12-11-2026' },
       { x: 500, y: 40, text: '2/3' },
     ]
     const page3Dollars = [
@@ -237,22 +265,28 @@ Fecha de generación: 12-11-2026
       { x: 360, y: 700, text: 'operación' },
       { x: 480, y: 700, text: 'Valor' },
       { x: 560, y: 700, text: 'Saldo' },
-      { x: 40, y: 100, text: 'Fecha' },
-      { x: 90, y: 100, text: 'de' },
-      { x: 120, y: 100, text: 'generación:' },
-      { x: 220, y: 100, text: '12-11-2026' },
     ]
 
     const inOrder = linesFromPageItems([page1, page2, page3Dollars])
     const parsed = parseMpStatement(inOrder)
-    expect(parsed.map((row) => row.operationId)).toEqual(['111111111111', '222222222222'])
+    expect(parsed.map((row) => row.operationId)).toEqual([
+      '111111111111',
+      '222222222222',
+      '189136511556',
+    ])
     expect(parsed[0]?.description).toMatch(/Pago con QR Alpha/i)
     expect(parsed[1]?.description).toMatch(/Pago Beta/i)
+    expect(parsed[2]?.description).toBe('Pago Spotify')
 
     // Encabezado de dólares primero (como si las páginas vinieran al revés) no debe robar el inicio.
     const dollarsFirst = linesFromPageItems([page3Dollars, page1, page2])
     const recovered = parseMpStatement(dollarsFirst)
-    expect(recovered.map((row) => row.operationId)).toEqual(['111111111111', '222222222222'])
+    expect(recovered.map((row) => row.operationId)).toEqual([
+      '111111111111',
+      '222222222222',
+      '189136511556',
+    ])
+    expect(recovered[2]?.description).toBe('Pago Spotify')
 
     // "DETALLE DE MOVIMIENTOS DEL PERIODO" también después de pesos: no se parsea como ancla.
     const dollarsBoth = linesFromLayout(`
