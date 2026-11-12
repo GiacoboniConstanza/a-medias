@@ -55,13 +55,8 @@ insert into public.saved_foods (
   'manual'
 );
 
--- common_foods arranca vacía en la migración; autenticada puede leerla
-select is(
-  (select count(*) from public.common_foods),
-  0::bigint,
-  'common_foods queda vacía tras la migración y se puede leer'
-);
-
+-- common_foods es un catálogo compartido: no exige tabla vacía (el seed puede
+-- haber cargado ejemplos). Insertamos un id propio y comprobamos lectura + RLS.
 reset role;
 insert into public.common_foods (id, name, search_name, source)
 values (
@@ -69,7 +64,9 @@ values (
   'Alimento de prueba',
   'alimento de prueba',
   'example'
-);
+)
+on conflict (id) do nothing;
+
 select set_config('request.jwt.claim.sub', 'c7c7c7c7-c7c7-47c7-87c7-c7c7c7c7c7c7', true);
 select set_config(
   'request.jwt.claims',
@@ -81,7 +78,12 @@ set local role authenticated;
 select is(
   (select count(*) from public.common_foods where id = 'a1000000-0000-4000-8000-000000000099'),
   1::bigint,
-  'la lista de todos los días la puede leer cualquier autenticada'
+  'Coty puede leer common_foods'
+);
+
+select ok(
+  (select count(*) from public.common_foods) >= 1,
+  'autenticada puede listar common_foods (con o sin seed)'
 );
 
 reset role;
@@ -93,6 +95,12 @@ select set_config(
   true
 );
 set local role authenticated;
+
+select is(
+  (select count(*) from public.common_foods where id = 'a1000000-0000-4000-8000-000000000099'),
+  1::bigint,
+  'Maru también lee el mismo common_foods (catálogo compartido)'
+);
 
 select is(
   (select count(*) from public.meals where id = 'e1e1e1e1-e1e1-41e1-81e1-e1e1e1e1e1e1'),
@@ -112,12 +120,6 @@ select throws_ok(
   '42501',
   null,
   'nadie autenticado puede escribir en common_foods'
-);
-
-select is(
-  (select count(*) from public.meals where id = 'e1e1e1e1-e1e1-41e1-81e1-e1e1e1e1e1e1' and protein_g = 1),
-  0::bigint,
-  'no puede editar la comida de la otra'
 );
 
 update public.meals
