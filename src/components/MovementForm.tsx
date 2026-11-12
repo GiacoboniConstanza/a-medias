@@ -14,6 +14,7 @@ import {
   createExtra,
   createSavingMove,
   deleteExpense,
+  deleteExtra,
   deleteSavingMove,
   loadFinance,
   loadSettledMonths,
@@ -22,6 +23,7 @@ import {
   updateSavingMove,
   type Category,
   type ExpenseItem,
+  type ExtraItem,
   type SavingItem,
   type SavingMove,
 } from '../lib/api.ts'
@@ -29,7 +31,7 @@ import { NewSavingSheet } from '../screens/SavingsScreen.tsx'
 import { savingBalances, withdrawableByUser } from '../lib/saving-balance.ts'
 import { activeSavings, groupSavings } from '../lib/savings.ts'
 import { monthPocket, monthSplit, myPrivateSpent, partnerId } from '../lib/derive.ts'
-import { sumPaidBy } from '../lib/period.ts'
+import { expenseIsReadOnly, sumPaidBy } from '../lib/period.ts'
 import { formatMoney, moneyDraftFromAmount, normalizeMoney } from '../lib/format.ts'
 import { homeAccountingCard } from '../lib/home-card.ts'
 import { DEFAULT_ICON } from '../lib/icons.ts'
@@ -71,6 +73,7 @@ export function MovementForm({
   expense = null,
   transfer = null,
   savingMove = null,
+  extra = null,
   prefill,
   onClose,
   onDone,
@@ -78,6 +81,7 @@ export function MovementForm({
   expense?: ExpenseItem | null
   transfer?: Transfer | null
   savingMove?: SavingMove | null
+  extra?: ExtraItem | null
   prefill?: MovementPrefill
   onClose?: () => void
   onDone?: () => void | Promise<void>
@@ -249,6 +253,14 @@ export function MovementForm({
       expense={expense}
       transfer={transfer}
       savingMove={savingMove}
+      extra={extra}
+      fixedExpenseIds={
+        new Set(
+          data.fixed
+            .map((item) => item.payment?.expenseId)
+            .filter((id): id is string => Boolean(id)),
+        )
+      }
       prefill={prefill}
       initialTipo={
         expense
@@ -257,12 +269,14 @@ export function MovementForm({
             ? 'transferencia'
             : savingMove
               ? 'ahorro'
-              : prefill?.tipo ?? stateTipo ?? null
+              : extra
+                ? 'ingreso'
+                : prefill?.tipo ?? stateTipo ?? null
       }
       initialSavingId={savingMove?.savingId ?? prefill?.savingId ?? locationState?.savingId ?? null}
       savings={data.savings}
       savingMoves={data.savingMoves}
-      editing={Boolean(expense || transfer || savingMove)}
+      editing={Boolean(expense || transfer || savingMove || extra)}
       settledMonths={settledMonths}
       salaryHistory={data.salaryHistory}
       onClose={() => {
@@ -317,6 +331,8 @@ function MovementFormBody({
   expense,
   transfer,
   savingMove,
+  extra,
+  fixedExpenseIds,
   prefill,
   initialTipo,
   initialSavingId,
@@ -335,6 +351,8 @@ function MovementFormBody({
   expense: ExpenseItem | null
   transfer: Transfer | null
   savingMove: SavingMove | null
+  extra: ExtraItem | null
+  fixedExpenseIds: ReadonlySet<string>
   prefill?: MovementPrefill
   initialTipo: MovementType | null
   initialSavingId: string | null
@@ -678,13 +696,14 @@ function MovementFormBody({
 
   async function remove() {
     if (saving) return
-    if (!expense && !transfer && !savingMove) return
+    if (!expense && !transfer && !savingMove && !extra) return
     setSaving(true)
     setError('')
     try {
       if (expense) await deleteExpense(expense.id)
       else if (transfer) await deleteLoan(transfer.id)
       else if (savingMove) await deleteSavingMove(savingMove.id)
+      else if (extra) await deleteExtra(extra.id)
       onClose()
     } catch (caught) {
       setError(
@@ -694,7 +713,9 @@ function MovementFormBody({
             ? 'No pude eliminar el gasto.'
             : transfer
               ? 'No pude eliminar la transferencia.'
-              : 'No pude eliminar el movimiento de ahorro.',
+              : extra
+                ? 'No pude eliminar el ingreso.'
+                : 'No pude eliminar el movimiento de ahorro.',
       )
       setSaving(false)
       setConfirmingDelete(false)
@@ -702,6 +723,70 @@ function MovementFormBody({
   }
 
   const moreSummary = `${monthName(period)} · ${spentOn === today ? 'Hoy' : shortDate(spentOn)}`
+  const expenseReadOnly = expenseIsReadOnly(expense, meId, settledMonths)
+  const expenseIsFixedPayment = Boolean(expense && fixedExpenseIds.has(expense.id))
+  const savingArchived = Boolean(
+    savingMove && savings.find((item) => item.id === savingMove.savingId)?.archivedAt,
+  )
+  const transferOwnedByPartner = Boolean(transfer && transfer.createdBy && transfer.createdBy !== meId)
+  const deleteBlockedReason = expenseIsFixedPayment
+    ? 'Es el pago de un gasto fijo: se deshace en Avisos.'
+    : expense && expense.isShared && sharedMonthSettled(expense.isShared, expense.period, settledMonths)
+      ? `${monthName(expense.period)} está saldado: un gasto compartido no se puede eliminar. Deshacé el saldo en Resumen.`
+      : expenseReadOnly
+        ? 'No podés eliminar un gasto privado de otra.'
+        : savingArchived
+          ? 'El ahorro está archivado.'
+          : transferOwnedByPartner
+            ? `La cargó ${partnerLabel}: solo ella la puede eliminar.`
+            : null
+
+  if (extra) {
+    return (
+      <div className="min-h-dvh bg-crema">
+        <section className="scallop-b bg-azul px-4 pb-4 pt-[max(0.5rem,env(safe-area-inset-top))]">
+          <div className="flex items-center gap-2">
+            <button type="button" className="grid h-11 w-11 place-items-center rounded-full bg-crema text-tinta" onClick={onClose}>
+              <AppIcon name="arrow-left" />
+            </button>
+            <h1 className="font-display text-xl font-semibold text-tinta">Ingreso</h1>
+          </div>
+        </section>
+        <div className="space-y-4 px-4 py-6">
+          <p className="font-display text-3xl font-semibold text-mostaza-ink">+{formatMoney(extra.amount)}</p>
+          <p className="text-sm font-semibold text-gris">
+            {extra.label?.trim() || 'Algo puntual'} · {shortDate(extra.receivedOn)}
+          </p>
+          {extra.notes ? <p className="text-sm font-semibold text-tinta">{extra.notes}</p> : null}
+          {error ? (
+            <p className="flex items-center gap-1 text-sm font-bold text-tinta" role="alert">
+              <AppIcon name="circle-exclamation" /> {error}
+            </p>
+          ) : null}
+          {confirmingDelete ? (
+            <div className="space-y-3">
+              <p className="font-display text-xl font-semibold">¿Eliminar este ingreso?</p>
+              <p className="text-sm font-semibold text-gris">No se puede deshacer.</p>
+              <Button type="button" variant="danger" className="w-full" onClick={() => void remove()} disabled={saving}>
+                Eliminar
+              </Button>
+              <Button type="button" variant="alt" className="w-full" onClick={() => setConfirmingDelete(false)} disabled={saving}>
+                Volver
+              </Button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="flex min-h-11 w-full items-center justify-center font-semibold text-tinta"
+              onClick={() => setConfirmingDelete(true)}
+            >
+              <AppIcon name="trash" className="mr-1" /> Eliminar
+            </button>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   if (transfer) {
     const sent = transfer.fromId === meId
@@ -726,7 +811,12 @@ function MovementFormBody({
               <AppIcon name="circle-exclamation" /> {error}
             </p>
           ) : null}
-          {confirmingDelete ? (
+          {transferOwnedByPartner ? (
+            <p className="flex items-start gap-2 text-sm font-semibold text-tinta">
+              <AppIcon name="lock" className="mt-0.5 shrink-0" />
+              <span>{deleteBlockedReason}</span>
+            </p>
+          ) : confirmingDelete ? (
             <div className="space-y-3">
               <p className="font-display text-xl font-semibold">¿Eliminar esta transferencia?</p>
               <p className="text-sm font-semibold text-gris">Se saca de Te quedan. No se puede deshacer.</p>
@@ -1184,7 +1274,12 @@ function MovementFormBody({
           <AppIcon name="check" /> {saving ? 'Guardando…' : 'Guardar'}
         </Button>
         {editing && (expense || savingMove) ? (
-          confirmingDelete ? (
+          deleteBlockedReason ? (
+            <p className="mt-3 flex items-start justify-center gap-2 text-sm font-semibold text-tinta">
+              <AppIcon name="lock" className="mt-0.5 shrink-0" />
+              <span>{deleteBlockedReason}</span>
+            </p>
+          ) : confirmingDelete ? (
             <div className="mt-3 space-y-2">
               <p className="text-center font-display text-lg font-semibold">
                 {expense ? '¿Eliminar este gasto?' : '¿Eliminar este movimiento de ahorro?'}

@@ -165,7 +165,7 @@ export function Sheet({
       />
       <div
         ref={dialogRef}
-        role="dialog"
+        role={layer === 'confirm' ? 'alertdialog' : 'dialog'}
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}

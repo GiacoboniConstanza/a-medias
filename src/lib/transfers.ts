@@ -10,6 +10,8 @@ export type Transfer = {
   transferredOn: string
   period: string
   notes: string | null
+  createdBy: string
+  mpOperationId: string | null
 }
 
 /** Forma legada usada por loanMonthEffect y pantallas hasta renombrar. */
@@ -132,6 +134,8 @@ function mapTransfer(row: {
   transferred_on: string
   period: string
   notes: string | null
+  created_by: string
+  mp_operation_id?: string | null
 }): Transfer {
   return {
     id: row.id,
@@ -141,6 +145,8 @@ function mapTransfer(row: {
     transferredOn: row.transferred_on,
     period: row.period,
     notes: row.notes,
+    createdBy: row.created_by,
+    mpOperationId: row.mp_operation_id ?? null,
   }
 }
 
@@ -162,7 +168,7 @@ export async function loadLoanMovements(): Promise<{ loans: PeriodLoan[]; repaym
 export async function loadTransfers(): Promise<Transfer[]> {
   const { data, error } = await supabase
     .from('transfers')
-    .select('id, from_id, to_id, amount, transferred_on, period, notes')
+    .select('id, from_id, to_id, amount, transferred_on, period, notes, created_by, mp_operation_id')
     .order('transferred_on', { ascending: false })
   if (error) throw new Error(error.message)
   return (data ?? []).map(mapTransfer)

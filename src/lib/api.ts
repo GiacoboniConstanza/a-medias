@@ -26,6 +26,7 @@ export type ExpenseItem = {
   ownerId: string
   categoryId: string | null
   notes: string | null
+  mpOperationId: string | null
 }
 
 export type ExtraItem = {
@@ -34,6 +35,7 @@ export type ExtraItem = {
   amount: number
   receivedOn: string
   notes: string | null
+  mpOperationId: string | null
 }
 
 export type FixedPayment = {
@@ -163,11 +165,11 @@ export async function loadFinance(householdId: string, userId: string, month: st
     supabase.rpc('household_split_percents', { target_month: month }),
     supabase.rpc('household_split_is_even', { target_month: month }),
     supabase.from('split_notices').select('effective_from, recipient_percent, partner_percent, created_at'),
-    supabase.from('income_extras').select('id, amount, label, received_on, notes').eq('user_id', userId),
+    supabase.from('income_extras').select('id, amount, label, received_on, notes, mp_operation_id').eq('user_id', userId),
     supabase.from('categories').select('id, name, icon').eq('household_id', householdId),
     supabase
       .from('expenses')
-      .select('id, title, amount, spent_on, period, is_shared, paid_from_bag, payer_id, owner_id, category_id, notes')
+      .select('id, title, amount, spent_on, period, is_shared, paid_from_bag, payer_id, owner_id, category_id, notes, mp_operation_id')
       .eq('period', month)
       .order('spent_on', { ascending: true }),
     supabase
@@ -251,6 +253,7 @@ export async function loadFinance(householdId: string, userId: string, month: st
       amount: money(extra.amount),
       receivedOn: extra.received_on,
       notes: extra.notes,
+      mpOperationId: extra.mp_operation_id ?? null,
     }))
 
   const paymentByFixed = new Map((fixedPayments.data ?? []).map((payment) => [payment.fixed_expense_id, payment]))
@@ -323,7 +326,7 @@ export async function loadFinance(householdId: string, userId: string, month: st
   }
 }
 
-const EXPENSE_COLUMNS = 'id, title, amount, spent_on, period, is_shared, paid_from_bag, payer_id, owner_id, category_id, notes, created_at'
+const EXPENSE_COLUMNS = 'id, title, amount, spent_on, period, is_shared, paid_from_bag, payer_id, owner_id, category_id, notes, created_at, mp_operation_id'
 
 
 function mapExpense(expense: {
@@ -338,6 +341,7 @@ function mapExpense(expense: {
   owner_id: string
   category_id: string | null
   notes: string | null
+  mp_operation_id?: string | null
 }): ExpenseItem {
   return {
     id: expense.id,
@@ -351,6 +355,7 @@ function mapExpense(expense: {
     ownerId: expense.owner_id,
     categoryId: expense.category_id,
     notes: expense.notes,
+    mpOperationId: expense.mp_operation_id ?? null,
   }
 }
 
@@ -517,6 +522,30 @@ export async function updateExpense(input: {
 export async function deleteExpense(id: string): Promise<void> {
   const { error } = await supabase.from('expenses').delete().eq('id', id)
   fail(error)
+}
+
+export async function deleteExtra(id: string): Promise<void> {
+  const { error } = await supabase.from('income_extras').delete().eq('id', id)
+  fail(error)
+}
+
+export async function deleteMovements(input: {
+  month: string
+  expenseIds?: readonly string[]
+  extraIds?: readonly string[]
+  transferIds?: readonly string[]
+  savingMoveIds?: readonly string[]
+}): Promise<{ deleted: number }> {
+  const { data, error } = await supabase.rpc('delete_movements', {
+    p_month: input.month.slice(0, 10),
+    expense_ids: [...(input.expenseIds ?? [])],
+    extra_ids: [...(input.extraIds ?? [])],
+    transfer_ids: [...(input.transferIds ?? [])],
+    saving_move_ids: [...(input.savingMoveIds ?? [])],
+  })
+  fail(error)
+  const payload = (data ?? {}) as { deleted?: number }
+  return { deleted: Number(payload.deleted ?? 0) }
 }
 
 export async function createExtra(input: {

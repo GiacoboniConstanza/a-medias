@@ -12,6 +12,7 @@ function expense(partial: Partial<ExpenseItem> & Pick<ExpenseItem, 'id' | 'paidF
     ownerId: 'me',
     categoryId: null,
     notes: null,
+    mpOperationId: null,
     ...partial,
   }
 }
