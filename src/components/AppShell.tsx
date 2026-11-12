@@ -14,7 +14,7 @@ export type AppChromeContext = {
 export function AppShell() {
   const { pathname } = useLocation()
   const [hideChrome, setHideChrome] = useState(false)
-  const bare = pathname === '/cargar'
+  const bare = pathname === '/cargar' || pathname === '/comidas/agregar'
   const hideNav = bare || hideChrome
   const shellClass = bare
     ? 'mx-auto min-h-dvh max-w-[var(--ancho-columna)] bg-bg'

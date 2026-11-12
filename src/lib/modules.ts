@@ -97,6 +97,9 @@ export function navFor(pathname: string, enabled: readonly ModuleId[], from?: st
     pathname === '/compartidos' ||
     pathname === '/prestamos'
   if (!onFinance) {
+    if (pathname.startsWith('/comidas')) {
+      return { items: general, activeTo: '/comidas' }
+    }
     const active = general.find((item) => item.to === pathname)?.to ?? '/'
     return { items: general, activeTo: active }
   }

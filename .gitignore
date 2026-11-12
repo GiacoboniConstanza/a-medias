@@ -9,3 +9,12 @@ dev-dist
 *.tsbuildinfo
 .DS_Store
 respaldo-*.sql
+# Datos ARGENFOODS: no publicar (condiciones de uso). Cargar en local con scripts/load-common-foods.mjs
+# El ejemplo de formato (common-foods.example.json) sí se versiona.
+data/argenfoods.json
+data/argenfoods.csv
+data/argenfoods.sql
+data/argenfoods-*.json
+data/argenfoods-*.csv
+data/argenfoods-*.sql
+**/argenfoods-private*

@@ -98,6 +98,75 @@ input {
   --feston-ancho: 26px;
   --feston-alto: 13px;
   --sc: var(--color-azul);
+  --color-comp-proteina: var(--color-rosa);
+  --color-comp-hidratos: var(--color-mostaza);
+  --color-comp-hidratos-fondo: var(--color-mostaza-claro);
+  --color-comp-grasas: var(--color-azul-ink);
+  --color-comp-grasas-fondo: var(--color-azul-claro);
+}
+
+.comp-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid var(--color-tinta);
+  flex-shrink: 0;
+}
+
+.comp-swatch-proteina {
+  background: var(--color-comp-proteina);
+}
+
+.comp-swatch-hidratos {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--color-comp-hidratos) 0 3px,
+    var(--color-comp-hidratos-fondo) 3px 5px
+  );
+}
+
+.comp-swatch-grasas {
+  background:
+    radial-gradient(circle, var(--color-comp-grasas) 1.3px, transparent 1.4px) 0 0 / 6px 6px,
+    var(--color-comp-grasas-fondo);
+}
+
+.comp-bar {
+  display: flex;
+  height: 12px;
+  overflow: hidden;
+  border-radius: 999px;
+  border: 1.5px solid var(--color-tinta);
+  background: var(--color-card);
+}
+
+.comp-bar > span {
+  display: block;
+  min-width: 0;
+  height: 100%;
+}
+
+.comp-bar > span + span {
+  border-left: 1.5px solid var(--color-tinta);
+}
+
+.comp-bar-proteina {
+  background: var(--color-comp-proteina);
+}
+
+.comp-bar-hidratos {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--color-comp-hidratos) 0 3px,
+    var(--color-comp-hidratos-fondo) 3px 5px
+  );
+}
+
+.comp-bar-grasas {
+  background:
+    radial-gradient(circle, var(--color-comp-grasas) 1.3px, transparent 1.4px) 0 0 / 6px 6px,
+    var(--color-comp-grasas-fondo);
 }
 
 .scallop-b {
