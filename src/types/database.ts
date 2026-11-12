@@ -628,14 +628,14 @@ export type Database = {
         {
           owner_id: string
           normalized_name: string
-          user_id: string
+          user_id: string | null
         },
         {
           owner_id: string
           normalized_name: string
-          user_id: string
+          user_id?: string | null
         },
-        { user_id?: string }
+        { user_id?: string | null }
       >
       mp_merchant_prefs: Table<
         {
@@ -643,14 +643,16 @@ export type Database = {
           merchant_key: string
           category_id: string | null
           is_shared: boolean
+          title: string | null
         },
         {
           owner_id: string
           merchant_key: string
           category_id?: string | null
           is_shared?: boolean
+          title?: string | null
         },
-        { category_id?: string | null; is_shared?: boolean }
+        { category_id?: string | null; is_shared?: boolean; title?: string | null }
       >
     }
     Views: Record<string, never>

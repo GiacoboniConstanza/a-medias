@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useLocation, useSearchParams } from 'react-router'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { Plantita } from '../components/Adornos.tsx'
 import { MovementForm } from '../components/MovementForm.tsx'
@@ -8,7 +8,7 @@ import { MonthSwitcher } from '../components/MonthSwitcher.tsx'
 import { NotificationBell } from '../components/NotificationBell.tsx'
 import { SectionHeader } from '../components/SectionHeader.tsx'
 import { Fab, FabSpace } from '../components/Fab.tsx'
-import { Chip } from '../components/ui.tsx'
+import { Chip, Toast } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
 import { useMonth } from '../context/MonthProvider.tsx'
@@ -67,6 +67,9 @@ export function MovementsScreen() {
   const [editingSavingMove, setEditingSavingMove] = useState<SavingMove | null>(null)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const location = useLocation()
+  const navigate = useNavigate()
+  const importState = (location.state as { import?: { inserted: number; skipped: number } } | null)?.import
+  const [importToast, setImportToast] = useState('')
   const tipo = (params.get('tipo') as MovementKind | null) ?? 'todos'
   const scopeParam = params.get('scope')
   const [filters, setFilters] = useState<ExpenseFilters>(() => ({
@@ -93,6 +96,19 @@ export function MovementsScreen() {
       active = false
     }
   }, [data])
+
+  useEffect(() => {
+    if (!importState) return
+    const { inserted, skipped } = importState
+    const text =
+      skipped > 0
+        ? `Cargué ${inserted} y salteé ${skipped} que ya estaban.`
+        : inserted === 1
+          ? 'Cargué 1 movimiento.'
+          : `Cargué ${inserted} movimientos.`
+    setImportToast(text)
+    navigate('.', { replace: true, state: null })
+  }, [importState, navigate])
 
   useEffect(() => {
     if (tipo === 'gastos') return
@@ -295,7 +311,15 @@ export function MovementsScreen() {
             >
               Limpiar filtros
             </button>
-          ) : null}
+          ) : (
+            <Link
+              to="/movimientos/resumen"
+              state={{ from: location.pathname }}
+              className="mt-3 inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border-[1.5px] border-azul-ink bg-tarjeta px-4 font-bold text-mostaza-ink"
+            >
+              <AppIcon name="file-arrow-up" /> Subir un resumen de Mercado Pago
+            </Link>
+          )}
         </div>
       ) : (
         <div className="space-y-5">
@@ -348,6 +372,16 @@ export function MovementsScreen() {
               </ul>
             </section>
           ))}
+          <Link
+            to="/movimientos/resumen"
+            state={{ from: location.pathname }}
+            className="flex min-h-12 w-full items-center justify-between border-t border-dashed border-linea-punteada font-bold text-mostaza-ink"
+          >
+            <span className="inline-flex items-center gap-2">
+              <AppIcon name="file-arrow-up" /> Subir resumen de Mercado Pago
+            </span>
+            <AppIcon name="chevron-right" />
+          </Link>
           <button
             type="button"
             onClick={exportCsv}
@@ -361,8 +395,13 @@ export function MovementsScreen() {
         </div>
       )}
 
-      <FabSpace />
+      <FabSpace avisos={Boolean(importToast)} />
       <Fab to="/cargar" label="Cargar un movimiento" state={{ from: location.pathname }} />
+      {importToast ? (
+        <Toast aboveFab onDone={() => setImportToast('')}>
+          {importToast}
+        </Toast>
+      ) : null}
 
       <FilterSheet
         open={filtersOpen}

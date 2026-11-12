@@ -28,6 +28,18 @@ export function sharedMonthSettled(isShared: boolean, period: string, settledMon
   return isShared && settledMonths.some((settled) => settled.slice(0, 10) === month)
 }
 
+/** Texto de Cargar / resumen cuando un gasto compartido cae en mes saldado (P4). */
+export function settledSharedHelp(period: string): string {
+  const [yearText, monthText] = period.split('-')
+  const year = Number(yearText)
+  const month = Number(monthText)
+  const raw = new Intl.DateTimeFormat('es-AR', { month: 'long' }).format(
+    new Date(Number.isFinite(year) ? year : 2026, Number.isFinite(month) ? month - 1 : 0, 1),
+  )
+  const Mes = raw.charAt(0).toUpperCase() + raw.slice(1)
+  return `${Mes} está saldado: un gasto compartido no se puede cargar ahí. Pasalo a privado o deshacé el saldo en Resumen.`
+}
+
 export function expenseIsReadOnly(
   expense: { isShared: boolean; ownerId: string; period: string } | null | undefined,
   meId: string,

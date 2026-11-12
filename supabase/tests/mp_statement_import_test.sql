@@ -1,5 +1,5 @@
 begin;
-select plan(12);
+select plan(21);
 
 -- IDs que no chocan con seed.sql (1111… / aaaa… / 0101…).
 insert into auth.users (id, email, raw_user_meta_data)
@@ -40,11 +40,11 @@ select lives_ok(
       {"type":"expense","date":"2026-11-01","amount":35078.20,"title":"La Anonima","category_id":"a1a100ca-dddd-4ddd-8ddd-000000000001","is_shared":true,"mp_operation_id":"186176544447"},
       {"type":"income","date":"2026-11-02","amount":3284.67,"title":"Rendimientos","category_id":null,"is_shared":false,"mp_operation_id":"1752498663392"},
       {"type":"transfer","date":"2026-11-05","amount":800000,"title":"Companera Ejemplo","category_id":null,"is_shared":false,"mp_operation_id":"186860352921","transfer_direction":"received"},
-      {"type":"credito_mp","date":"2026-11-10","amount":110356.47,"title":"Creditos Mercado Pago","category_id":null,"is_shared":false,"mp_operation_id":"3731351087"},
-      {"type":"credito_mp","date":"2026-11-10","amount":16860.41,"title":"Creditos Mercado Pago","category_id":null,"is_shared":false,"mp_operation_id":"3823155186"}
+      {"type":"credito_mp","date":"2026-11-10","amount":110356.47,"title":"Creditos MP","category_id":null,"is_shared":false,"mp_operation_id":"3731351087"},
+      {"type":"credito_mp","date":"2026-11-10","amount":16860.41,"title":"Creditos MP","category_id":null,"is_shared":false,"mp_operation_id":"3823155186"}
     ]'::jsonb,
     '[{"normalized_name":"companera ejemplo apellido","user_id":"a1a10002-bbbb-4bbb-8bbb-000000000002"}]'::jsonb,
-    '[{"merchant_key":"la anonima","category_id":"a1a100ca-dddd-4ddd-8ddd-000000000001","is_shared":true}]'::jsonb,
+    '[{"merchant_key":"la anonima","category_id":"a1a100ca-dddd-4ddd-8ddd-000000000001","is_shared":true,"title":"La Anónima"}]'::jsonb,
     true
   )$$,
   'importa lote mixto con aviso de Créditos MP'
@@ -69,9 +69,27 @@ select is(
 );
 
 select is(
-  (select count(*) from public.fixed_expenses where owner_id = 'a1a10001-aaaa-4aaa-8aaa-000000000001' and mp_source = 'credito_mp'),
-  1::bigint,
-  'crea el aviso privado de Créditos MP'
+  (select notes from public.transfers where mp_operation_id = '186860352921'),
+  null,
+  'D11: no guarda el nombre legal en transfers.notes'
+);
+
+select is(
+  (select title from public.fixed_expenses where owner_id = 'a1a10001-aaaa-4aaa-8aaa-000000000001' and mp_source = 'credito_mp'),
+  'Créditos MP',
+  'D2: aviso se llama Créditos MP'
+);
+
+select is(
+  (select icon from public.fixed_expenses where owner_id = 'a1a10001-aaaa-4aaa-8aaa-000000000001' and mp_source = 'credito_mp'),
+  'receipt',
+  'D2: ícono receipt sin emoji'
+);
+
+select is(
+  (select due_day from public.fixed_expenses where owner_id = 'a1a10001-aaaa-4aaa-8aaa-000000000001' and mp_source = 'credito_mp'),
+  10,
+  'D12: due_day del primer débito'
 );
 
 select is(
@@ -80,6 +98,13 @@ select is(
     where fe.mp_source = 'credito_mp' and fe.owner_id = 'a1a10001-aaaa-4aaa-8aaa-000000000001'),
   127216.88::numeric,
   'un solo pago fijo con la suma de los dos débitos del mes'
+);
+
+select is(
+  (select title from public.mp_merchant_prefs
+    where owner_id = 'a1a10001-aaaa-4aaa-8aaa-000000000001' and merchant_key = 'la anonima'),
+  'La Anónima',
+  'D5: guarda el título editado en preferencias'
 );
 
 select is(
@@ -108,6 +133,50 @@ select is(
   'el lote fallido no dejó la fila válida'
 );
 
+-- D6: Ninguno es Maru (user_id null)
+select lives_ok(
+  $$select public.import_mp_movements(
+    '[]'::jsonb,
+    '[{"normalized_name":"dueño alquiler ejemplo","user_id":null}]'::jsonb,
+    '[]'::jsonb,
+    false
+  )$$,
+  'D6: guarda alias con user_id null'
+);
+
+select is(
+  (select user_id from public.mp_counterpart_aliases
+    where owner_id = 'a1a10001-aaaa-4aaa-8aaa-000000000001'
+      and normalized_name = 'dueño alquiler ejemplo'),
+  null,
+  'D6: el alias rechazado queda sin user_id'
+);
+
+-- D7: cambiar compañera reemplaza el alias anterior
+select lives_ok(
+  $$select public.import_mp_movements(
+    '[]'::jsonb,
+    '[{"normalized_name":"otro nombre maru","user_id":"a1a10002-bbbb-4bbb-8bbb-000000000002"}]'::jsonb,
+    '[]'::jsonb,
+    false
+  )$$,
+  'D7: setea un nuevo alias de compañera'
+);
+
+select is(
+  (select count(*) from public.mp_counterpart_aliases
+    where owner_id = 'a1a10001-aaaa-4aaa-8aaa-000000000001' and user_id is not null),
+  1::bigint,
+  'D7: queda un solo alias de compañera'
+);
+
+select is(
+  (select normalized_name from public.mp_counterpart_aliases
+    where owner_id = 'a1a10001-aaaa-4aaa-8aaa-000000000001' and user_id is not null),
+  'otro nombre maru',
+  'D7: el alias anterior de compañera se reemplazó'
+);
+
 select set_config('request.jwt.claim.sub', 'a1a10002-bbbb-4bbb-8bbb-000000000002', true);
 select set_config(
   'request.jwt.claims',
@@ -134,12 +203,13 @@ select is(
 );
 
 select lives_ok(
-  $$insert into public.mp_merchant_prefs (owner_id, merchant_key, category_id, is_shared)
+  $$insert into public.mp_merchant_prefs (owner_id, merchant_key, category_id, is_shared, title)
     values (
       'a1a10002-bbbb-4bbb-8bbb-000000000002',
       'mi comercio',
       null,
-      false
+      false,
+      'Mi Comercio'
     )$$,
   'sí podés guardar tus preferencias'
 );

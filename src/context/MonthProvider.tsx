@@ -9,6 +9,7 @@ type MonthState = {
   previous: () => void
   next: () => void
   goToday: () => void
+  goTo: (monthStart: string) => void
 }
 
 const MonthContext = createContext<MonthState | null>(null)
@@ -24,6 +25,7 @@ export function MonthProvider({ children }: { children: React.ReactNode }) {
       previous: () => setMonth((current) => shiftMonth(current, -1)),
       next: () => setMonth((current) => shiftMonth(current, 1)),
       goToday: () => setMonth(monthKey()),
+      goTo: (monthStart: string) => setMonth(monthStart.slice(0, 7) + '-01'),
     }),
     [month],
   )

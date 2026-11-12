@@ -14,15 +14,30 @@ export type MpMerchantPref = {
   merchantKey: string
   categoryId: string | null
   isShared: boolean
+  /** Título editado la última vez (P15). */
+  title?: string | null
+}
+
+export type MpImportedRecord = {
+  operationId: string
+  kind: 'expense' | 'income' | 'transfer'
+  title: string
+  categoryId: string | null
+  categoryName: string | null
+  isShared: boolean
+  date: string
 }
 
 export type MpClassifyInput = {
+  /** Nombres normalizables que son la compañera. */
   partnerAliases: readonly string[]
+  /** Nombres marcados como "no es la compañera" (user_id null). */
+  rejectedAliases?: readonly string[]
   merchantPrefs: readonly MpMerchantPref[]
-  importedIds: ReadonlySet<string>
+  imported: ReadonlyMap<string, MpImportedRecord>
 }
 
-export type MpRowKind = 'expense' | 'income' | 'transfer' | 'notice' | 'hidden'
+export type MpRowKind = 'expense' | 'income' | 'transfer' | 'notice'
 
 export type MpClassifiedRow = {
   operationId: string
@@ -37,6 +52,7 @@ export type MpClassifiedRow = {
   title: string
   merchantKey: string | null
   categoryId: string | null
+  categoryName: string | null
   isShared: boolean
   transferDirection: 'sent' | 'received' | null
   counterpartName: string | null
@@ -49,6 +65,13 @@ export type MpClassifiedRow = {
 export type MpClassifyResult = {
   rows: MpClassifiedRow[]
   unrecognizedTransferNames: string[]
+}
+
+/** Día de vencimiento del aviso (tope 28, como fixed_expenses.due_day). */
+export function creditoMpDueDay(isoDate: string): number {
+  const day = Number(isoDate.slice(8, 10))
+  if (!Number.isFinite(day)) return 1
+  return Math.min(28, Math.max(1, day))
 }
 
 const DATE_RE = /\b(\d{2})-(\d{2})-(\d{4})\b/
@@ -106,8 +129,14 @@ export function classifyMpMoves(
   moves: readonly MpParsedMove[],
   input: MpClassifyInput,
 ): MpClassifyResult {
-  const aliasKeys = new Set(input.partnerAliases.map((name) => foldMerchant(name)).filter(Boolean))
-  const prefByKey = new Map(input.merchantPrefs.map((pref) => [pref.merchantKey, pref]))
+  const partnerKeys = new Set(input.partnerAliases.map((name) => foldMerchant(name)).filter(Boolean))
+  const rejectedKeys = new Set(
+    (input.rejectedAliases ?? []).map((name) => foldMerchant(name)).filter(Boolean),
+  )
+  const prefByKey = new Map<string, MpMerchantPref>()
+  for (const pref of input.merchantPrefs) {
+    prefByKey.set(foldMerchant(pref.merchantKey) || pref.merchantKey, pref)
+  }
   const refundIds = new Set<string>()
 
   for (const move of moves) {
@@ -128,6 +157,7 @@ export function classifyMpMoves(
       description: move.description,
       merchantKey: null as string | null,
       categoryId: null as string | null,
+      categoryName: null as string | null,
       isShared: true,
       transferDirection: null as 'sent' | 'received' | null,
       counterpartName: null as string | null,
@@ -145,50 +175,60 @@ export function classifyMpMoves(
       if (pairPayment) {
         rows.push({
           ...base,
-          kind: 'hidden',
+          kind: 'notice',
           checked: false,
-          title: kind.merchant,
+          title: `Devolución de ${kind.merchant}`,
           status: 'refund_pair',
-          statusLabel: null,
+          statusLabel: 'Te lo devolvieron: no se carga',
         })
         continue
       }
+      const imported = input.imported.get(move.operationId)
+      if (imported) {
+        rows.push({
+          ...base,
+          kind: 'notice',
+          checked: false,
+          title: `Devolución de ${kind.merchant}`,
+          status: 'refund_notice',
+          statusLabel: `El pago de ${kind.merchant} del ${longDayLabel(imported.date)} ya está cargado. Si querés sacarlo, borralo en Movimientos.`,
+        })
+        continue
+      }
+      // D10: sin pago en el archivo ni cargado → posible ingreso sin tildar.
       rows.push({
         ...base,
-        kind: 'notice',
+        kind: 'income',
         checked: false,
-        title: `Devolución de pago ${kind.merchant}`,
-        status: 'refund_notice',
-        statusLabel: input.importedIds.has(move.operationId)
-          ? 'Devolución de un pago ya cargado'
-          : 'Devolución sin el pago en este archivo',
+        title: `Devolución de ${kind.merchant}`,
+        isShared: false,
+        status: 'ready',
       })
       continue
     }
 
     if ((kind.type === 'qr' || kind.type === 'pago') && refundIds.has(move.operationId)) {
-      const refund = moves.find(
-        (row) => row.operationId === move.operationId && describeKind(row.description).type === 'refund',
-      )
-      if (refund) {
-        rows.push({
-          ...base,
-          kind: 'hidden',
-          checked: false,
-          title: kind.merchant,
-          status: 'refund_pair',
-          statusLabel: null,
-        })
-        continue
-      }
-    }
-
-    if (input.importedIds.has(move.operationId)) {
       rows.push({
         ...base,
         kind: 'notice',
         checked: false,
-        title: move.description,
+        title: kind.merchant,
+        status: 'refund_pair',
+        statusLabel: 'Te lo devolvieron: no se carga',
+      })
+      continue
+    }
+
+    const imported = input.imported.get(move.operationId)
+    if (imported) {
+      rows.push({
+        ...base,
+        kind: imported.kind === 'expense' ? 'expense' : imported.kind === 'income' ? 'income' : 'transfer',
+        checked: false,
+        title: imported.title,
+        categoryId: imported.categoryId,
+        categoryName: imported.categoryName,
+        isShared: imported.isShared,
         status: 'already_imported',
         statusLabel: 'Ya está cargado',
       })
@@ -202,7 +242,7 @@ export function classifyMpMoves(
         ...base,
         kind: 'expense',
         checked: true,
-        title: kind.merchant,
+        title: (pref?.title && pref.title.trim()) || kind.merchant,
         merchantKey,
         categoryId: pref?.categoryId ?? null,
         isShared: pref?.isShared ?? true,
@@ -214,13 +254,13 @@ export function classifyMpMoves(
     if (kind.type === 'transfer') {
       const counterpartName = kind.name
       const key = foldMerchant(counterpartName)
-      const isPartner = aliasKeys.has(key)
+      const isPartner = partnerKeys.has(key)
       if (isPartner) {
         rows.push({
           ...base,
           kind: 'transfer',
           checked: true,
-          title: counterpartName,
+          title: 'Transferencia',
           counterpartName,
           transferDirection: kind.direction,
           isShared: false,
@@ -228,21 +268,28 @@ export function classifyMpMoves(
         })
         continue
       }
-      // Solo pedimos alias si todavía no hay ninguno; con alias ya cargado es otra persona.
-      const askPartner = aliasKeys.size === 0
-      if (askPartner && key && !unrecognized.includes(counterpartName)) {
+      // P9: preguntar solo por nombres nuevos (ni alias de compañera ni "no es Maru").
+      const needsAsk = Boolean(key) && !rejectedKeys.has(key) && !partnerKeys.has(key)
+      if (needsAsk && !unrecognized.some((name) => foldMerchant(name) === key)) {
         unrecognized.push(counterpartName)
       }
+      const pref = prefByKey.get(key)
+      const title = (pref?.title && pref.title.trim()) || counterpartName
+      // needs_partner_alias solo en el primer aviso (sin alias ni rechazos);
+      // con compañera ya elegida, otra persona queda ready (posible gasto/ingreso).
+      const firstAsk = needsAsk && partnerKeys.size === 0 && rejectedKeys.size === 0
       if (kind.direction === 'sent') {
         rows.push({
           ...base,
           kind: 'expense',
           checked: false,
-          title: counterpartName,
+          title,
+          merchantKey: key,
           counterpartName,
           transferDirection: 'sent',
-          isShared: false,
-          status: askPartner ? 'needs_partner_alias' : 'ready',
+          categoryId: pref?.categoryId ?? null,
+          isShared: pref?.isShared ?? true,
+          status: firstAsk ? 'needs_partner_alias' : 'ready',
           statusLabel: 'Transferencia a otra persona',
         })
       } else {
@@ -250,11 +297,12 @@ export function classifyMpMoves(
           ...base,
           kind: 'income',
           checked: false,
-          title: counterpartName,
+          title,
+          merchantKey: key,
           counterpartName,
           transferDirection: 'received',
           isShared: false,
-          status: askPartner ? 'needs_partner_alias' : 'ready',
+          status: firstAsk ? 'needs_partner_alias' : 'ready',
           statusLabel: 'Transferencia de otra persona',
         })
       }
@@ -266,7 +314,7 @@ export function classifyMpMoves(
         ...base,
         kind: 'expense',
         checked: true,
-        title: 'Créditos Mercado Pago',
+        title: 'Créditos MP',
         isShared: false,
         creditoMp: true,
         status: 'ready',
@@ -297,9 +345,17 @@ export function classifyMpMoves(
   }
 
   return {
-    rows: rows.filter((row) => row.kind !== 'hidden'),
+    rows,
     unrecognizedTransferNames: unrecognized,
   }
+}
+
+function longDayLabel(isoDate: string): string {
+  const [year, month, day] = isoDate.split('-').map(Number)
+  if (!year || !month || !day) return isoDate
+  const date = new Date(year, month - 1, day)
+  const weekday = new Intl.DateTimeFormat('es-AR', { weekday: 'long' }).format(date)
+  return `${weekday} ${day}`
 }
 
 export function foldMerchant(value: string): string {

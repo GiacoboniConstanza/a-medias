@@ -38,7 +38,8 @@ create unique index if not exists fixed_expenses_owner_mp_source_uidx
 create table if not exists public.mp_counterpart_aliases (
   owner_id uuid not null references auth.users (id) on delete cascade,
   normalized_name text not null,
-  user_id uuid not null references auth.users (id) on delete cascade,
+  -- null = "no es la compañera" (P9); no null = alias de la compañera.
+  user_id uuid references auth.users (id) on delete cascade,
   primary key (owner_id, normalized_name),
   constraint mp_counterpart_aliases_name_len check (char_length(btrim(normalized_name)) > 0)
 );
@@ -48,6 +49,7 @@ create table if not exists public.mp_merchant_prefs (
   merchant_key text not null,
   category_id uuid references public.categories (id) on delete set null,
   is_shared boolean not null default true,
+  title text,
   primary key (owner_id, merchant_key),
   constraint mp_merchant_prefs_key_len check (char_length(btrim(merchant_key)) > 0)
 );
@@ -130,25 +132,39 @@ begin
     values (
       uid,
       lower(btrim(alias_item ->> 'normalized_name')),
-      (alias_item ->> 'user_id')::uuid
+      nullif(alias_item ->> 'user_id', '')::uuid
     )
     on conflict (owner_id, normalized_name) do update
       set user_id = excluded.user_id;
   end loop;
 
+  -- Al setear (o limpiar) quién es la compañera, queda un solo nombre con user_id no nulo.
+  if jsonb_array_length(coalesce(aliases, '[]'::jsonb)) > 0 then
+    delete from public.mp_counterpart_aliases as a
+    where a.owner_id = uid
+      and a.user_id is not null
+      and a.normalized_name not in (
+        select lower(btrim(alias_row ->> 'normalized_name'))
+        from jsonb_array_elements(coalesce(aliases, '[]'::jsonb)) as alias_row
+        where nullif(alias_row ->> 'user_id', '') is not null
+      );
+  end if;
+
   for pref_item in
     select * from jsonb_array_elements(coalesce(merchant_prefs, '[]'::jsonb))
   loop
-    insert into public.mp_merchant_prefs (owner_id, merchant_key, category_id, is_shared)
+    insert into public.mp_merchant_prefs (owner_id, merchant_key, category_id, is_shared, title)
     values (
       uid,
       lower(btrim(pref_item ->> 'merchant_key')),
       nullif(pref_item ->> 'category_id', '')::uuid,
-      coalesce((pref_item ->> 'is_shared')::boolean, true)
+      coalesce((pref_item ->> 'is_shared')::boolean, true),
+      nullif(btrim(pref_item ->> 'title'), '')
     )
     on conflict (owner_id, merchant_key) do update
       set category_id = excluded.category_id,
-          is_shared = excluded.is_shared;
+          is_shared = excluded.is_shared,
+          title = excluded.title;
   end loop;
 
   select fe.id into credito_id
@@ -171,9 +187,9 @@ begin
         hid,
         uid,
         null,
-        'Créditos Mercado Pago',
-        '💳',
-        'credit-card',
+        'Créditos MP',
+        '',
+        'receipt',
         1,
         least(28, greatest(1, extract(day from first_debit)::integer)),
         false,
@@ -247,7 +263,7 @@ begin
         case when direction = 'sent' then partner else uid end,
         amount,
         spent,
-        title,
+        null,
         op_id
       )
       on conflict (created_by, mp_operation_id) where (mp_operation_id is not null) do nothing

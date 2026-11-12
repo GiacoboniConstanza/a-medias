@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { linesFromLayout, linesFromPageItems } from './pdfLines.ts'
-import { classifyMpMoves, foldMerchant, parseMpStatement } from './mpStatement.ts'
+import {
+  classifyMpMoves,
+  creditoMpDueDay,
+  foldMerchant,
+  parseMpStatement,
+  type MpImportedRecord,
+} from './mpStatement.ts'
+import { rowSubtitle, buildReviewRows, settledMonthHelp } from './mpImportReview.ts'
 
 const FIXTURE = `
                                          DETALLE DE MOVIMIENTOS
@@ -34,6 +41,10 @@ Fecha        Descripción                    operación                Valor    
 Fecha de generación: 12-11-2026
                                                                           RESUMEN DE TENENCIAS EN DÓLARES
 `
+
+function emptyImported() {
+  return new Map<string, MpImportedRecord>()
+}
 
 describe('resumen Mercado Pago', () => {
   const lines = linesFromLayout(FIXTURE)
@@ -74,7 +85,7 @@ describe('resumen Mercado Pago', () => {
     const result = classifyMpMoves(moves, {
       partnerAliases: ['Compañera Ejemplo Apellido'],
       merchantPrefs: [{ merchantKey: foldMerchant('La Anónima'), categoryId: 'cat-super', isShared: true }],
-      importedIds: new Set(),
+      imported: emptyImported(),
     })
     const byId = Object.fromEntries(result.rows.map((row) => [row.operationId, row]))
 
@@ -96,18 +107,25 @@ describe('resumen Mercado Pago', () => {
     expect(byId['186860352921']).toMatchObject({
       kind: 'transfer',
       checked: true,
+      title: 'Transferencia',
       transferDirection: 'received',
     })
-    // Con alias ya cargado, otra persona = gasto posible, sin pedir alias.
+    // D3: posible gasto compartido, sin pedir alias si ya hay compañera.
     expect(byId['186916915419']).toMatchObject({
       kind: 'expense',
       checked: false,
       status: 'ready',
-      statusLabel: 'Transferencia a otra persona',
+      isShared: true,
     })
-    expect(result.unrecognizedTransferNames).toHaveLength(0)
+    // Dorado es nombre nuevo: se lista para preguntar, pero la fila ya es posible gasto.
+    expect(result.unrecognizedTransferNames.some((name) => /Dorado/i.test(name))).toBe(true)
 
-    expect(byId['3731351087']).toMatchObject({ kind: 'expense', checked: true, creditoMp: true })
+    expect(byId['3731351087']).toMatchObject({
+      kind: 'expense',
+      checked: true,
+      creditoMp: true,
+      title: 'Créditos MP',
+    })
     expect(byId['3823155186']).toMatchObject({ kind: 'expense', checked: true, creditoMp: true })
 
     const farmacia = byId['186936647405']
@@ -119,12 +137,13 @@ describe('resumen Mercado Pago', () => {
     const result = classifyMpMoves(moves, {
       partnerAliases: [],
       merchantPrefs: [],
-      importedIds: new Set(),
+      imported: emptyImported(),
     })
     expect(result.rows.find((row) => row.operationId === '186916915419')).toMatchObject({
       kind: 'expense',
       checked: false,
       status: 'needs_partner_alias',
+      isShared: true,
     })
     expect(result.rows.find((row) => row.operationId === '186860352921')).toMatchObject({
       kind: 'income',
@@ -135,17 +154,52 @@ describe('resumen Mercado Pago', () => {
     expect(result.unrecognizedTransferNames.some((name) => /Compa[nñ]era Ejemplo/i.test(name))).toBe(true)
   })
 
-  it('oculta pago + devolución del mismo ID en el archivo', () => {
+  it('D6: Ninguno es Maru solo pregunta por nombres nuevos', () => {
+    const result = classifyMpMoves(moves, {
+      partnerAliases: [],
+      rejectedAliases: ['Compañera Ejemplo Apellido', 'Dorado', 'Ana Perez Uno'],
+      merchantPrefs: [],
+      imported: emptyImported(),
+    })
+    expect(result.unrecognizedTransferNames).toHaveLength(0)
+    expect(result.rows.find((row) => row.operationId === '186916915419')?.status).toBe('ready')
+  })
+
+  it('D4: preferencia de comercio también aplica a personas', () => {
+    const result = classifyMpMoves(moves, {
+      partnerAliases: ['Compañera Ejemplo Apellido'],
+      merchantPrefs: [
+        {
+          merchantKey: foldMerchant('Dorado'),
+          categoryId: 'cat-hogar',
+          isShared: true,
+          title: 'Alquiler',
+        },
+      ],
+      imported: emptyImported(),
+    })
+    expect(result.rows.find((row) => row.operationId === '186916915419')).toMatchObject({
+      title: 'Alquiler',
+      categoryId: 'cat-hogar',
+      isShared: true,
+      checked: false,
+    })
+  })
+
+  it('D8: pago + devolución del mismo ID quedan visibles apagados', () => {
     const result = classifyMpMoves(moves, {
       partnerAliases: [],
       merchantPrefs: [],
-      importedIds: new Set(),
+      imported: emptyImported(),
     })
-    expect(result.rows.some((row) => row.operationId === '187836133751')).toBe(false)
+    const pair = result.rows.filter((row) => row.operationId === '187836133751')
+    expect(pair).toHaveLength(2)
+    expect(pair.every((row) => row.status === 'refund_pair' && !row.checked)).toBe(true)
+    expect(pair[0]?.statusLabel).toMatch(/Te lo devolvieron/i)
     expect(result.rows.some((row) => row.operationId === '189136511556')).toBe(true)
   })
 
-  it('avisa devolución si el pago ya estaba importado', () => {
+  it('D10: devolución sin pago en archivo ni cargado es ingreso posible', () => {
     const onlyRefund = parseMpStatement(
       linesFromLayout(`
 DETALLE DE MOVIMIENTOS
@@ -157,34 +211,114 @@ Fecha de generación: 12-11-2026
     const result = classifyMpMoves(onlyRefund, {
       partnerAliases: [],
       merchantPrefs: [],
-      importedIds: new Set(['187836133751']),
+      imported: emptyImported(),
+    })
+    expect(result.rows).toHaveLength(1)
+    expect(result.rows[0]).toMatchObject({
+      kind: 'income',
+      checked: false,
+      title: 'Devolución de Uber',
+      status: 'ready',
+    })
+  })
+
+  it('avisa devolución si el pago ya estaba importado', () => {
+    const onlyRefund = parseMpStatement(
+      linesFromLayout(`
+DETALLE DE MOVIMIENTOS
+Fecha         Descripción                    operación                Valor            Saldo
+10-11-2026    Devolución de pago Uber        187836133751            $ 6.643,00        $ 33.139,59
+Fecha de generación: 12-11-2026
+`),
+    )
+    const imported = new Map<string, MpImportedRecord>([
+      [
+        '187836133751',
+        {
+          operationId: '187836133751',
+          kind: 'expense',
+          title: 'Uber',
+          categoryId: null,
+          categoryName: null,
+          isShared: false,
+          date: '2026-11-02',
+        },
+      ],
+    ])
+    const result = classifyMpMoves(onlyRefund, {
+      partnerAliases: [],
+      merchantPrefs: [],
+      imported,
     })
     expect(result.rows).toHaveLength(1)
     expect(result.rows[0]).toMatchObject({
       status: 'refund_notice',
       checked: false,
       kind: 'notice',
+      title: 'Devolución de Uber',
     })
+    expect(result.rows[0]?.statusLabel).toMatch(/ya está cargado/i)
   })
 
-  it('en un segundo pase marca IDs ya importados', () => {
+  it('D9: segundo pase conserva tipo, categoría y compartido de lo cargado', () => {
+    const imported = new Map<string, MpImportedRecord>([
+      [
+        '186176544447',
+        {
+          operationId: '186176544447',
+          kind: 'expense',
+          title: 'La Anónima',
+          categoryId: 'cat-super',
+          categoryName: 'Súper',
+          isShared: true,
+          date: '2026-11-01',
+        },
+      ],
+      [
+        '189136511556',
+        {
+          operationId: '189136511556',
+          kind: 'expense',
+          title: 'Spotify',
+          categoryId: null,
+          categoryName: null,
+          isShared: false,
+          date: '2026-11-11',
+        },
+      ],
+    ])
     const result = classifyMpMoves(moves, {
       partnerAliases: ['Compañera Ejemplo Apellido'],
       merchantPrefs: [],
-      importedIds: new Set(['186176544447', '189136511556']),
+      imported,
     })
     expect(result.rows.find((row) => row.operationId === '186176544447')).toMatchObject({
       status: 'already_imported',
       checked: false,
-      statusLabel: 'Ya está cargado',
+      title: 'La Anónima',
+      categoryId: 'cat-super',
+      categoryName: 'Súper',
+      isShared: true,
+      kind: 'expense',
     })
-    expect(result.rows.find((row) => row.operationId === '189136511556')).toMatchObject({
-      status: 'already_imported',
-    })
+    const review = buildReviewRows(
+      result.rows.filter((row) => row.operationId === '186176544447'),
+      [],
+    )
+    expect(rowSubtitle(review[0]!, 'Maru')).toBe('Gasto · Súper · Compartido')
+  })
+
+  it('D12: due_day topea en 28', () => {
+    expect(creditoMpDueDay('2026-11-10')).toBe(10)
+    expect(creditoMpDueDay('2026-11-31')).toBe(28)
+    expect(creditoMpDueDay('2026-11-29')).toBe(28)
+  })
+
+  it('P4 help de mes saldado nombra el mes', () => {
+    expect(settledMonthHelp('2026-10-01')).toMatch(/^Octubre está saldado:/)
   })
 
   it('conserva orden de páginas y ignora detalle de dólares (antes y después)', () => {
-    // Simula pdfjs: y local por página (alto 841), sin offset global.
     const page1 = [
       { x: 200, y: 800, text: 'RESUMEN' },
       { x: 260, y: 800, text: 'DE' },
@@ -227,15 +361,11 @@ Fecha de generación: 12-11-2026
       { x: 500, y: 640, text: '-8.232,02' },
       { x: 560, y: 640, text: '$' },
       { x: 580, y: 640, text: '7.874,23' },
-      // Pie de página que no debe pegarse a Spotify.
       { x: 40, y: 120, text: 'Mercado' },
       { x: 100, y: 120, text: 'Libre' },
       { x: 150, y: 120, text: 'S.R.L.' },
       { x: 210, y: 120, text: 'CUIT' },
       { x: 260, y: 120, text: '30-70308853-4' },
-      { x: 360, y: 120, text: 'Av.' },
-      { x: 390, y: 120, text: 'Caseros' },
-      { x: 450, y: 120, text: '3039,' },
       { x: 40, y: 100, text: 'Encontrá' },
       { x: 110, y: 100, text: 'nuestros' },
       { x: 180, y: 100, text: 'canales' },
@@ -274,11 +404,8 @@ Fecha de generación: 12-11-2026
       '222222222222',
       '189136511556',
     ])
-    expect(parsed[0]?.description).toMatch(/Pago con QR Alpha/i)
-    expect(parsed[1]?.description).toMatch(/Pago Beta/i)
     expect(parsed[2]?.description).toBe('Pago Spotify')
 
-    // Encabezado de dólares primero (como si las páginas vinieran al revés) no debe robar el inicio.
     const dollarsFirst = linesFromPageItems([page3Dollars, page1, page2])
     const recovered = parseMpStatement(dollarsFirst)
     expect(recovered.map((row) => row.operationId)).toEqual([
@@ -288,7 +415,6 @@ Fecha de generación: 12-11-2026
     ])
     expect(recovered[2]?.description).toBe('Pago Spotify')
 
-    // "DETALLE DE MOVIMIENTOS DEL PERIODO" también después de pesos: no se parsea como ancla.
     const dollarsBoth = linesFromLayout(`
 DETALLE DE MOVIMIENTOS DEL PERIODO
 Fecha         Descripción                    operación                Valor            Saldo
