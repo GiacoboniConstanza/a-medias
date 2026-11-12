@@ -1,5 +1,5 @@
 -- Alimentos de ejemplo para desarrollo local (NO son ARGENFOODS).
--- Lo incluye supabase/seed.sql; también lo carga scripts/pg_meals_privacy_local.sh.
+-- Listado en [db.seed] sql_paths de config.toml (db reset). Sin meta-comandos psql.
 insert into public.common_foods (
   id, name, search_name,
   protein_per_100g, carbs_per_100g, fat_per_100g, kcal_per_100g,

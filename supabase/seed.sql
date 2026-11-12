@@ -215,6 +215,3 @@ insert into public.saving_moves (
     null
   );
 
--- Comidas: ejemplos locales (NO ARGENFOODS). Solo con `db reset`; un `db push` no los carga.
-\ir seed_common_foods_examples.sql
-
