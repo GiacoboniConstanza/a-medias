@@ -66,6 +66,29 @@ No corras el seed en una base que ya tenga gente de verdad.
 
 La URL y la anon key locales salen al final de `supabase start`.
 
+### Lista «De todos los días» (ARGENFOODS)
+
+La migración deja `common_foods` vacía. El seed local mete solo alimentos de ejemplo (marcados como tales). Los datos de ARGENFOODS no van al repo (`data/argenfoods.json` y `data/argenfoods.sql` están en `.gitignore`).
+
+Para generar el SQL idempotente (sin conectarse a ninguna base):
+
+```bash
+node scripts/load-common-foods.mjs --sql data/argenfoods.json
+```
+
+Después del respaldo, la usuaria lo aplica al proyecto linkeado:
+
+```bash
+npx supabase db query --remote -f data/argenfoods.sql
+```
+
+En local, con Postgres de prueba (nunca el ref de Production):
+
+```bash
+DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres \
+  node scripts/load-common-foods.mjs data/argenfoods.json
+```
+
 ## 2. App
 
 ```bash

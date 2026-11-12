@@ -1,5 +1,5 @@
 begin;
-select plan(6);
+select plan(7);
 
 insert into auth.users (id, email, raw_user_meta_data)
 values
@@ -55,11 +55,33 @@ insert into public.saved_foods (
   'manual'
 );
 
--- common_foods es común: autenticada la ve
-select isnt(
+-- common_foods arranca vacía en la migración; autenticada puede leerla
+select is(
   (select count(*) from public.common_foods),
   0::bigint,
-  'la lista de todos los días se puede leer autenticada'
+  'common_foods queda vacía tras la migración y se puede leer'
+);
+
+reset role;
+insert into public.common_foods (id, name, search_name, source)
+values (
+  'a1000000-0000-4000-8000-000000000099',
+  'Alimento de prueba',
+  'alimento de prueba',
+  'example'
+);
+select set_config('request.jwt.claim.sub', 'c7c7c7c7-c7c7-47c7-87c7-c7c7c7c7c7c7', true);
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"c7c7c7c7-c7c7-47c7-87c7-c7c7c7c7c7c7","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+
+select is(
+  (select count(*) from public.common_foods where id = 'a1000000-0000-4000-8000-000000000099'),
+  1::bigint,
+  'la lista de todos los días la puede leer cualquier autenticada'
 );
 
 reset role;
