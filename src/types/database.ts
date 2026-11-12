@@ -75,6 +75,7 @@ export type Database = {
           label: string
           received_on: string
           notes: string | null
+          mp_operation_id: string | null
           created_at: string
         },
         {
@@ -85,9 +86,10 @@ export type Database = {
           label: string
           received_on: string
           notes?: string | null
+          mp_operation_id?: string | null
           created_at?: string
         },
-        { label?: string; amount?: number; notes?: string | null }
+        { label?: string; amount?: number; notes?: string | null; mp_operation_id?: string | null }
       >
       categories: Table<
         {
@@ -122,6 +124,7 @@ export type Database = {
           is_shared: boolean
           paid_from_bag: boolean
           notes: string | null
+          mp_operation_id: string | null
           created_at: string
         },
         {
@@ -137,6 +140,7 @@ export type Database = {
           is_shared: boolean
           paid_from_bag?: boolean
           notes?: string | null
+          mp_operation_id?: string | null
           created_at?: string
         },
         {
@@ -149,6 +153,7 @@ export type Database = {
           is_shared?: boolean
           paid_from_bag?: boolean
           notes?: string | null
+          mp_operation_id?: string | null
         }
       >
       savings: Table<
@@ -252,6 +257,7 @@ export type Database = {
           remind: boolean
           paused_at: string | null
           notes: string | null
+          mp_source: 'credito_mp' | null
           updated_at: string | null
           updated_by: string | null
           created_at: string
@@ -271,6 +277,7 @@ export type Database = {
           remind?: boolean
           paused_at?: string | null
           notes?: string | null
+          mp_source?: 'credito_mp' | null
           created_at?: string
         },
         {
@@ -591,6 +598,7 @@ export type Database = {
           transferred_on: string
           period: string
           notes: string | null
+          mp_operation_id: string | null
           created_by: string
           created_at: string
           updated_at: string
@@ -603,6 +611,7 @@ export type Database = {
           transferred_on: string
           period?: string
           notes?: string | null
+          mp_operation_id?: string | null
           created_by?: string
           created_at?: string
           updated_at?: string
@@ -612,13 +621,51 @@ export type Database = {
           transferred_on?: string
           period?: string
           notes?: string | null
+          mp_operation_id?: string | null
         }
+      >
+      mp_counterpart_aliases: Table<
+        {
+          owner_id: string
+          normalized_name: string
+          user_id: string
+        },
+        {
+          owner_id: string
+          normalized_name: string
+          user_id: string
+        },
+        { user_id?: string }
+      >
+      mp_merchant_prefs: Table<
+        {
+          owner_id: string
+          merchant_key: string
+          category_id: string | null
+          is_shared: boolean
+        },
+        {
+          owner_id: string
+          merchant_key: string
+          category_id?: string | null
+          is_shared?: boolean
+        },
+        { category_id?: string | null; is_shared?: boolean }
       >
     }
     Views: Record<string, never>
     Functions: {
       create_household: { Args: Record<string, never>; Returns: string }
       join_household: { Args: { invite: string }; Returns: string }
+      import_mp_movements: {
+        Args: {
+          rows: unknown
+          aliases?: unknown
+          merchant_prefs?: unknown
+          create_credito_mp?: boolean
+        }
+        Returns: { inserted: number; skipped: number }
+      }
       household_split_percents: {
         Args: { target_month: string }
         Returns: { user_id: string; percent: number }[]

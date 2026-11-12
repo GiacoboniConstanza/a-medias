@@ -64,18 +64,28 @@ function readAmount(text: string): number | null {
   return null
 }
 
-function parseArs(token: string): number | null {
-  if (token.includes(',')) {
-    const [whole, frac = ''] = token.split(',')
+/** Monto ARS tipo 12.345,67 o 1.250,50. Acepta signo delante. */
+export function parseArs(token: string): number | null {
+  const cleaned = token.replace(/\$/g, '').replace(/\s/g, '').trim()
+  if (!cleaned) return null
+  const negative = cleaned.startsWith('-')
+  const raw = negative ? cleaned.slice(1) : cleaned
+  let amount: number | null = null
+  if (raw.includes(',')) {
+    const [whole, frac = ''] = raw.split(',')
     const integer = Number(whole.replace(/\./g, ''))
     const decimals = Number(frac.padEnd(2, '0').slice(0, 2))
     if (!Number.isFinite(integer) || !Number.isFinite(decimals)) return null
-    return integer + decimals / 100
+    amount = integer + decimals / 100
+  } else if (/^\d{1,3}(\.\d{3})+$/.test(raw)) {
+    amount = Number(raw.replace(/\./g, ''))
+  } else if (/^\d+\.\d{1,2}$/.test(raw)) {
+    amount = Number(raw)
+  } else if (/^\d+$/.test(raw)) {
+    amount = Number(raw)
   }
-  if (/^\d{1,3}(\.\d{3})+$/.test(token)) return Number(token.replace(/\./g, ''))
-  if (/^\d+\.\d{1,2}$/.test(token)) return Number(token)
-  if (/^\d+$/.test(token)) return Number(token)
-  return null
+  if (amount == null) return null
+  return negative ? -amount : amount
 }
 
 function readDate(text: string): string | null {
@@ -124,7 +134,7 @@ function usableName(value: string): string | null {
   return name
 }
 
-function fold(value: string): string {
+export function fold(value: string): string {
   return value
     .normalize('NFD')
     .replace(/\p{M}/gu, '')
