@@ -56,3 +56,17 @@ export function groupPartsIntoLines(items: { x: number; y: number; text: string 
   }
   return lines.sort((a, b) => b.y - a.y)
 }
+
+/**
+ * Agrupa por página (y descendente dentro de cada una) y concatena en orden 1..n.
+ * No reordena entre páginas: un sort global por y invertiría el documento.
+ */
+export function linesFromPageItems(
+  pages: readonly { x: number; y: number; text: string }[][],
+): PdfLine[] {
+  const all: PdfLine[] = []
+  for (const items of pages) {
+    all.push(...groupPartsIntoLines(items))
+  }
+  return all
+}

@@ -59,14 +59,22 @@ const HEADER_WORDS = new Set(
   ['fecha', 'descripcion', 'descripción', 'id', 'de', 'la', 'operacion', 'operación', 'valor', 'saldo'].map(fold),
 )
 
-/** Parsea el bloque DETALLE DE MOVIMIENTOS a filas ancla con descripción reunida. */
+/** Encabezado de movimientos en pesos (no el "DEL PERIODO" de la sección en dólares). */
+function isPesosDetalleLine(line: PdfLine): boolean {
+  const text = lineText(line)
+  if (!/detalle\s+de\s+movimientos/i.test(text)) return false
+  return !/detalle\s+de\s+movimientos\s+del\s+periodo/i.test(text)
+}
+
+/** Parsea el bloque DETALLE DE MOVIMIENTOS (pesos) a filas ancla con descripción reunida. */
 export function parseMpStatement(lines: readonly PdfLine[]): MpParsedMove[] {
-  const start = lines.findIndex((line) => /detalle de movimientos/i.test(lineText(line)))
+  const pesosHeader = lines.findIndex((line) => /resumen\s+de\s+cuenta\s+en\s+pesos/i.test(lineText(line)))
+  const searchFrom = pesosHeader >= 0 ? pesosHeader : 0
+  const start = lines.findIndex((line, index) => index >= searchFrom && isPesosDetalleLine(line))
   if (start < 0) return []
+  // Solo corta en dólares: "Fecha de generación" puede aparecer en otro orden y no debe truncar.
   let end = lines.findIndex(
-    (line, index) =>
-      index > start &&
-      (/resumen de tenencias en d[oó]lares/i.test(lineText(line)) || /fecha de generaci[oó]n/i.test(lineText(line))),
+    (line, index) => index > start && /resumen\s+de\s+tenencias\s+en\s+d[oó]lares/i.test(lineText(line)),
   )
   if (end < 0) end = lines.length
   const body = lines.slice(start + 1, end).filter((line) => !isNoiseLine(line))
@@ -217,7 +225,11 @@ export function classifyMpMoves(
         })
         continue
       }
-      if (key && !unrecognized.includes(counterpartName)) unrecognized.push(counterpartName)
+      // Solo pedimos alias si todavía no hay ninguno; con alias ya cargado es otra persona.
+      const askPartner = aliasKeys.size === 0
+      if (askPartner && key && !unrecognized.includes(counterpartName)) {
+        unrecognized.push(counterpartName)
+      }
       if (kind.direction === 'sent') {
         rows.push({
           ...base,
@@ -227,7 +239,7 @@ export function classifyMpMoves(
           counterpartName,
           transferDirection: 'sent',
           isShared: false,
-          status: 'needs_partner_alias',
+          status: askPartner ? 'needs_partner_alias' : 'ready',
           statusLabel: 'Transferencia a otra persona',
         })
       } else {
@@ -239,7 +251,7 @@ export function classifyMpMoves(
           counterpartName,
           transferDirection: 'received',
           isShared: false,
-          status: 'needs_partner_alias',
+          status: askPartner ? 'needs_partner_alias' : 'ready',
           statusLabel: 'Transferencia de otra persona',
         })
       }
