@@ -46,6 +46,9 @@ const ShareScreen = lazy(() =>
 const YearScreen = lazy(() =>
   import('./screens/YearScreen.tsx').then((module) => ({ default: module.YearScreen })),
 )
+const StatementImportScreen = lazy(() =>
+  import('./screens/StatementImportScreen.tsx').then((module) => ({ default: module.StatementImportScreen })),
+)
 
 function RouteFallback() {
   return <p className="py-16 text-center font-semibold text-muted">Cargando…</p>
@@ -100,6 +103,7 @@ export function App() {
                 <Route path="comidas" element={<MealsScreen />} />
                 <Route path="cargar" element={<ExpenseScreen />} />
                 <Route path="compartir" element={<ShareScreen />} />
+                <Route path="movimientos/resumen" element={<StatementImportScreen />} />
                 <Route path="movimientos" element={<MovementsScreen />} />
                 <Route path="se-me-fue" element={<SeMeFueRedirect />} />
                 <Route path="ahorros" element={<SavingsScreen />} />

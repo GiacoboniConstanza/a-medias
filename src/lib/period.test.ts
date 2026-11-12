@@ -6,6 +6,7 @@ import {
   ownerCanMakePrivate,
   periodFollowsDate,
   periodFromDate,
+  settledSharedHelp,
   sharedMonthSettled,
   shortPeriodLabel,
   sumPaidBy,
@@ -76,6 +77,16 @@ describe('permisos de un gasto', () => {
     expect(sharedMonthSettled(true, '2026-10-01', settled)).toBe(true)
     expect(sharedMonthSettled(false, '2026-10-01', settled)).toBe(false)
     expect(sharedMonthSettled(true, '2026-11-01', settled)).toBe(false)
+  })
+
+  it('P4: Cargar bloquea solo compartidos y usa el período que se guarda', () => {
+    const settledMonths = ['2026-10-01']
+    const nextPeriod = periodFollowsDate('2026-10-15', '2026-11-01', false)
+    expect(nextPeriod).toBe('2026-10-01')
+    expect(sharedMonthSettled(true, nextPeriod, settledMonths)).toBe(true)
+    expect(sharedMonthSettled(false, nextPeriod, settledMonths)).toBe(false)
+    expect(settledSharedHelp('2026-10-01')).toMatch(/^Octubre está saldado:/)
+    expect(settledSharedHelp('2026-10-01')).toMatch(/Pasalo a privado/)
   })
 
   it('suma solo lo que pagó esa persona', () => {

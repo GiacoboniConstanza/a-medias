@@ -36,7 +36,7 @@ import { DEFAULT_ICON } from '../lib/icons.ts'
 import { deleteLoan, loanMonthEffect, loadLoanMovements, saveTransfer, type Transfer } from '../lib/transfers.ts'
 import { movementTextFields, movementTypeIsLocked, showSharedPayerPicker } from '../lib/movement-row.ts'
 import { catamarcaToday, isAfterDay, monthKey, monthName, monthTitle, shiftMonth, shortDate } from '../lib/month.ts'
-import { periodFollowsDate, periodFromDate, sharedMonthSettled } from '../lib/period.ts'
+import { periodFollowsDate, periodFromDate, settledSharedHelp, sharedMonthSettled } from '../lib/period.ts'
 import { debtSentence } from '../lib/split.ts'
 
 export type MovementType = 'gasto' | 'ingreso' | 'transferencia' | 'ahorro'
@@ -57,8 +57,6 @@ type IncomeKind = 'puntual' | 'sueldo'
 type TransferDir = 'sent' | 'received'
 
 const SUGGESTED = ['Súper', 'Comida', 'Hogar', 'Luz', 'Salidas', 'Farmacia']
-const settledHelp =
-  'Los meses saldados están cerrados. Para cargar ahí, deshacé el saldo en Resumen.'
 
 type SavedView = {
   kind: MovementType | 'edit' | 'aporte' | 'retiro'
@@ -418,8 +416,12 @@ function MovementFormBody({
   const todayMonth = monthKey()
   const futureDate = isAfterDay(spentOn, today)
   const monthChoices = [shiftMonth(todayMonth, -1), todayMonth, shiftMonth(todayMonth, 1)]
-  const periodSettled = sharedMonthSettled(true, period, settledMonths)
+  // P4: solo gastos que se guardarían como compartidos; chequear el período que realmente se guarda.
+  const willBeShared = Boolean(partnerIdValue) && shared
+  const nextPeriodPreview = periodFollowsDate(spentOn, period, periodTouched)
+  const periodSettled = sharedMonthSettled(willBeShared, nextPeriodPreview, settledMonths)
   const gastoBlocked = tipo === 'gasto' && periodSettled
+  const settledHelp = settledSharedHelp(nextPeriodPreview)
 
   const suggested = useMemo(() => {
     const byName = new Map(categories.map((category) => [category.name.toLowerCase(), category]))
@@ -825,6 +827,15 @@ function MovementFormBody({
           <p className="mt-2 flex items-center gap-1 text-sm font-bold text-tinta" role="alert">
             <AppIcon name="circle-exclamation" /> Elegí si es gasto, ingreso, transferencia o ahorro.
           </p>
+        ) : null}
+        {!editing ? (
+          <Link
+            to="/movimientos/resumen"
+            state={{ from: '/cargar' }}
+            className="mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-bold text-tinta underline"
+          >
+            <AppIcon name="file-arrow-up" /> O subí un resumen de Mercado Pago
+          </Link>
         ) : null}
       </section>
 

@@ -1001,3 +1001,185 @@ export async function undoFixedPayment(payment: FixedPayment): Promise<void> {
   const { error } = await supabase.from('fixed_payments').delete().eq('id', payment.id)
   fail(error)
 }
+
+export type MpImportRow = {
+  type: 'expense' | 'income' | 'transfer' | 'credito_mp'
+  date: string
+  amount: number
+  title: string
+  categoryId: string | null
+  isShared: boolean
+  mpOperationId: string
+  transferDirection?: 'sent' | 'received' | null
+}
+
+export type MpImportResult = {
+  inserted: number
+  skipped: number
+}
+
+export type MpCounterpartAlias = {
+  normalizedName: string
+  /** null = "no es la compañera". */
+  userId: string | null
+}
+
+export type MpMerchantPrefRow = {
+  merchantKey: string
+  categoryId: string | null
+  isShared: boolean
+  title: string | null
+}
+
+/** Llama a import_mp_movements con las filas tildadas y opcionales alias/prefs. */
+export async function importMpMovements(input: {
+  rows: readonly MpImportRow[]
+  aliases?: readonly MpCounterpartAlias[]
+  merchantPrefs?: readonly MpMerchantPrefRow[]
+  createCreditoMp?: boolean
+}): Promise<MpImportResult> {
+  const { data, error } = await supabase.rpc('import_mp_movements', {
+    rows: input.rows.map((row) => ({
+      type: row.type,
+      date: row.date,
+      amount: row.amount,
+      title: row.title,
+      category_id: row.categoryId,
+      is_shared: row.isShared,
+      mp_operation_id: row.mpOperationId,
+      transfer_direction: row.transferDirection ?? null,
+    })),
+    aliases: (input.aliases ?? []).map((alias) => ({
+      normalized_name: alias.normalizedName,
+      user_id: alias.userId,
+    })),
+    merchant_prefs: (input.merchantPrefs ?? []).map((pref) => ({
+      merchant_key: pref.merchantKey,
+      category_id: pref.categoryId,
+      is_shared: pref.isShared,
+      title: pref.title,
+    })),
+    create_credito_mp: Boolean(input.createCreditoMp),
+  })
+  fail(error)
+  const payload = (data ?? {}) as { inserted?: number; skipped?: number }
+  return {
+    inserted: Number(payload.inserted ?? 0),
+    skipped: Number(payload.skipped ?? 0),
+  }
+}
+
+export async function loadMpCounterpartAliases(): Promise<MpCounterpartAlias[]> {
+  const { data, error } = await supabase
+    .from('mp_counterpart_aliases')
+    .select('normalized_name, user_id')
+  fail(error)
+  return (data ?? []).map((row) => ({
+    normalizedName: row.normalized_name,
+    userId: row.user_id,
+  }))
+}
+
+export async function loadMpMerchantPrefs(): Promise<MpMerchantPrefRow[]> {
+  const { data, error } = await supabase
+    .from('mp_merchant_prefs')
+    .select('merchant_key, category_id, is_shared, title')
+  fail(error)
+  return (data ?? []).map((row) => ({
+    merchantKey: row.merchant_key,
+    categoryId: row.category_id,
+    isShared: row.is_shared,
+    title: row.title ?? null,
+  }))
+}
+
+export type MpImportedRecordRow = {
+  operationId: string
+  kind: 'expense' | 'income' | 'transfer'
+  title: string
+  categoryId: string | null
+  categoryName: string | null
+  isShared: boolean
+  date: string
+}
+
+/** Movimientos ya importados (con tipo/categoría/compartido) en el rango de fechas. */
+export async function loadMpImportedIds(
+  fromDate: string,
+  toDate: string,
+): Promise<Map<string, MpImportedRecordRow>> {
+  const [expenses, extras, transfers, categories] = await Promise.all([
+    supabase
+      .from('expenses')
+      .select('mp_operation_id, title, category_id, is_shared, spent_on')
+      .not('mp_operation_id', 'is', null)
+      .gte('spent_on', fromDate)
+      .lte('spent_on', toDate),
+    supabase
+      .from('income_extras')
+      .select('mp_operation_id, label, received_on')
+      .not('mp_operation_id', 'is', null)
+      .gte('received_on', fromDate)
+      .lte('received_on', toDate),
+    supabase
+      .from('transfers')
+      .select('mp_operation_id, transferred_on')
+      .not('mp_operation_id', 'is', null)
+      .gte('transferred_on', fromDate)
+      .lte('transferred_on', toDate),
+    supabase.from('categories').select('id, name'),
+  ])
+  fail(expenses.error)
+  fail(extras.error)
+  fail(transfers.error)
+  fail(categories.error)
+  const catNames = new Map((categories.data ?? []).map((row) => [row.id, row.name]))
+  const map = new Map<string, MpImportedRecordRow>()
+  for (const row of expenses.data ?? []) {
+    if (!row.mp_operation_id) continue
+    map.set(row.mp_operation_id, {
+      operationId: row.mp_operation_id,
+      kind: 'expense',
+      title: row.title ?? '',
+      categoryId: row.category_id,
+      categoryName: row.category_id ? (catNames.get(row.category_id) ?? null) : null,
+      isShared: row.is_shared,
+      date: row.spent_on,
+    })
+  }
+  for (const row of extras.data ?? []) {
+    if (!row.mp_operation_id) continue
+    map.set(row.mp_operation_id, {
+      operationId: row.mp_operation_id,
+      kind: 'income',
+      title: row.label,
+      categoryId: null,
+      categoryName: null,
+      isShared: false,
+      date: row.received_on,
+    })
+  }
+  for (const row of transfers.data ?? []) {
+    if (!row.mp_operation_id) continue
+    map.set(row.mp_operation_id, {
+      operationId: row.mp_operation_id,
+      kind: 'transfer',
+      title: 'Transferencia',
+      categoryId: null,
+      categoryName: null,
+      isShared: false,
+      date: row.transferred_on,
+    })
+  }
+  return map
+}
+
+export async function loadMpCreditoFixedExists(): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('fixed_expenses')
+    .select('id')
+    .eq('mp_source', 'credito_mp')
+    .limit(1)
+  fail(error)
+  return (data ?? []).length > 0
+}
