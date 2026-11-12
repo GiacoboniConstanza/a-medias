@@ -31,6 +31,9 @@ const MemosScreen = lazy(() =>
 const MealsScreen = lazy(() =>
   import('./screens/MealsScreen.tsx').then((module) => ({ default: module.MealsScreen })),
 )
+const MealAddScreen = lazy(() =>
+  import('./screens/MealAddScreen.tsx').then((module) => ({ default: module.MealAddScreen })),
+)
 const ModulesScreen = lazy(() =>
   import('./screens/ModulesScreen.tsx').then((module) => ({ default: module.ModulesScreen })),
 )
@@ -101,6 +104,7 @@ export function App() {
                 <Route path="modulos" element={<ModulesScreen />} />
                 <Route path="habitos" element={<HabitsScreen />} />
                 <Route path="comidas" element={<MealsScreen />} />
+                <Route path="comidas/agregar" element={<MealAddScreen />} />
                 <Route path="cargar" element={<ExpenseScreen />} />
                 <Route path="compartir" element={<ShareScreen />} />
                 <Route path="movimientos/resumen" element={<StatementImportScreen />} />

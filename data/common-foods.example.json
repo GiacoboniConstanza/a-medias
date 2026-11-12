@@ -1,0 +1,13 @@
+[
+  {
+    "name": "Leche entera (ejemplo de formato)",
+    "protein_per_100g": 3.2,
+    "carbs_per_100g": 4.8,
+    "fat_per_100g": 3.0,
+    "kcal_per_100g": 61,
+    "portions": [
+      { "label": "Taza", "grams": 200, "suggested": true },
+      { "label": "Vaso", "grams": 200 }
+    ]
+  }
+]

@@ -1,6 +1,15 @@
 import { money } from './format.ts'
 import { DEFAULT_ICON } from './icons.ts'
 import { amountForMonth, type AmountRevision } from './fixed.ts'
+import {
+  asNumber,
+  isFoodSource,
+  isMealType,
+  normalizeSearch,
+  type FoodPortion,
+  type FoodSource,
+  type MealType,
+} from './meals.ts'
 import { monthEnd, monthKey } from './month.ts'
 import { periodFromDate } from './period.ts'
 import { effectiveSalary, visibleSplitNotice, type SalaryPoint } from './salary.ts'
@@ -1211,4 +1220,393 @@ export async function loadMpCreditoFixedExists(): Promise<boolean> {
     .limit(1)
   fail(error)
   return (data ?? []).length > 0
+}
+
+export type MealRow = {
+  id: string
+  eatenOn: string
+  mealType: MealType
+  name: string
+  proteinG: number | null
+  carbsG: number | null
+  fatG: number | null
+  kcal: number | null
+  portionLabel: string | null
+  portionQty: number | null
+  portionGrams: number | null
+  foodSource: FoodSource | null
+  foodRef: string | null
+  brand: string | null
+  createdAt: string
+}
+
+export type SavedFoodRow = {
+  id: string
+  name: string
+  proteinG: number | null
+  carbsG: number | null
+  fatG: number | null
+  kcal: number | null
+  portionLabel: string | null
+  portionQty: number | null
+  portionGrams: number | null
+  foodSource: FoodSource | null
+  foodRef: string | null
+  brand: string | null
+  proteinPer100: number | null
+  carbsPer100: number | null
+  fatPer100: number | null
+  kcalPer100: number | null
+  portions: FoodPortion[]
+}
+
+export type NutritionGoalsRow = {
+  proteinG: number | null
+  carbsG: number | null
+  fatG: number | null
+  kcal: number | null
+}
+
+export type CommonFoodRow = {
+  id: string
+  name: string
+  proteinPer100: number | null
+  carbsPer100: number | null
+  fatPer100: number | null
+  kcalPer100: number | null
+  portions: FoodPortion[]
+  source: string
+}
+
+const MEAL_SELECT =
+  'id, eaten_on, meal_type, name, protein_g, carbs_g, fat_g, kcal, portion_label, portion_qty, portion_grams, food_source, food_ref, brand, created_at'
+
+const SAVED_SELECT =
+  'id, name, protein_g, carbs_g, fat_g, kcal, portion_label, portion_qty, portion_grams, food_source, food_ref, brand, protein_per_100g, carbs_per_100g, fat_per_100g, kcal_per_100g, portions'
+
+function parsePortions(value: unknown): FoodPortion[] {
+  if (!Array.isArray(value)) return []
+  const out: FoodPortion[] = []
+  for (const item of value) {
+    if (!item || typeof item !== 'object') continue
+    const row = item as { label?: unknown; grams?: unknown; suggested?: unknown }
+    if (typeof row.label !== 'string' || typeof row.grams !== 'number') continue
+    out.push({
+      label: row.label,
+      grams: row.grams,
+      ...(row.suggested === true ? { suggested: true } : {}),
+    })
+  }
+  return out
+}
+
+function mealFromDb(row: {
+  id: string
+  eaten_on: string
+  meal_type: string
+  name: string
+  protein_g: number | null
+  carbs_g: number | null
+  fat_g: number | null
+  kcal: number | null
+  portion_label: string | null
+  portion_qty: number | null
+  portion_grams: number | null
+  food_source: string | null
+  food_ref: string | null
+  brand: string | null
+  created_at: string
+}): MealRow {
+  return {
+    id: row.id,
+    eatenOn: row.eaten_on,
+    mealType: isMealType(row.meal_type) ? row.meal_type : 'snack',
+    name: row.name,
+    proteinG: asNumber(row.protein_g),
+    carbsG: asNumber(row.carbs_g),
+    fatG: asNumber(row.fat_g),
+    kcal: asNumber(row.kcal),
+    portionLabel: row.portion_label,
+    portionQty: asNumber(row.portion_qty),
+    portionGrams: asNumber(row.portion_grams),
+    foodSource: isFoodSource(row.food_source) ? row.food_source : null,
+    foodRef: row.food_ref,
+    brand: row.brand,
+    createdAt: row.created_at,
+  }
+}
+
+function savedFromDb(row: {
+  id: string
+  name: string
+  protein_g: number | null
+  carbs_g: number | null
+  fat_g: number | null
+  kcal: number | null
+  portion_label: string | null
+  portion_qty: number | null
+  portion_grams: number | null
+  food_source: string | null
+  food_ref: string | null
+  brand: string | null
+  protein_per_100g: number | null
+  carbs_per_100g: number | null
+  fat_per_100g: number | null
+  kcal_per_100g: number | null
+  portions: unknown
+}): SavedFoodRow {
+  return {
+    id: row.id,
+    name: row.name,
+    proteinG: asNumber(row.protein_g),
+    carbsG: asNumber(row.carbs_g),
+    fatG: asNumber(row.fat_g),
+    kcal: asNumber(row.kcal),
+    portionLabel: row.portion_label,
+    portionQty: asNumber(row.portion_qty),
+    portionGrams: asNumber(row.portion_grams),
+    foodSource: isFoodSource(row.food_source) ? row.food_source : null,
+    foodRef: row.food_ref,
+    brand: row.brand,
+    proteinPer100: asNumber(row.protein_per_100g),
+    carbsPer100: asNumber(row.carbs_per_100g),
+    fatPer100: asNumber(row.fat_per_100g),
+    kcalPer100: asNumber(row.kcal_per_100g),
+    portions: parsePortions(row.portions),
+  }
+}
+
+export async function loadNutritionGoals(): Promise<NutritionGoalsRow> {
+  const { data, error } = await supabase.from('nutrition_goals').select('protein_g, carbs_g, fat_g, kcal').maybeSingle()
+  fail(error)
+  return {
+    proteinG: asNumber(data?.protein_g ?? null),
+    carbsG: asNumber(data?.carbs_g ?? null),
+    fatG: asNumber(data?.fat_g ?? null),
+    kcal: asNumber(data?.kcal ?? null),
+  }
+}
+
+export async function saveProteinGoal(ownerId: string, proteinG: number | null): Promise<void> {
+  const { error } = await supabase.from('nutrition_goals').upsert({
+    owner_id: ownerId,
+    protein_g: proteinG,
+  })
+  fail(error)
+}
+
+export async function loadMealsForDay(eatenOn: string): Promise<MealRow[]> {
+  const { data, error } = await supabase
+    .from('meals')
+    .select(MEAL_SELECT)
+    .eq('eaten_on', eatenOn)
+    .order('created_at')
+  fail(error)
+  return (data ?? []).map(mealFromDb)
+}
+
+export async function loadRecentMeals(limit = 60): Promise<MealRow[]> {
+  const { data, error } = await supabase
+    .from('meals')
+    .select(MEAL_SELECT)
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  fail(error)
+  return (data ?? []).map(mealFromDb)
+}
+
+export async function loadSavedFoods(): Promise<SavedFoodRow[]> {
+  const { data, error } = await supabase.from('saved_foods').select(SAVED_SELECT).order('name')
+  fail(error)
+  return (data ?? []).map(savedFromDb)
+}
+
+export async function searchCommonFoods(query: string, limit = 30): Promise<CommonFoodRow[]> {
+  const needle = normalizeSearch(query)
+  if (!needle) return []
+  const { data, error } = await supabase
+    .from('common_foods')
+    .select('id, name, protein_per_100g, carbs_per_100g, fat_per_100g, kcal_per_100g, portions, source')
+    .or(`search_name.ilike.%${needle}%,name.ilike.%${query.trim()}%`)
+    .limit(limit)
+  fail(error)
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    name: row.name,
+    proteinPer100: asNumber(row.protein_per_100g),
+    carbsPer100: asNumber(row.carbs_per_100g),
+    fatPer100: asNumber(row.fat_per_100g),
+    kcalPer100: asNumber(row.kcal_per_100g),
+    portions: parsePortions(row.portions),
+    source: row.source,
+  }))
+}
+
+export type MealWriteInput = {
+  ownerId: string
+  eatenOn: string
+  mealType: MealType
+  name: string
+  proteinG: number | null
+  carbsG: number | null
+  fatG: number | null
+  kcal: number | null
+  portionLabel: string | null
+  portionQty: number | null
+  portionGrams: number | null
+  foodSource: FoodSource | null
+  foodRef: string | null
+  brand: string | null
+}
+
+export async function createMeal(input: MealWriteInput): Promise<MealRow> {
+  const { data, error } = await supabase
+    .from('meals')
+    .insert({
+      owner_id: input.ownerId,
+      eaten_on: input.eatenOn,
+      meal_type: input.mealType,
+      name: input.name,
+      protein_g: input.proteinG,
+      carbs_g: input.carbsG,
+      fat_g: input.fatG,
+      kcal: input.kcal,
+      portion_label: input.portionLabel,
+      portion_qty: input.portionQty,
+      portion_grams: input.portionGrams,
+      food_source: input.foodSource,
+      food_ref: input.foodRef,
+      brand: input.brand,
+    })
+    .select(MEAL_SELECT)
+    .single()
+  fail(error)
+  return mealFromDb(data)
+}
+
+export async function updateMeal(
+  id: string,
+  input: Omit<MealWriteInput, 'ownerId' | 'eatenOn' | 'mealType' | 'name'> & {
+    name?: string
+    mealType?: MealType
+  },
+): Promise<MealRow> {
+  const { data, error } = await supabase
+    .from('meals')
+    .update({
+      name: input.name,
+      meal_type: input.mealType,
+      protein_g: input.proteinG,
+      carbs_g: input.carbsG,
+      fat_g: input.fatG,
+      kcal: input.kcal,
+      portion_label: input.portionLabel,
+      portion_qty: input.portionQty,
+      portion_grams: input.portionGrams,
+      food_source: input.foodSource,
+      food_ref: input.foodRef,
+      brand: input.brand,
+    })
+    .eq('id', id)
+    .select(MEAL_SELECT)
+    .single()
+  fail(error)
+  return mealFromDb(data)
+}
+
+export async function deleteMeal(id: string): Promise<void> {
+  const { error } = await supabase.from('meals').delete().eq('id', id)
+  fail(error)
+}
+
+export type SavedFoodWriteInput = {
+  ownerId: string
+  name: string
+  proteinG: number | null
+  carbsG: number | null
+  fatG: number | null
+  kcal: number | null
+  portionLabel: string | null
+  portionQty: number | null
+  portionGrams: number | null
+  foodSource: FoodSource | null
+  foodRef: string | null
+  brand: string | null
+  proteinPer100?: number | null
+  carbsPer100?: number | null
+  fatPer100?: number | null
+  kcalPer100?: number | null
+  portions?: FoodPortion[]
+}
+
+export async function upsertSavedFood(input: SavedFoodWriteInput): Promise<SavedFoodRow> {
+  const existing = await supabase
+    .from('saved_foods')
+    .select('id')
+    .eq('owner_id', input.ownerId)
+    .ilike('name', input.name)
+    .maybeSingle()
+  fail(existing.error)
+  if (existing.data?.id) {
+    const { data, error } = await supabase
+      .from('saved_foods')
+      .update({
+        name: input.name,
+        protein_g: input.proteinG,
+        carbs_g: input.carbsG,
+        fat_g: input.fatG,
+        kcal: input.kcal,
+        portion_label: input.portionLabel,
+        portion_qty: input.portionQty,
+        portion_grams: input.portionGrams,
+        food_source: input.foodSource,
+        food_ref: input.foodRef,
+        brand: input.brand,
+        protein_per_100g: input.proteinPer100 ?? null,
+        carbs_per_100g: input.carbsPer100 ?? null,
+        fat_per_100g: input.fatPer100 ?? null,
+        kcal_per_100g: input.kcalPer100 ?? null,
+        portions: input.portions ?? [],
+      })
+      .eq('id', existing.data.id)
+      .select(SAVED_SELECT)
+      .single()
+    fail(error)
+    return savedFromDb(data)
+  }
+  const { data, error } = await supabase
+    .from('saved_foods')
+    .insert({
+      owner_id: input.ownerId,
+      name: input.name,
+      protein_g: input.proteinG,
+      carbs_g: input.carbsG,
+      fat_g: input.fatG,
+      kcal: input.kcal,
+      portion_label: input.portionLabel,
+      portion_qty: input.portionQty,
+      portion_grams: input.portionGrams,
+      food_source: input.foodSource,
+      food_ref: input.foodRef,
+      brand: input.brand,
+      protein_per_100g: input.proteinPer100 ?? null,
+      carbs_per_100g: input.carbsPer100 ?? null,
+      fat_per_100g: input.fatPer100 ?? null,
+      kcal_per_100g: input.kcalPer100 ?? null,
+      portions: input.portions ?? [],
+    })
+    .select(SAVED_SELECT)
+    .single()
+  fail(error)
+  return savedFromDb(data)
+}
+
+export async function deleteSavedFood(id: string): Promise<void> {
+  const { error } = await supabase.from('saved_foods').delete().eq('id', id)
+  fail(error)
+}
+
+export async function deleteSavedFoodByName(ownerId: string, name: string): Promise<void> {
+  const { error } = await supabase.from('saved_foods').delete().eq('owner_id', ownerId).ilike('name', name)
+  fail(error)
 }

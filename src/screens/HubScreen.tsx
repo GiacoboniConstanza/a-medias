@@ -128,7 +128,7 @@ export function HubScreen() {
       setFoodError('')
       setFoodMeals(
         (mealsResult.data ?? []).map((row) => ({
-          proteinG: asNumber(row.protein_g) ?? 0,
+          proteinG: asNumber(row.protein_g),
           carbsG: asNumber(row.carbs_g),
           fatG: asNumber(row.fat_g),
           kcal: asNumber(row.kcal),

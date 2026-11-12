@@ -531,10 +531,16 @@ export type Database = {
           eaten_on: string
           meal_type: string
           name: string
-          protein_g: number
+          protein_g: number | null
           carbs_g: number | null
           fat_g: number | null
           kcal: number | null
+          portion_label: string | null
+          portion_qty: number | null
+          portion_grams: number | null
+          food_source: string | null
+          food_ref: string | null
+          brand: string | null
           created_at: string
           updated_at: string
         },
@@ -544,10 +550,16 @@ export type Database = {
           eaten_on: string
           meal_type: string
           name: string
-          protein_g: number
+          protein_g?: number | null
           carbs_g?: number | null
           fat_g?: number | null
           kcal?: number | null
+          portion_label?: string | null
+          portion_qty?: number | null
+          portion_grams?: number | null
+          food_source?: string | null
+          food_ref?: string | null
+          brand?: string | null
           created_at?: string
           updated_at?: string
         },
@@ -555,10 +567,16 @@ export type Database = {
           eaten_on?: string
           meal_type?: string
           name?: string
-          protein_g?: number
+          protein_g?: number | null
           carbs_g?: number | null
           fat_g?: number | null
           kcal?: number | null
+          portion_label?: string | null
+          portion_qty?: number | null
+          portion_grams?: number | null
+          food_source?: string | null
+          food_ref?: string | null
+          brand?: string | null
           updated_at?: string
         }
       >
@@ -567,26 +585,95 @@ export type Database = {
           id: string
           owner_id: string
           name: string
-          protein_g: number
+          protein_g: number | null
           carbs_g: number | null
           fat_g: number | null
           kcal: number | null
+          portion_label: string | null
+          portion_qty: number | null
+          portion_grams: number | null
+          food_source: string | null
+          food_ref: string | null
+          brand: string | null
+          protein_per_100g: number | null
+          carbs_per_100g: number | null
+          fat_per_100g: number | null
+          kcal_per_100g: number | null
+          portions: unknown
         },
         {
           id?: string
           owner_id: string
           name: string
-          protein_g: number
+          protein_g?: number | null
           carbs_g?: number | null
           fat_g?: number | null
           kcal?: number | null
+          portion_label?: string | null
+          portion_qty?: number | null
+          portion_grams?: number | null
+          food_source?: string | null
+          food_ref?: string | null
+          brand?: string | null
+          protein_per_100g?: number | null
+          carbs_per_100g?: number | null
+          fat_per_100g?: number | null
+          kcal_per_100g?: number | null
+          portions?: unknown
         },
         {
           name?: string
-          protein_g?: number
+          protein_g?: number | null
           carbs_g?: number | null
           fat_g?: number | null
           kcal?: number | null
+          portion_label?: string | null
+          portion_qty?: number | null
+          portion_grams?: number | null
+          food_source?: string | null
+          food_ref?: string | null
+          brand?: string | null
+          protein_per_100g?: number | null
+          carbs_per_100g?: number | null
+          fat_per_100g?: number | null
+          kcal_per_100g?: number | null
+          portions?: unknown
+        }
+      >
+      common_foods: Table<
+        {
+          id: string
+          name: string
+          search_name: string
+          protein_per_100g: number | null
+          carbs_per_100g: number | null
+          fat_per_100g: number | null
+          kcal_per_100g: number | null
+          portions: unknown
+          source: string
+          created_at: string
+        },
+        {
+          id?: string
+          name: string
+          search_name: string
+          protein_per_100g?: number | null
+          carbs_per_100g?: number | null
+          fat_per_100g?: number | null
+          kcal_per_100g?: number | null
+          portions?: unknown
+          source?: string
+          created_at?: string
+        },
+        {
+          name?: string
+          search_name?: string
+          protein_per_100g?: number | null
+          carbs_per_100g?: number | null
+          fat_per_100g?: number | null
+          kcal_per_100g?: number | null
+          portions?: unknown
+          source?: string
         }
       >
       transfers: Table<

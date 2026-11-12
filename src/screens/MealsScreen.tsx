@@ -1,45 +1,48 @@
-import { useEffect, useState } from 'react'
-import { Navigate } from 'react-router'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Navigate, useLocation } from 'react-router'
 import { AppIcon } from '../components/AppIcon.tsx'
-import { ModuleTitle } from '../components/ModulePill.tsx'
-import { ModuleSwitch } from '../components/ModuleSwitch.tsx'
-import { Sprout } from '../components/Sprout.tsx'
+import { CompositionBar, CompositionSwatch } from '../components/CompositionBar.tsx'
+import { Fab, FabSpace } from '../components/Fab.tsx'
+import { SectionHeader } from '../components/SectionHeader.tsx'
 import { Sheet } from '../components/Sheet.tsx'
-import { Button, Chip, Progress, inputClass } from '../components/ui.tsx'
+import { Sprout } from '../components/Sprout.tsx'
+import { Button, Progress, Toast, inputClass } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useModules } from '../context/ModulesProvider.tsx'
+import {
+  deleteMeal,
+  loadMealsForDay,
+  loadNutritionGoals,
+  saveProteinGoal,
+  updateMeal,
+  type MealRow,
+} from '../lib/api.ts'
 import {
   MEAL_ICON,
   MEAL_LABEL,
   MEAL_TYPES,
   argentinaISO,
-  asNumber,
+  compositionPhrase,
+  compositionShares,
+  compositionSheetSubtitle,
+  dayCaloriesLabel,
   dayTotals,
+  foodRowSubtitle,
   formatAmount,
-  isMealType,
+  formatLongDate,
+  hasCompositionData,
+  isManualLegacy,
+  mealTypeForContext,
+  moreThanAnythingLabel,
   parseMacro,
   proteinPercent,
+  proteinRemainingLabel,
+  resolvedKcal,
   shiftArgentinaISO,
-  type MacroInput,
+  topContributors,
   type MealType,
 } from '../lib/meals.ts'
-import { supabase } from '../lib/supabase.ts'
-
-type Meal = MacroInput & {
-  id: string
-  eatenOn: string
-  mealType: MealType
-  name: string
-}
-
-type Goals = {
-  proteinG: number | null
-  carbsG: number | null
-  fatG: number | null
-  kcal: number | null
-}
-
-type SavedFood = MacroInput & { id: string; name: string }
+import { MealPortionSheet, type PortionDraft } from '../components/MealPortionSheet.tsx'
 
 type DayOffset = -1 | 0 | 1
 
@@ -48,53 +51,53 @@ const DAY_LABEL: Record<DayOffset, string> = { [-1]: 'Ayer', 0: 'Hoy', 1: 'Maña
 const MEAL_TONE: Record<MealType, string> = {
   desayuno: 'bg-mostaza-claro text-tinta',
   almuerzo: 'bg-salvia-claro text-mostaza-ink',
-  merienda: 'bg-rosa-claro text-tinta',
+  merienda: 'bg-rosa-claro text-rosa-texto',
   cena: 'bg-salvia-claro text-mostaza-ink',
   snack: 'bg-mostaza-claro text-tinta',
 }
 
-const EMPTY_GOALS: Goals = { proteinG: null, carbsG: null, fatG: null, kcal: null }
-
 export function MealsScreen() {
   const { profile } = useAuth()
   const { enabled, ready } = useModules()
+  const location = useLocation()
   const today = argentinaISO()
   const [offset, setOffset] = useState<DayOffset>(0)
-  const [meals, setMeals] = useState<Meal[]>([])
-  const [goals, setGoals] = useState<Goals>(EMPTY_GOALS)
-  const [saved, setSaved] = useState<SavedFood[]>([])
+  const [meals, setMeals] = useState<MealRow[]>([])
+  const [proteinGoal, setProteinGoal] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [mealOpen, setMealOpen] = useState(false)
-  const [goalsOpen, setGoalsOpen] = useState(false)
-
+  const [whatOpen, setWhatOpen] = useState(false)
+  const [compositionOpen, setCompositionOpen] = useState(false)
+  const [goalOpen, setGoalOpen] = useState(false)
+  const [editing, setEditing] = useState<MealRow | null>(null)
+  const [toast, setToast] = useState<{ message: string; undo?: () => Promise<void> } | null>(null)
   const eatenOn = shiftArgentinaISO(today, offset)
+  const fabMealType = mealTypeForContext(eatenOn)
+
+  const reloadDay = useCallback(async () => {
+    setLoading(true)
+    try {
+      const rows = await loadMealsForDay(eatenOn)
+      setMeals(rows)
+      setError('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No pudimos traer tus comidas.')
+      setMeals([])
+    } finally {
+      setLoading(false)
+    }
+  }, [eatenOn])
 
   useEffect(() => {
     if (!profile) return
     let active = true
-    Promise.all([
-      supabase.from('nutrition_goals').select('protein_g, carbs_g, fat_g, kcal').maybeSingle(),
-      supabase.from('saved_foods').select('id, name, protein_g, carbs_g, fat_g, kcal').order('name'),
-    ]).then(([goalsResult, savedResult]) => {
-      if (!active) return
-      if (goalsResult.error || savedResult.error) {
-        setError(goalsResult.error?.message || savedResult.error?.message || 'No se pudieron cargar las comidas.')
-        return
-      }
-      const row = goalsResult.data
-      setGoals(
-        row
-          ? {
-              proteinG: asNumber(row.protein_g),
-              carbsG: asNumber(row.carbs_g),
-              fatG: asNumber(row.fat_g),
-              kcal: asNumber(row.kcal),
-            }
-          : EMPTY_GOALS,
-      )
-      setSaved((savedResult.data ?? []).map(savedFromRow))
-    })
+    loadNutritionGoals()
+      .then((goals) => {
+        if (active) setProteinGoal(goals.proteinG)
+      })
+      .catch((err: Error) => {
+        if (active) setError(err.message)
+      })
     return () => {
       active = false
     }
@@ -102,512 +105,572 @@ export function MealsScreen() {
 
   useEffect(() => {
     if (!profile) return
-    let active = true
-    setLoading(true)
-    supabase
-      .from('meals')
-      .select('id, eaten_on, meal_type, name, protein_g, carbs_g, fat_g, kcal')
-      .eq('eaten_on', eatenOn)
-      .order('created_at')
-      .then(({ data, error: loadError }) => {
-        if (!active) return
-        if (loadError) {
-          setError(loadError.message)
-          setMeals([])
-        } else {
-          setMeals((data ?? []).map(mealFromRow))
-        }
-        setLoading(false)
-      })
-    return () => {
-      active = false
-    }
-  }, [profile, eatenOn])
+    void reloadDay()
+  }, [profile, reloadDay])
+
+  useEffect(() => {
+    const notice = (location.state as { notice?: string } | null)?.notice
+    if (notice) setToast({ message: notice })
+  }, [location.state])
+
+  const totals = useMemo(() => dayTotals(meals), [meals])
+  const shares = useMemo(() => compositionShares(meals), [meals])
+  const phrase = compositionPhrase(shares)
+  const proteinRatio = proteinPercent(totals.protein, proteinGoal)
 
   if (!profile) return null
   if (ready && !enabled.includes('comidas')) return <Navigate to="/" replace />
 
-  const totals = dayTotals(meals)
-  const proteinGoal = goals.proteinG
-  const proteinRatio = proteinPercent(totals.protein, proteinGoal)
-
-  async function removeMeal(meal: Meal) {
-    setError('')
+  async function removeMeal(meal: MealRow) {
     setMeals((current) => current.filter((item) => item.id !== meal.id))
-    const { error: deleteError } = await supabase.from('meals').delete().eq('id', meal.id)
-    if (deleteError) {
-      setError(deleteError.message)
+    setEditing(null)
+    try {
+      await deleteMeal(meal.id)
+      setToast({
+        message: `Quitaste ${meal.name}.`,
+        undo: async () => {
+          // Reinsert via create would change id; keep simple restore by reload after undo insert
+          const { createMeal } = await import('../lib/api.ts')
+          const restored = await createMeal({
+            ownerId: profile!.id,
+            eatenOn: meal.eatenOn,
+            mealType: meal.mealType,
+            name: meal.name,
+            proteinG: meal.proteinG,
+            carbsG: meal.carbsG,
+            fatG: meal.fatG,
+            kcal: meal.kcal,
+            portionLabel: meal.portionLabel,
+            portionQty: meal.portionQty,
+            portionGrams: meal.portionGrams,
+            foodSource: meal.foodSource,
+            foodRef: meal.foodRef,
+            brand: meal.brand,
+          })
+          setMeals((current) => [...current, restored].sort((a, b) => a.createdAt.localeCompare(b.createdAt)))
+        },
+      })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo quitar.')
       setMeals((current) => [...current, meal])
     }
   }
 
   return (
     <>
-      <header className="mb-4 flex min-h-11 flex-wrap items-center justify-between gap-2">
-        <ModuleTitle module="comidas" />
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setGoalsOpen(true)}
-            className="inline-flex min-h-11 items-center gap-1.5 rounded-2xl bg-card px-3 text-sm font-semibold text-mostaza-ink shadow-soft"
-          >
-            <AppIcon name="bullseye" /> Objetivos
-          </button>
-          <span className="inline-flex items-center gap-1 rounded-2xl bg-rosa-claro px-3 py-1.5 text-sm font-semibold text-tinta">
-            <AppIcon name="lock" /> Solo vos
-          </span>
-        </div>
-      </header>
+      <SectionHeader
+        lead="crumb"
+        module="comidas"
+        aside={
+          <>
+            <span className="inline-flex items-center gap-1 rounded-2xl bg-rosa-claro px-3 py-1.5 text-sm font-semibold text-tinta">
+              <AppIcon name="lock" /> Solo vos
+            </span>
+            <button
+              type="button"
+              aria-label="¿Qué es cada cosa? Calorías, proteína, hidratos y grasas"
+              onClick={() => setWhatOpen(true)}
+              className="grid h-11 w-11 place-items-center rounded-full bg-card text-tinta shadow-soft"
+            >
+              <AppIcon name="circle-question" className="text-lg" />
+            </button>
+          </>
+        }
+      />
+
       <div className="mb-3 flex items-center justify-between gap-3">
         <button
           type="button"
           aria-label="Día anterior"
+          aria-disabled={offset === -1}
           disabled={offset === -1}
           onClick={() => setOffset((current) => (current === 1 ? 0 : -1))}
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-card text-mostaza-ink shadow-soft disabled:opacity-40"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-card text-mostaza-ink shadow-soft disabled:text-gris-claro disabled:opacity-100"
         >
           <AppIcon name="chevron-left" />
         </button>
-        <h1 className="text-center font-display text-[1.75rem] font-semibold leading-tight">{DAY_LABEL[offset]}</h1>
+        <div className="min-w-0 text-center">
+          <h1 className="font-display text-[2.125rem] font-semibold leading-none">{DAY_LABEL[offset]}</h1>
+          <p className="mt-1 text-sm font-semibold capitalize text-muted">{formatLongDate(eatenOn)}</p>
+        </div>
         <button
           type="button"
           aria-label="Día siguiente"
+          aria-disabled={offset === 1}
           disabled={offset === 1}
           onClick={() => setOffset((current) => (current === -1 ? 0 : 1))}
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-card text-mostaza-ink shadow-soft disabled:opacity-40"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-card text-mostaza-ink shadow-soft disabled:text-gris-claro disabled:opacity-100"
         >
           <AppIcon name="chevron-right" />
         </button>
       </div>
-      <section className="mb-3 rounded-2xl bg-card p-4 border-2 border-azul-ink">
-        <div className="flex items-center gap-3.5">
-          <Sprout module="comidas" size={64} />
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold text-muted">Proteína</p>
-            <p className="font-display text-[1.7rem] font-semibold leading-tight">
-              {formatAmount(totals.protein)}{' '}
-              <span className="font-sans text-base font-bold text-muted">
-                {proteinGoal != null && proteinGoal > 0 ? `de ${formatAmount(proteinGoal)} g` : 'g'}
-              </span>
-            </p>
-            {proteinRatio != null ? (
-              <div className="mt-2">
-                <Progress value={proteinRatio} color="var(--color-rosa)" />
-              </div>
-            ) : (
-              <p className="mt-1 text-sm font-bold text-muted">Cargá un objetivo para ver la barra.</p>
-            )}
-          </div>
-        </div>
-        <div className="mt-4 grid grid-cols-3 gap-3">
-          <MacroStat label="Carbos" text={`${formatAmount(totals.carbs)} g`} percent={proteinPercent(totals.carbs, goals.carbsG)} color="var(--color-mostaza)" />
-          <MacroStat label="Grasas" text={`${formatAmount(totals.fat)} g`} percent={proteinPercent(totals.fat, goals.fatG)} color="var(--color-mostaza-claro)" />
-          <MacroStat label="kcal" text={formatAmount(totals.kcal)} percent={proteinPercent(totals.kcal, goals.kcal)} color="var(--color-salvia)" />
-        </div>
-      </section>
-      <h2 className="mb-2 px-1 text-sm font-bold text-muted">Lo que comiste</h2>
+
       {loading ? <p className="py-6 text-center font-semibold text-muted">Cargando comidas…</p> : null}
-      {!loading && meals.length === 0 ? <p className="py-4 text-center text-sm font-bold text-muted">Todavía no hay comidas este día.</p> : null}
-      {MEAL_TYPES.map((type) => {
-        const items = meals.filter((meal) => meal.mealType === type)
-        if (items.length === 0) return null
-        return (
-          <section key={type} className="mb-2">
-            <h3 className="mb-1.5 px-1 text-sm font-semibold text-mostaza-ink">{MEAL_LABEL[type]}</h3>
-            <ul>
-              {items.map((meal) => (
-                <li key={meal.id} className="mb-2 flex min-h-16 items-center gap-3 rounded-[22px] bg-card px-3 py-2 border-2 border-azul-ink">
-                  <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl ${MEAL_TONE[meal.mealType]}`}>
-                    <AppIcon name={MEAL_ICON[meal.mealType]} />
+
+      {!loading && error ? (
+        <div className="rounded-2xl border-2 border-azul-ink bg-card p-4 text-center">
+          <p className="font-semibold" role="alert">
+            No pudimos traer tus comidas. Revisá la conexión y probá de nuevo.
+          </p>
+          <Button className="mt-3" variant="alt" onClick={() => void reloadDay()}>
+            Probar de nuevo
+          </Button>
+        </div>
+      ) : null}
+
+      {!loading && !error ? (
+        <section className="mb-[13px] rounded-2xl border-2 border-azul-ink bg-card p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              {proteinGoal != null && proteinGoal > 0 ? (
+                <>
+                  <p className="font-display text-[2.125rem] font-semibold leading-none">
+                    {formatAmount(totals.protein)}{' '}
+                    <span className="font-display text-lg font-semibold">de {formatAmount(proteinGoal)} g de proteína</span>
+                  </p>
+                  <div className="mt-2">
+                    <Progress value={proteinRatio ?? 0} color="var(--color-rosa)" />
+                  </div>
+                  <div className="mt-2 flex items-center justify-between gap-2">
+                    <p className="text-sm font-semibold">{proteinRemainingLabel(totals.protein, proteinGoal)}</p>
+                    <button
+                      type="button"
+                      onClick={() => setGoalOpen(true)}
+                      className="inline-flex min-h-11 items-center gap-1 text-sm font-bold text-mostaza-ink"
+                    >
+                      <AppIcon name="bullseye" /> Objetivo
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="font-display text-[2.125rem] font-semibold leading-none">
+                    {formatAmount(totals.protein)} <span className="font-display text-lg font-semibold">g de proteína</span>
+                  </p>
+                  <div className="mt-2 flex min-h-[34px] items-center justify-between gap-2">
+                    <p className="text-sm font-semibold text-muted">Sin objetivo.</p>
+                    <button
+                      type="button"
+                      onClick={() => setGoalOpen(true)}
+                      className="inline-flex min-h-11 items-center gap-1 text-sm font-bold text-mostaza-ink"
+                    >
+                      <AppIcon name="bullseye" /> Poner un objetivo
+                    </button>
+                  </div>
+                </>
+              )}
+              <p className="mt-1 text-sm font-semibold text-muted">
+                {dayCaloriesLabel(totals.kcal, offset, totals.incompleteCount)}
+              </p>
+            </div>
+          </div>
+          {meals.length > 0 && phrase ? (
+            <button
+              type="button"
+              onClick={() => setCompositionOpen(true)}
+              className="mt-3 flex h-11 w-full items-center justify-between gap-2 border-t border-dashed border-line pt-3 text-left"
+            >
+              <span>
+                <span className="block text-sm font-semibold text-muted">De qué estuvo hecho</span>
+                <span className="block text-sm font-bold">{phrase}</span>
+              </span>
+              <AppIcon name="chevron-right" className="text-muted" />
+            </button>
+          ) : null}
+        </section>
+      ) : null}
+
+      {!loading && !error && meals.length === 0 ? (
+        <div className="flex flex-col items-center px-4 py-8 text-center">
+          <Sprout module="comidas" size={72} />
+          <p className="mt-3 font-display text-lg font-semibold">Todavía no anotaste nada {DAY_LABEL[offset].toLowerCase()}.</p>
+          <p className="mt-1 max-w-xs text-sm font-semibold text-muted">
+            Tocá el botón + y buscá lo que comiste. La app calcula sola de qué está hecho.
+          </p>
+        </div>
+      ) : null}
+
+      {!loading && !error
+        ? MEAL_TYPES.map((type) => {
+            const items = meals.filter((meal) => meal.mealType === type)
+            if (items.length === 0) return null
+            const mealShares = compositionShares(items)
+            const mealTotals = dayTotals(items)
+            const mealPhrase = compositionPhrase(mealShares)
+            return (
+              <section key={type} className="mb-3 rounded-2xl border-2 border-azul-ink bg-card p-3">
+                <header className="mb-1 flex h-[49px] items-center gap-2.5 px-1">
+                  <span className={`grid h-10 w-10 place-items-center rounded-full ${MEAL_TONE[type]}`}>
+                    <AppIcon name={MEAL_ICON[type]} />
                   </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[15.5px] font-semibold">{meal.name}</span>
-                    <span className="block text-sm font-bold text-muted">{formatAmount(meal.proteinG)} g de proteína</span>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => void removeMeal(meal)}
-                    className="min-h-11 shrink-0 rounded-2xl px-2 text-sm font-semibold text-muted"
-                  >
-                    Quitar
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )
-      })}
-      <button
-        type="button"
-        onClick={() => setMealOpen(true)}
-        className="mt-1 flex min-h-[52px] w-full items-center gap-3 rounded-[22px] border-2 border-dashed border-line px-4 text-left"
-      >
-        <span className="grid h-11 w-11 place-items-center rounded-full bg-sand text-muted">
-          <AppIcon name="plus" />
-        </span>
-        <span className="font-semibold text-muted">Nueva comida</span>
-      </button>
-      {error ? <p className="mt-3 text-center text-sm font-bold text-tinta">{error}</p> : null}
-      <MealSheet
-        open={mealOpen}
-        ownerId={profile.id}
+                  <h2 className="font-display text-lg font-semibold">{MEAL_LABEL[type]}</h2>
+                </header>
+                <ul>
+                  {items.map((meal) => {
+                    const legacy = isManualLegacy(meal)
+                    const complete = hasCompositionData(meal)
+                    return (
+                      <li key={meal.id}>
+                        <button
+                          type="button"
+                          onClick={() => setEditing(meal)}
+                          className="flex min-h-[52px] w-full flex-col items-start justify-center px-1 py-2 text-left"
+                        >
+                          <span className="text-sm font-bold">{meal.name}</span>
+                          <span className="text-sm font-semibold text-muted">
+                            {foodRowSubtitle({
+                              label: meal.portionLabel,
+                              qty: meal.portionQty,
+                              grams: meal.portionGrams,
+                              proteinG: meal.proteinG,
+                              foodSource: meal.foodSource,
+                              manualLegacy: legacy,
+                            })}
+                          </span>
+                          {legacy && !complete && meal.kcal != null ? (
+                            <span className="text-sm font-semibold text-muted">
+                              Sus {formatAmount(meal.kcal)} calorías no suman: no tiene hidratos ni grasas.
+                            </span>
+                          ) : null}
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+                <div className="mt-1 border-t border-dashed border-line px-1 pt-2">
+                  {mealShares ? (
+                    <>
+                      <CompositionBar shares={mealShares} scope={MEAL_LABEL[type].toLowerCase()} />
+                      <p className="mt-1.5 text-sm font-semibold">{mealPhrase}</p>
+                      <p className="text-sm font-semibold text-muted">
+                        {formatAmount(mealTotals.protein)} g de proteína · {formatAmount(mealTotals.kcal)} calorías.
+                      </p>
+                      {mealTotals.incompleteCount > 0 ? (
+                        <p className="text-sm font-semibold text-muted">
+                          La barra y las calorías no cuentan lo cargado a mano.
+                        </p>
+                      ) : null}
+                    </>
+                  ) : (
+                    <p className="text-sm font-semibold text-muted">
+                      {formatAmount(mealTotals.protein)} g de proteína. Sin hidratos ni grasas, no se puede mostrar de qué
+                      estuvo hecho.
+                    </p>
+                  )}
+                </div>
+              </section>
+            )
+          })
+        : null}
+
+      <FabSpace />
+      <Fab
+        to="/comidas/agregar"
+        label="Agregar comida"
+        state={{ eatenOn, mealType: fabMealType }}
+      />
+
+      {toast ? (
+        <Toast aboveFab onUndo={toast.undo} onDone={() => setToast(null)}>
+          {toast.message}
+        </Toast>
+      ) : null}
+
+      <WhatIsSheet open={whatOpen} onClose={() => setWhatOpen(false)} />
+      <CompositionSheet
+        open={compositionOpen}
+        onClose={() => setCompositionOpen(false)}
+        onWhat={() => {
+          setCompositionOpen(false)
+          setWhatOpen(true)
+        }}
+        offset={offset}
         eatenOn={eatenOn}
-        saved={saved}
-        onClose={() => setMealOpen(false)}
-        onSaved={(meal, frequent, notice) => {
-          setMeals((current) => [...current, meal])
-          if (frequent) setSaved((current) => [...current, frequent].sort((a, b) => a.name.localeCompare(b.name, 'es')))
-          if (notice) setError(notice)
-          setMealOpen(false)
-        }}
+        meals={meals}
+        shares={shares}
+        phrase={phrase}
+        totals={totals}
       />
-      <GoalsSheet
-        open={goalsOpen}
+      <GoalSheet
+        open={goalOpen}
         ownerId={profile.id}
-        goals={goals}
-        onClose={() => setGoalsOpen(false)}
+        proteinGoal={proteinGoal}
+        onClose={() => setGoalOpen(false)}
         onSaved={(next) => {
-          setGoals(next)
-          setGoalsOpen(false)
+          setProteinGoal(next)
+          setGoalOpen(false)
         }}
       />
+      {editing ? (
+        <MealPortionSheet
+          open
+          mode="edit"
+          mealType={editing.mealType}
+          draft={mealToDraft(editing)}
+          onClose={() => setEditing(null)}
+          onRemove={() => void removeMeal(editing)}
+          onSave={async (draft, _saveFood) => {
+            const updated = await updateMeal(editing.id, {
+              name: draft.name,
+              proteinG: draft.proteinG,
+              carbsG: draft.carbsG,
+              fatG: draft.fatG,
+              kcal: draft.kcal,
+              portionLabel: draft.portionLabel,
+              portionQty: draft.portionQty,
+              portionGrams: draft.portionGrams,
+              foodSource: draft.foodSource,
+              foodRef: draft.foodRef,
+              brand: draft.brand,
+            })
+            setMeals((current) => current.map((item) => (item.id === updated.id ? updated : item)))
+            setEditing(null)
+          }}
+        />
+      ) : null}
     </>
   )
 }
 
-function MacroStat({ label, text, percent, color }: { label: string; text: string; percent: number | null; color: string }) {
-  return (
-    <div>
-      <span className="block text-sm font-bold text-muted">{label}</span>
-      <b className="mt-0.5 block text-[15px] font-semibold">{text}</b>
-      {percent != null ? (
-        <span className="mt-1.5 block">
-          <Progress value={percent} color={color} />
-        </span>
-      ) : null}
-    </div>
-  )
+function mealToDraft(meal: MealRow): PortionDraft {
+  return {
+    name: meal.name,
+    proteinG: meal.proteinG,
+    carbsG: meal.carbsG,
+    fatG: meal.fatG,
+    kcal: meal.kcal ?? resolvedKcal(meal),
+    portionLabel: meal.portionLabel,
+    portionQty: meal.portionQty ?? 1,
+    portionGrams: meal.portionGrams,
+    foodSource: meal.foodSource,
+    foodRef: meal.foodRef,
+    brand: meal.brand,
+    originLabel: meal.foodSource === 'common'
+      ? 'de la lista de todos los días'
+      : meal.foodSource === 'off'
+        ? meal.brand
+          ? `${meal.brand} · Open Food Facts`
+          : 'Open Food Facts'
+        : meal.foodSource === 'manual' || isManualLegacy(meal)
+          ? 'Cargado a mano'
+          : 'de mis alimentos',
+    attribution:
+      meal.foodSource === 'common'
+        ? 'Datos: ARGENFOODS, Universidad Nacional de Luján'
+        : meal.foodSource === 'off'
+          ? 'Datos de productos: Open Food Facts.'
+          : null,
+    portions:
+      meal.portionLabel && meal.portionGrams
+        ? [{ label: meal.portionLabel, grams: meal.portionGrams / (meal.portionQty ?? 1), suggested: true }]
+        : [],
+    per100: null,
+    savedInMine: false,
+  }
 }
 
-function MealSheet({
+function CompositionSheet({
   open,
-  ownerId,
+  onClose,
+  onWhat,
+  offset,
   eatenOn,
-  saved,
-  onClose,
-  onSaved,
+  meals,
+  shares,
+  phrase,
+  totals,
 }: {
   open: boolean
-  ownerId: string
-  eatenOn: string
-  saved: SavedFood[]
   onClose: () => void
-  onSaved: (meal: Meal, frequent: SavedFood | null, notice?: string) => void
+  onWhat: () => void
+  offset: DayOffset
+  eatenOn: string
+  meals: MealRow[]
+  shares: ReturnType<typeof compositionShares>
+  phrase: string
+  totals: ReturnType<typeof dayTotals>
 }) {
-  const [mealType, setMealType] = useState<MealType>('desayuno')
-  const [name, setName] = useState('')
-  const [protein, setProtein] = useState('')
-  const [carbs, setCarbs] = useState('')
-  const [fat, setFat] = useState('')
-  const [kcal, setKcal] = useState('')
-  const [frequent, setFrequent] = useState(false)
-  const [formError, setFormError] = useState('')
-  const [pending, setPending] = useState(false)
-
-  useEffect(() => {
-    if (!open) return
-    setMealType('desayuno')
-    setName('')
-    setProtein('')
-    setCarbs('')
-    setFat('')
-    setKcal('')
-    setFrequent(false)
-    setFormError('')
-  }, [open])
-
-  function applySaved(food: SavedFood) {
-    setName(food.name)
-    setProtein(fieldFromNumber(food.proteinG))
-    setCarbs(fieldFromNumber(food.carbsG))
-    setFat(fieldFromNumber(food.fatG))
-    setKcal(fieldFromNumber(food.kcal))
-    setFormError('')
-  }
-
-  async function save() {
-    const trimmed = name.trim()
-    const proteinG = parseMacro(protein)
-    const carbsG = readOptional(carbs)
-    const fatG = readOptional(fat)
-    const kcalValue = readOptional(kcal)
-    if (!trimmed) {
-      setFormError('Poné un nombre.')
-      return
-    }
-    if (trimmed.length > 80) {
-      setFormError('El nombre puede tener hasta 80 caracteres.')
-      return
-    }
-    if (protein.trim() && proteinG == null) {
-      setFormError('La proteína tiene que ser 0 o más.')
-      return
-    }
-    if (proteinG == null) {
-      setFormError('La proteína es obligatoria.')
-      return
-    }
-    if (carbsG === undefined || fatG === undefined || kcalValue === undefined) {
-      setFormError('Los números tienen que ser 0 o más.')
-      return
-    }
-    setPending(true)
-    setFormError('')
-    const { data, error: insertError } = await supabase
-      .from('meals')
-      .insert({
-        owner_id: ownerId,
-        eaten_on: eatenOn,
-        meal_type: mealType,
-        name: trimmed,
-        protein_g: proteinG,
-        carbs_g: carbsG,
-        fat_g: fatG,
-        kcal: kcalValue,
-      })
-      .select('id, eaten_on, meal_type, name, protein_g, carbs_g, fat_g, kcal')
-      .single()
-    if (insertError || !data) {
-      setPending(false)
-      setFormError(insertError?.message || 'No se pudo guardar la comida.')
-      return
-    }
-    let savedFood: SavedFood | null = null
-    if (frequent) {
-      const savedResult = await supabase
-        .from('saved_foods')
-        .insert({
-          owner_id: ownerId,
-          name: trimmed,
-          protein_g: proteinG,
-          carbs_g: carbsG,
-          fat_g: fatG,
-          kcal: kcalValue,
-        })
-        .select('id, name, protein_g, carbs_g, fat_g, kcal')
-        .single()
-      if (savedResult.error || !savedResult.data) {
-        setPending(false)
-        onSaved(mealFromRow(data), null, savedResult.error?.message || 'La comida quedó anotada, pero no se pudo guardar como frecuente.')
-        return
-      }
-      savedFood = savedFromRow(savedResult.data)
-    }
-    setPending(false)
-    onSaved(mealFromRow(data), savedFood)
-  }
-
+  const complete = meals.filter(hasCompositionData)
   return (
     <Sheet
       open={open}
-      title="Nueva comida"
+      title="De qué estuvo hecho"
       onClose={onClose}
       footer={
-        <Button disabled={pending} onClick={() => void save()}>
-          Guardar comida
+        <Button variant="alt" onClick={onWhat}>
+          <span className="inline-flex items-center justify-center gap-2">
+            <AppIcon name="circle-question" /> ¿Qué es cada cosa?
+          </span>
         </Button>
       }
     >
-      {saved.length > 0 ? (
-        <div className="mb-3">
-          <p className="mb-1.5 text-sm font-bold text-muted">Frecuentes</p>
-          <div className="flex flex-wrap gap-2 pb-1">
-            {saved.map((food) => (
-              <button
-                key={food.id}
-                type="button"
-                onClick={() => applySaved(food)}
-                className="min-h-11 shrink-0 rounded-2xl bg-rosa-claro px-3 text-sm font-semibold text-tinta"
-              >
-                {food.name}
-              </button>
+      <p className="mb-3 text-sm font-semibold text-muted">{compositionSheetSubtitle(offset, eatenOn)}</p>
+      {shares ? (
+        <>
+          <p className="font-display text-lg font-semibold">{phrase}</p>
+          <CompositionBar shares={shares} className="mt-3" />
+          <ul className="mt-4 space-y-3">
+            {(
+              [
+                ['proteína', shares.proteinPct, shares.proteinG],
+                ['hidratos', shares.carbsPct, shares.carbsG],
+                ['grasas', shares.fatPct, shares.fatG],
+              ] as const
+            ).map(([part, pct, grams]) => (
+              <li key={part} className="flex gap-2">
+                <CompositionSwatch part={part} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-sm font-bold capitalize">{part}</span>
+                    <span className="text-sm font-semibold text-muted">
+                      {pct}&nbsp;% · {formatAmount(grams)} g
+                    </span>
+                  </div>
+                  <p className="text-sm font-semibold text-muted">
+                    {moreThanAnythingLabel(topContributors(complete, part))}
+                  </p>
+                </div>
+              </li>
             ))}
-          </div>
-        </div>
-      ) : null}
-      <p className="mb-1.5 text-sm font-bold text-muted">Tipo</p>
-      <div className="mb-3 flex flex-wrap gap-2">
-        {MEAL_TYPES.map((type) => (
-          <Chip key={type} active={mealType === type} onClick={() => setMealType(type)}>
-            {MEAL_LABEL[type]}
-          </Chip>
-        ))}
-      </div>
-      <MacroField label="Nombre" value={name} onChange={setName} />
-      <MacroField label="Proteína (g)" value={protein} onChange={setProtein} numeric />
-      <MacroField label="Carbos (g), opcional" value={carbs} onChange={setCarbs} numeric />
-      <MacroField label="Grasas (g), opcional" value={fat} onChange={setFat} numeric />
-      <MacroField label="Calorías, opcional" value={kcal} onChange={setKcal} numeric />
-      <p className="mb-3 text-sm font-semibold leading-snug text-muted">
-        Si dejás las calorías vacías, se calculan con 4 por gramo de proteína y de carbos, y 9 por gramo de grasa.
-      </p>
-      <div className="flex min-h-11 items-center justify-between gap-3">
-        <span className="text-base font-semibold">Guardar como frecuente</span>
-        <ModuleSwitch on={frequent} label="Guardar como frecuente" onToggle={() => setFrequent((current) => !current)} />
-      </div>
-      {formError ? <p className="mt-3 text-sm font-bold text-tinta">{formError}</p> : null}
+          </ul>
+          {totals.incompleteCount > 0 ? (
+            <p className="mt-3 text-sm font-semibold text-muted">
+              {totals.incompleteProtein > 0
+                ? `Los ${formatAmount(totals.protein)} g de proteína del día incluyen ${formatAmount(totals.incompleteProtein)} g de ${totals.incompleteCount} alimentos cargados a mano. La barra no los cuenta porque no tienen hidratos ni grasas.`
+                : `La barra no cuenta ${totals.incompleteCount} alimentos cargados a mano: no tienen hidratos ni grasas.`}
+            </p>
+          ) : null}
+          <p className="mt-3 text-sm font-semibold text-muted">
+            {totals.incompleteCount > 0
+              ? `${formatAmount(totals.kcal)} calorías, sin esos ${totals.incompleteCount} alimentos.`
+              : `${formatAmount(totals.kcal)} calorías.`}
+          </p>
+        </>
+      ) : (
+        <p className="text-sm font-semibold text-muted">Todavía no hay datos para armar la composición.</p>
+      )}
     </Sheet>
   )
 }
 
-function GoalsSheet({
+function WhatIsSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+  return (
+    <Sheet
+      open={open}
+      title="¿Qué es cada cosa?"
+      onClose={onClose}
+      footer={<Button onClick={onClose}>Entendido</Button>}
+    >
+      <p className="mb-4 text-sm font-semibold leading-snug">
+        Lo que comés tiene tres partes: proteína, hidratos y grasas. Las tres dan energía, y esa energía se mide en calorías.
+      </p>
+      <div className="mb-4 flex gap-2">
+        <AppIcon name="bolt" className="mt-0.5" />
+        <div>
+          <p className="text-sm font-bold">Calorías</p>
+          <p className="text-sm font-semibold leading-snug">
+            Es la energía que te da lo que comés. Cada gramo de proteína o de hidratos da 4 calorías; cada gramo de grasa, 9.
+          </p>
+          <p className="text-sm font-semibold text-muted">
+            Por ejemplo: 10 g de hidratos son 40 calorías y 10 g de grasa, 90.
+          </p>
+        </div>
+      </div>
+      <div className="mb-4 flex gap-2">
+        <CompositionSwatch part="proteína" />
+        <div>
+          <p className="text-sm font-bold">Proteína</p>
+          <p className="text-sm font-semibold leading-snug">
+            Es lo que el cuerpo usa para armar y reparar músculos, piel y pelo. Es la que tiene objetivo en la app.
+          </p>
+          <p className="text-sm font-semibold text-muted">Carne, pollo, pescado, huevo, leche, yogur, queso, lentejas.</p>
+          <p className="text-sm font-semibold text-muted">En la barra: rosa liso.</p>
+        </div>
+      </div>
+      <div className="mb-4 flex gap-2">
+        <CompositionSwatch part="hidratos" />
+        <div>
+          <p className="text-sm font-bold">Hidratos</p>
+          <p className="text-sm font-semibold leading-snug">Es la energía más rápida.</p>
+          <p className="text-sm font-semibold text-muted">Pan, fideos, arroz, papa, fruta, azúcar, galletitas, facturas.</p>
+          <p className="text-sm font-semibold text-muted">En la barra: rayas mostaza.</p>
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <CompositionSwatch part="grasas" />
+        <div>
+          <p className="text-sm font-bold">Grasas</p>
+          <p className="text-sm font-semibold leading-snug">
+            Es energía de reserva. Con poco se suma mucho, porque cada gramo da más del doble que uno de hidratos.
+          </p>
+          <p className="text-sm font-semibold text-muted">Aceite, manteca, queso, palta, maní, nueces, fritos.</p>
+          <p className="text-sm font-semibold text-muted">En la barra: puntos azules.</p>
+        </div>
+      </div>
+    </Sheet>
+  )
+}
+
+function GoalSheet({
   open,
   ownerId,
-  goals,
+  proteinGoal,
   onClose,
   onSaved,
 }: {
   open: boolean
   ownerId: string
-  goals: Goals
+  proteinGoal: number | null
   onClose: () => void
-  onSaved: (goals: Goals) => void
+  onSaved: (goal: number | null) => void
 }) {
-  const [protein, setProtein] = useState('')
-  const [carbs, setCarbs] = useState('')
-  const [fat, setFat] = useState('')
-  const [kcal, setKcal] = useState('')
-  const [formError, setFormError] = useState('')
+  const [value, setValue] = useState('')
   const [pending, setPending] = useState(false)
+  const [formError, setFormError] = useState('')
 
   useEffect(() => {
     if (!open) return
-    setProtein(fieldFromNumber(goals.proteinG))
-    setCarbs(fieldFromNumber(goals.carbsG))
-    setFat(fieldFromNumber(goals.fatG))
-    setKcal(fieldFromNumber(goals.kcal))
+    setValue(proteinGoal == null ? '' : String(proteinGoal).replace('.', ','))
     setFormError('')
-  }, [open, goals])
+  }, [open, proteinGoal])
 
   async function save() {
-    const proteinG = readOptional(protein)
-    const carbsG = readOptional(carbs)
-    const fatG = readOptional(fat)
-    const kcalValue = readOptional(kcal)
-    if (proteinG === undefined || carbsG === undefined || fatG === undefined || kcalValue === undefined) {
-      setFormError('Los números tienen que ser 0 o más.')
+    const trimmed = value.trim()
+    const parsed = trimmed ? parseMacro(trimmed) : null
+    if (trimmed && parsed == null) {
+      setFormError('Los gramos tienen que ser 0 o más.')
       return
     }
     setPending(true)
-    setFormError('')
-    const next = { proteinG, carbsG, fatG, kcal: kcalValue }
-    const { error: saveError } = await supabase.from('nutrition_goals').upsert({
-      owner_id: ownerId,
-      protein_g: proteinG,
-      carbs_g: carbsG,
-      fat_g: fatG,
-      kcal: kcalValue,
-    })
-    setPending(false)
-    if (saveError) {
-      setFormError(saveError.message)
-      return
+    try {
+      await saveProteinGoal(ownerId, parsed)
+      onSaved(parsed)
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'No se pudo guardar.')
+    } finally {
+      setPending(false)
     }
-    onSaved(next)
   }
 
   return (
     <Sheet
       open={open}
-      title="Objetivos"
+      title="Tu objetivo de proteína"
       onClose={onClose}
       footer={
         <Button disabled={pending} onClick={() => void save()}>
-          Guardar objetivos
+          Guardar
         </Button>
       }
     >
-      <p className="mb-3 text-sm font-semibold leading-snug text-muted">La proteína es la principal. El resto es opcional.</p>
-      <MacroField label="Proteína (g)" value={protein} onChange={setProtein} numeric />
-      <MacroField label="Carbos (g)" value={carbs} onChange={setCarbs} numeric />
-      <MacroField label="Grasas (g)" value={fat} onChange={setFat} numeric />
-      <MacroField label="Calorías" value={kcal} onChange={setKcal} numeric />
-      {formError ? <p className="text-sm font-bold text-tinta">{formError}</p> : null}
+      <p className="mb-3 text-sm font-semibold leading-snug text-muted">
+        Cuántos gramos de proteína querés comer por día. Si lo dejás vacío, ves lo que comiste, pero sin la barra.
+      </p>
+      <label className="block text-sm font-bold">
+        <span className="mb-1 block text-muted">Gramos por día</span>
+        <input value={value} onChange={(event) => setValue(event.target.value)} inputMode="decimal" className={inputClass} />
+      </label>
+      {formError ? <p className="mt-2 text-sm font-bold text-tinta">{formError}</p> : null}
     </Sheet>
   )
-}
-
-function MacroField({
-  label,
-  value,
-  onChange,
-  numeric = false,
-}: {
-  label: string
-  value: string
-  onChange: (value: string) => void
-  numeric?: boolean
-}) {
-  return (
-    <label className="mb-3 block text-sm font-bold">
-      <span className="mb-1 block text-muted">{label}</span>
-      <input
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        inputMode={numeric ? 'decimal' : 'text'}
-        className={inputClass}
-      />
-    </label>
-  )
-}
-
-function fieldFromNumber(value: number | null): string {
-  if (value == null) return ''
-  return String(value).replace('.', ',')
-}
-
-function readOptional(value: string): number | null | undefined {
-  const trimmed = value.trim()
-  if (!trimmed) return null
-  return parseMacro(trimmed) ?? undefined
-}
-
-function mealFromRow(row: {
-  id: string
-  eaten_on: string
-  meal_type: string
-  name: string
-  protein_g: number
-  carbs_g: number | null
-  fat_g: number | null
-  kcal: number | null
-}): Meal {
-  return {
-    id: row.id,
-    eatenOn: row.eaten_on,
-    mealType: isMealType(row.meal_type) ? row.meal_type : 'snack',
-    name: row.name,
-    proteinG: asNumber(row.protein_g) ?? 0,
-    carbsG: asNumber(row.carbs_g),
-    fatG: asNumber(row.fat_g),
-    kcal: asNumber(row.kcal),
-  }
-}
-
-function savedFromRow(row: {
-  id: string
-  name: string
-  protein_g: number
-  carbs_g: number | null
-  fat_g: number | null
-  kcal: number | null
-}): SavedFood {
-  return {
-    id: row.id,
-    name: row.name,
-    proteinG: asNumber(row.protein_g) ?? 0,
-    carbsG: asNumber(row.carbs_g),
-    fatG: asNumber(row.fat_g),
-    kcal: asNumber(row.kcal),
-  }
 }

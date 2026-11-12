@@ -68,6 +68,10 @@ describe('menú según la pantalla', () => {
     expect(nav.activeTo).toBe('/habitos')
     expect(nav.items[0]?.label).toBe('Inicio')
   })
+
+  it('Agregar comida marca Comidas en el menú general', () => {
+    expect(navFor('/comidas/agregar', ['finanzas', 'comidas']).activeTo).toBe('/comidas')
+  })
 })
 
 describe('al menos un módulo activo', () => {
