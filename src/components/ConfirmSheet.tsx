@@ -12,6 +12,10 @@ export function ConfirmSheet({
   confirmLabel,
   onConfirm,
   disabled = false,
+  busy = false,
+  variant = 'primary',
+  error,
+  describedById,
 }: {
   open: boolean
   title: string
@@ -21,19 +25,35 @@ export function ConfirmSheet({
   confirmLabel: string
   onConfirm: () => void
   disabled?: boolean
+  busy?: boolean
+  variant?: 'primary' | 'danger'
+  error?: string | null
+  describedById?: string
 }) {
   return (
     <Sheet
       open={open}
       layer="confirm"
       title={title}
-      onClose={onClose}
+      onClose={busy ? () => undefined : onClose}
       footer={
         <div className="space-y-2">
-          <Button type="button" onClick={onConfirm} disabled={disabled}>
+          {error ? (
+            <p className="text-sm font-bold text-tinta" role="alert">
+              {error}
+            </p>
+          ) : null}
+          <Button
+            type="button"
+            variant={variant}
+            tall={variant === 'danger'}
+            onClick={onConfirm}
+            disabled={disabled || busy}
+            aria-busy={busy || undefined}
+          >
             {confirmLabel}
           </Button>
-          <Button type="button" variant="alt" onClick={onClose} disabled={disabled}>
+          <Button type="button" variant="alt" onClick={onClose} disabled={busy}>
             Cancelar
           </Button>
         </div>
@@ -41,7 +61,10 @@ export function ConfirmSheet({
     >
       {children}
       {note ? (
-        <p className="mt-3 flex items-start gap-2 text-base font-semibold text-muted">
+        <p
+          id={describedById}
+          className="mt-3 flex items-start gap-2 text-base font-semibold text-tinta"
+        >
           <AppIcon name="circle-info" className="mt-1 shrink-0" />
           <span>{note}</span>
         </p>

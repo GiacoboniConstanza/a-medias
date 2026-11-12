@@ -1,14 +1,16 @@
-import { useEffect, useState } from 'react'
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
+import { useEffect, useId, useState } from 'react'
+import { Link, useLocation, useNavigate, useOutletContext, useSearchParams } from 'react-router'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { Plantita } from '../components/Adornos.tsx'
+import { ConfirmSheet } from '../components/ConfirmSheet.tsx'
 import { MovementForm } from '../components/MovementForm.tsx'
 import { FilterSheet, type ExpenseFilters, type WhoFilter } from '../components/FilterSheet.tsx'
 import { MonthSwitcher } from '../components/MonthSwitcher.tsx'
 import { NotificationBell } from '../components/NotificationBell.tsx'
 import { SectionHeader } from '../components/SectionHeader.tsx'
 import { Fab, FabSpace } from '../components/Fab.tsx'
-import { Chip, Toast } from '../components/ui.tsx'
+import { Button, Chip, Toast } from '../components/ui.tsx'
+import type { AppChromeContext } from '../components/AppShell.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
 import { useMonth } from '../context/MonthProvider.tsx'
@@ -18,10 +20,17 @@ import { expenseSpan, type DatePreset, type ExpenseSpan } from '../lib/expense-r
 import { matchesCategories, matchesScope, matchesSpan, type ScopeFilter } from '../lib/finance-filters.ts'
 import { formatMoney, normalizeMoney } from '../lib/format.ts'
 import { iconSurface } from '../lib/icons.ts'
+import { deleteMovements, type ExpenseItem, type ExtraItem, type SavingMove } from '../lib/api.ts'
 import { loadTransfers, type Transfer } from '../lib/transfers.ts'
 import { movementExpenseSubtitle, movementExpenseTitle, movementSavingSubtitle, movementSavingTitle } from '../lib/movement-row.ts'
-import { catamarcaToday, monthEnd, monthName, shortDate } from '../lib/month.ts'
-import type { ExpenseItem, SavingMove } from '../lib/api.ts'
+import {
+  countSelectable,
+  movementSelectability,
+  negativeSavingWarnings,
+  type SelectableContext,
+  type SelectableInputRow,
+} from '../lib/movement-select.ts'
+import { catamarcaToday, monthEnd, monthName, monthTitle, shortDate } from '../lib/month.ts'
 
 type MovementKind = 'todos' | 'gastos' | 'ingresos' | 'transferencias' | 'ahorros'
 
@@ -42,8 +51,11 @@ type MovementRow = {
   fill: string
   border: string
   expense?: ExpenseItem
+  extra?: ExtraItem
   transfer?: Transfer
   savingMove?: SavingMove
+  isSalary?: boolean
+  mpOperationId?: string | null
 }
 
 const EMPTY_FILTERS: ExpenseFilters = {
@@ -60,12 +72,25 @@ export function MovementsScreen() {
   const { profile } = useAuth()
   const { month } = useMonth()
   const { data, loading, error, refresh } = useFinance()
+  const { setHideChrome } = useOutletContext<AppChromeContext>()
   const [params, setParams] = useSearchParams()
   const [transfers, setTransfers] = useState<Transfer[]>([])
   const [editingExpense, setEditingExpense] = useState<ExpenseItem | null>(null)
   const [editingTransfer, setEditingTransfer] = useState<Transfer | null>(null)
   const [editingSavingMove, setEditingSavingMove] = useState<SavingMove | null>(null)
+  const [editingExtra, setEditingExtra] = useState<ExtraItem | null>(null)
   const [filtersOpen, setFiltersOpen] = useState(false)
+  const [selecting, setSelecting] = useState(false)
+  const [selected, setSelected] = useState<Set<string>>(() => new Set())
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [deleteToast, setDeleteToast] = useState('')
+  const undoNoteId = useId()
+  const emptyHintId = useId()
+  const negHintId = useId()
+  const nadaId = useId()
+  const saldadoId = useId()
   const location = useLocation()
   const navigate = useNavigate()
   const importState = (location.state as { import?: { inserted: number; skipped: number } } | null)?.import
@@ -118,6 +143,25 @@ export function MovementsScreen() {
     })
   }, [tipo])
 
+  useEffect(() => {
+    setHideChrome(selecting)
+    return () => setHideChrome(false)
+  }, [selecting, setHideChrome])
+
+  useEffect(() => {
+    if (!selecting) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || deleting) return
+      setSelecting(false)
+      setSelected(new Set())
+      setConfirmOpen(false)
+      setDeleteError(null)
+      setDeleting(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [selecting, deleting])
+
   if (!profile) return null
   if (loading && !data) {
     return (
@@ -142,6 +186,7 @@ export function MovementsScreen() {
   const meId = profile.id
   const otherId = partnerId(data, meId)
   const partnerName = (otherId && data.names[otherId]) || null
+  const partnerLabel = partnerName ?? 'tu compañera'
   const settled = Boolean(data.settlement)
   const scope = (filters.scope ?? 'all') as ScopeFilter
   const who = (filters.who ?? 'all') as WhoFilter
@@ -151,7 +196,7 @@ export function MovementsScreen() {
     data,
     meId,
     month,
-    partnerName: partnerName ?? 'tu compañera',
+    partnerName: partnerLabel,
     otherId,
     scope,
     who,
@@ -162,6 +207,45 @@ export function MovementsScreen() {
     tipo,
     transfers,
   })
+
+  const fixedExpenseIds = new Set<string>()
+  for (const item of data.fixed) {
+    if (item.payment?.expenseId) fixedExpenseIds.add(item.payment.expenseId)
+  }
+
+  const selectCtx: SelectableContext = {
+    meId,
+    partnerName: partnerLabel,
+    fixedExpenseIds,
+    savingsById: new Map(data.savings.map((item) => [item.id, item])),
+    allSavingMoves: data.savingMoves,
+  }
+
+  const selectableRows = rows.map(toSelectableRow)
+  const selectableCount = countSelectable(selectableRows, selectCtx)
+  const selectedCount = [...selected].filter((id) => {
+    const row = selectableRows.find((item) => item.id === id)
+    return row ? movementSelectability(row, selectCtx).canDelete : false
+  }).length
+  const blockedCount = rows.length - selectableCount
+  const negWarnings = negativeSavingWarnings(selected, selectableRows, selectCtx)
+  const negByRow = new Map<string, string>()
+  for (const warning of negWarnings) {
+    negByRow.set(
+      warning.aporteRowId,
+      `Sin este aporte, tu parte de ${warning.savingName} queda en −${formatMoney(warning.negativeAmount)}: el retiro del ${warning.retiroDay} usa esa plata.`,
+    )
+    negByRow.set(
+      warning.retiroRowId,
+      `Elegilo también para poder eliminar el aporte del ${warning.aporteDay}.`,
+    )
+  }
+  const canSelect = rows.length > 0 && !settled && selectableCount > 0
+  const selectDisabledReason = settled
+    ? 'saldado'
+    : rows.length > 0 && selectableCount === 0
+      ? 'nada'
+      : null
 
   const groups = groupByDay(rows, catamarcaToday())
   const totals = movementTotals(rows, tipo)
@@ -178,6 +262,21 @@ export function MovementsScreen() {
     partnerName,
     savingName: filters.savingId ? data.savings.find((s) => s.id === filters.savingId)?.name ?? null : null,
   })
+  const contextLabel = [
+    monthTitle(month),
+    tipo === 'todos' ? 'Todos' : tipo === 'gastos' ? 'Gastos' : tipo === 'ingresos' ? 'Ingresos' : tipo === 'transferencias' ? 'Transferencias' : 'Ahorros',
+    activeCount > 0 ? showing : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+
+  const toastText = deleteToast || importToast
+  const selectedRows = rows.filter((row) => selected.has(row.id) && movementSelectability(toSelectableRow(row), selectCtx).canDelete)
+  const deleteBlockedByNeg = negWarnings.length > 0
+  const allTri = triState(
+    selectedCount,
+    selectableCount,
+  )
 
   function setTipo(next: MovementKind) {
     const nextParams = new URLSearchParams(params)
@@ -208,13 +307,304 @@ export function MovementsScreen() {
     setFilters(EMPTY_FILTERS)
   }
 
+  function exitSelect() {
+    setSelecting(false)
+    setSelected(new Set())
+    setConfirmOpen(false)
+    setDeleteError(null)
+    setDeleting(false)
+  }
+
+  function toggleId(id: string) {
+    const row = selectableRows.find((item) => item.id === id)
+    if (!row || !movementSelectability(row, selectCtx).canDelete) return
+    setSelected((current) => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function setIds(ids: string[], on: boolean) {
+    setSelected((current) => {
+      const next = new Set(current)
+      for (const id of ids) {
+        if (on) next.add(id)
+        else next.delete(id)
+      }
+      return next
+    })
+  }
+
+  function toggleMany(ids: string[]) {
+    const selectable = ids.filter((id) => {
+      const row = selectableRows.find((item) => item.id === id)
+      return row ? movementSelectability(row, selectCtx).canDelete : false
+    })
+    const allOn = selectable.every((id) => selected.has(id)) && selectable.length > 0
+    setIds(selectable, !allOn)
+  }
+
+  async function runDelete() {
+    if (deleting || selectedRows.length === 0) return
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      const result = await deleteMovements({
+        month,
+        expenseIds: selectedRows.filter((row) => row.expense).map((row) => row.expense!.id),
+        extraIds: selectedRows.filter((row) => row.extra).map((row) => row.extra!.id),
+        transferIds: selectedRows.filter((row) => row.transfer).map((row) => row.transfer!.id),
+        savingMoveIds: selectedRows.filter((row) => row.savingMove).map((row) => row.savingMove!.id),
+      })
+      const n = result.deleted || selectedRows.length
+      exitSelect()
+      await refresh()
+      setDeleteToast(n === 1 ? 'Eliminé 1 movimiento.' : `Eliminé ${n} movimientos.`)
+    } catch (caught) {
+      const raw = caught instanceof Error ? caught.message : ''
+      setDeleteError(mapBulkDeleteError(raw, partnerLabel, monthName(month)))
+      setDeleting(false)
+    }
+  }
+
+  if (selecting) {
+    return (
+      <>
+        <section className="sticky top-0 z-20 -mx-4 border-b-[1.5px] border-azul bg-crema px-4 pb-1 pt-[max(0.5rem,env(safe-area-inset-top))]">
+          <div className="flex min-h-12 items-center gap-1">
+            <button
+              type="button"
+              aria-label="Salir sin eliminar"
+              className="grid h-11 w-11 place-items-center text-tinta"
+              onClick={() => {
+                if (!deleting) exitSelect()
+              }}
+              disabled={deleting}
+            >
+              <AppIcon name="xmark" />
+            </button>
+            <h1 className="font-display text-lg font-semibold text-tinta">Elegí qué eliminar</h1>
+          </div>
+          <p className="text-sm font-semibold text-gris">{contextLabel}</p>
+          <button
+            type="button"
+            role="checkbox"
+            aria-checked={allTri === 'all' ? true : allTri === 'some' ? 'mixed' : false}
+            aria-label={allTri === 'all' ? 'Destildar todo lo que se ve' : 'Elegir todo lo que se ve'}
+            className="grid min-h-12 w-full grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-2 text-left"
+            onClick={() => toggleMany(rows.map((row) => row.id))}
+            disabled={deleting || selectableCount === 0}
+          >
+            <TriBox state={allTri} />
+            <span className="text-sm font-bold text-tinta">Todo lo que se ve</span>
+            <span className="text-sm font-semibold text-gris" aria-live="polite">
+              {selectedCount} de {selectableCount}
+            </span>
+          </button>
+          {blockedCount > 0 ? (
+            <p className="mb-2 text-sm font-semibold text-gris">
+              {blockedCount === 1
+                ? '1 no se puede eliminar: el motivo está en su fila.'
+                : `${blockedCount} no se pueden eliminar: cada uno dice por qué.`}
+            </p>
+          ) : null}
+        </section>
+
+        <div className="space-y-5 pb-[calc(140px+env(safe-area-inset-bottom))] pt-3">
+          {groups.map((group) => {
+            const daySelectable = group.rows.filter((row) =>
+              movementSelectability(toSelectableRow(row), selectCtx).canDelete,
+            )
+            const daySelected = daySelectable.filter((row) => selected.has(row.id)).length
+            const dayTri = triState(daySelected, daySelectable.length)
+            return (
+              <section key={group.label} aria-label={group.label}>
+                <div className="mb-1 grid min-h-11 grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-2">
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={
+                      daySelectable.length === 0
+                        ? false
+                        : dayTri === 'all'
+                          ? true
+                          : dayTri === 'some'
+                            ? 'mixed'
+                            : false
+                    }
+                    aria-disabled={daySelectable.length === 0 || deleting || undefined}
+                    aria-label={
+                      daySelectable.length === 0
+                        ? `No se puede eliminar ${group.label}`
+                        : dayTri === 'all'
+                          ? `Destildar todo el ${group.label}`
+                          : `Elegir todo el ${group.label}`
+                    }
+                    className="grid h-11 w-11 place-items-center disabled:opacity-60"
+                    disabled={daySelectable.length === 0 || deleting}
+                    onClick={() => toggleMany(group.rows.map((row) => row.id))}
+                  >
+                    <TriBox state={daySelectable.length === 0 ? 'none' : dayTri} locked={daySelectable.length === 0} />
+                  </button>
+                  <h2 className="text-sm font-semibold text-gris">{group.label}</h2>
+                  <span className="text-sm font-semibold text-gris">
+                    {daySelectable.length === 0 ? 'No se puede eliminar' : `${daySelected} de ${daySelectable.length}`}
+                  </span>
+                </div>
+                <ul className="space-y-0">
+                  {group.rows.map((row) => {
+                    const selectability = movementSelectability(toSelectableRow(row), selectCtx)
+                    const on = selected.has(row.id)
+                    const amountText =
+                      row.signed == null ? formatMoney(row.amount) : formatSigned(row.signed)
+                    const subtitle = row.private
+                      ? [row.subtitle, 'Privado'].filter(Boolean).join(' · ')
+                      : row.subtitle
+                    const neg = negByRow.get(row.id)
+                    return (
+                      <li key={row.id}>
+                        <button
+                          type="button"
+                          role="checkbox"
+                          aria-checked={selectability.canDelete ? on : false}
+                          aria-disabled={!selectability.canDelete || deleting || undefined}
+                          aria-label={`${row.title}, ${group.label.toLowerCase()}, ${amountText}`}
+                          disabled={!selectability.canDelete || deleting}
+                          className="grid min-h-[62px] w-full grid-cols-[44px_minmax(0,1fr)] items-start gap-2 border-t border-dashed border-linea-punteada py-2.5 text-left disabled:opacity-100"
+                          onClick={() => toggleId(row.id)}
+                        >
+                          <span className="mt-2 grid h-11 w-11 place-items-center" aria-hidden="true">
+                            <TriBox
+                              state={selectability.canDelete && on ? 'all' : 'none'}
+                              locked={!selectability.canDelete}
+                            />
+                          </span>
+                          <span className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-x-2">
+                            <span
+                              className={`font-display text-lg font-semibold ${
+                                selectability.canDelete ? 'text-tinta' : 'text-gris'
+                              }`}
+                            >
+                              {row.title}
+                            </span>
+                            <span
+                              className={`whitespace-nowrap font-display text-lg font-semibold ${
+                                !selectability.canDelete
+                                  ? 'text-gris'
+                                  : row.kind === 'ingreso'
+                                    ? 'text-mostaza-ink'
+                                    : row.kind === 'transferencia'
+                                      ? 'text-ciruela-ink'
+                                      : 'text-tinta'
+                              }`}
+                            >
+                              {amountText}
+                            </span>
+                            {subtitle ? (
+                              <span className="col-span-2 truncate text-sm font-medium text-gris">{subtitle}</span>
+                            ) : null}
+                            {!selectability.canDelete && selectability.reason ? (
+                              <span className="col-span-2 mt-1 flex items-start gap-1.5 text-sm font-semibold text-tinta">
+                                <AppIcon name="lock" className="mt-0.5 shrink-0" />
+                                <span>{selectability.reason}</span>
+                              </span>
+                            ) : null}
+                            {neg ? (
+                              <span className="col-span-2 mt-1 text-sm font-semibold text-tinta">{neg}</span>
+                            ) : null}
+                          </span>
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </section>
+            )
+          })}
+        </div>
+
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-linea-punteada bg-crema px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3">
+          <div className="mx-auto max-w-[var(--ancho-columna)] space-y-2">
+            <div className="flex items-baseline justify-between gap-2" aria-live="polite">
+              <p className="font-display text-lg font-semibold text-tinta">
+                {selectedCount === 1 ? '1 elegido' : `${selectedCount} elegidos`}
+              </p>
+              <p className="text-sm font-semibold text-gris">
+                de {selectableCount} que se pueden eliminar
+              </p>
+            </div>
+            {selectedCount === 0 ? (
+              <p id={emptyHintId} className="text-sm font-semibold text-gris">
+                Tocá los movimientos que quieras eliminar.
+              </p>
+            ) : null}
+            {deleteBlockedByNeg ? (
+              <p id={negHintId} className="text-sm font-semibold text-tinta">
+                {negFooterMessage(negWarnings[0]!)}
+              </p>
+            ) : null}
+            <Button
+              type="button"
+              variant="danger"
+              tall
+              disabled={selectedCount === 0 || deleteBlockedByNeg || deleting}
+              aria-describedby={
+                selectedCount === 0 ? emptyHintId : deleteBlockedByNeg ? negHintId : undefined
+              }
+              onClick={() => {
+                setDeleteError(null)
+                setConfirmOpen(true)
+              }}
+            >
+              <AppIcon name="trash-can" className="mr-1" /> Eliminar {selectedCount || ''}
+            </Button>
+          </div>
+        </div>
+
+        <ConfirmSheet
+          open={confirmOpen}
+          title={
+            selectedCount === 1 ? '¿Eliminar 1 movimiento?' : `¿Eliminar ${selectedCount} movimientos?`
+          }
+          onClose={() => {
+            if (!deleting) setConfirmOpen(false)
+          }}
+          confirmLabel={
+            deleting
+              ? selectedCount === 1
+                ? 'Eliminando 1 movimiento…'
+                : `Eliminando ${selectedCount} movimientos…`
+              : deleteError
+                ? `Probar de nuevo: eliminar ${selectedCount}`
+                : `Eliminar ${selectedCount}`
+          }
+          onConfirm={() => void runDelete()}
+          disabled={deleting}
+          busy={deleting}
+          variant="danger"
+          error={deleteError}
+          describedById={undoNoteId}
+          note="No se puede deshacer."
+        >
+          {deleting ? (
+            <p className="mb-3 text-sm font-semibold text-tinta">Eliminando. No cierres la app hasta que termine.</p>
+          ) : null}
+          <ConfirmSummary rows={selectedRows} meId={meId} partnerName={partnerLabel} />
+        </ConfirmSheet>
+      </>
+    )
+  }
+
   return (
     <>
       <SectionHeader lead="crumb" aside={<NotificationBell />} />
       <MonthSwitcher />
       {settled ? (
-        <p className="mb-3 flex items-center gap-2 text-sm font-medium text-gris">
-          <AppIcon name="lock" /> {monthName(month)} está saldado. Para cambiar un gasto, deshacé el saldo en Resumen.
+        <p id={saldadoId} className="mb-3 flex items-center gap-2 text-sm font-medium text-gris">
+          <AppIcon name="lock" /> {monthName(month)} está saldado. Para eliminar varios, o cargar o cambiar un gasto
+          compartido, deshacé el saldo en Resumen.
         </p>
       ) : null}
 
@@ -234,15 +624,15 @@ export function MovementsScreen() {
               { id: 'ahorros', label: 'Ahorros' },
             ] as const
           ).map((option) => {
-            const selected = tipo === option.id
+            const selectedTipo = tipo === option.id
             return (
               <button
                 key={option.id}
                 type="button"
                 role="radio"
-                aria-checked={selected}
+                aria-checked={selectedTipo}
                 className={`inline-flex h-11 shrink-0 items-center gap-1 rounded-full border-[1.5px] px-3 text-sm ${
-                  selected
+                  selectedTipo
                     ? 'border-azul-ink bg-azul-claro font-bold text-tinta'
                     : 'border-azul-ink bg-tarjeta font-semibold text-tinta'
                 }`}
@@ -251,7 +641,7 @@ export function MovementsScreen() {
                   event.currentTarget.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' })
                 }}
               >
-                {selected ? <AppIcon name="check" /> : null}
+                {selectedTipo ? <AppIcon name="check" /> : null}
                 {option.label}
               </button>
             )
@@ -259,15 +649,58 @@ export function MovementsScreen() {
         </div>
       </div>
 
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <Chip active={activeCount > 0} onClick={() => setFiltersOpen(true)}>
-          <AppIcon name="sliders" /> Filtros
-          {activeCount > 0 ? (
-            <span className="ml-1 grid h-6 w-6 place-items-center rounded-full bg-tinta text-sm font-bold text-crema">{activeCount}</span>
+      {rows.length > 0 ? (
+        <div className="mb-3">
+          <div className="flex items-center justify-between gap-2">
+            <Chip active={activeCount > 0} onClick={() => setFiltersOpen(true)}>
+              <AppIcon name="sliders" /> Filtros
+              {activeCount > 0 ? (
+                <span className="ml-1 grid h-6 w-6 place-items-center rounded-full bg-tinta text-sm font-bold text-crema">
+                  {activeCount}
+                </span>
+              ) : null}
+            </Chip>
+            <button
+              type="button"
+              className={`inline-flex min-h-11 items-center gap-1 pl-2 text-sm font-bold ${
+                canSelect ? 'text-mostaza-ink' : 'text-gris'
+              }`}
+              aria-label="Seleccionar movimientos para eliminar"
+              aria-disabled={!canSelect || undefined}
+              aria-describedby={
+                selectDisabledReason === 'saldado'
+                  ? saldadoId
+                  : selectDisabledReason === 'nada'
+                    ? nadaId
+                    : undefined
+              }
+              onClick={() => {
+                if (!canSelect) return
+                setSelected(new Set())
+                setSelecting(true)
+              }}
+            >
+              <AppIcon name="square-check" /> Seleccionar
+            </button>
+          </div>
+          {selectDisabledReason === 'nada' ? (
+            <p id={nadaId} className="mt-1 text-sm font-semibold text-gris">
+              Nada de lo que se ve se puede eliminar.
+            </p>
           ) : null}
-        </Chip>
-        <p className="text-sm font-semibold text-gris">{rows.length} movimientos</p>
-      </div>
+        </div>
+      ) : (
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <Chip active={activeCount > 0} onClick={() => setFiltersOpen(true)}>
+            <AppIcon name="sliders" /> Filtros
+            {activeCount > 0 ? (
+              <span className="ml-1 grid h-6 w-6 place-items-center rounded-full bg-tinta text-sm font-bold text-crema">
+                {activeCount}
+              </span>
+            ) : null}
+          </Chip>
+        </div>
+      )}
 
       {activeCount > 0 ? (
         <p className="mb-3 text-sm font-medium text-gris">
@@ -280,6 +713,9 @@ export function MovementsScreen() {
 
       {rows.length > 0 && totals ? (
         <div className="mb-4 grid grid-cols-2 gap-3 rounded-2xl border-[1.5px] border-azul bg-tarjeta px-3 py-2" aria-live="polite">
+          <p className="col-span-2 text-sm font-semibold text-gris">
+            {rows.length === 1 ? '1 movimiento' : `${rows.length} movimientos`}
+          </p>
           {totals.map((total) => (
             <div key={total.label} className={totals.length === 1 ? 'col-span-2' : ''}>
               <p className="text-sm font-semibold text-gris">{total.label}</p>
@@ -336,6 +772,7 @@ export function MovementsScreen() {
                         if (row.expense) setEditingExpense(row.expense)
                         else if (row.transfer) setEditingTransfer(row.transfer)
                         else if (row.savingMove) setEditingSavingMove(row.savingMove)
+                        else if (row.extra) setEditingExtra(row.extra)
                       }}
                     >
                       <span
@@ -395,11 +832,17 @@ export function MovementsScreen() {
         </div>
       )}
 
-      <FabSpace avisos={Boolean(importToast)} />
+      <FabSpace avisos={Boolean(toastText)} />
       <Fab to="/cargar" label="Cargar un movimiento" state={{ from: location.pathname }} />
-      {importToast ? (
-        <Toast aboveFab onDone={() => setImportToast('')}>
-          {importToast}
+      {toastText ? (
+        <Toast
+          aboveFab
+          onDone={() => {
+            setImportToast('')
+            setDeleteToast('')
+          }}
+        >
+          {toastText}
         </Toast>
       ) : null}
 
@@ -421,21 +864,24 @@ export function MovementsScreen() {
         partnerName={partnerName}
       />
 
-      {editingExpense || editingTransfer || editingSavingMove ? (
+      {editingExpense || editingTransfer || editingSavingMove || editingExtra ? (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-crema">
           <MovementForm
             expense={editingExpense}
             transfer={editingTransfer}
             savingMove={editingSavingMove}
+            extra={editingExtra}
             onClose={() => {
               setEditingExpense(null)
               setEditingTransfer(null)
               setEditingSavingMove(null)
+              setEditingExtra(null)
             }}
             onDone={async () => {
               setEditingExpense(null)
               setEditingTransfer(null)
               setEditingSavingMove(null)
+              setEditingExtra(null)
               await refresh()
             }}
           />
@@ -443,6 +889,169 @@ export function MovementsScreen() {
       ) : null}
     </>
   )
+}
+
+function TriBox({ state, locked = false }: { state: 'none' | 'some' | 'all'; locked?: boolean }) {
+  const cls = locked
+    ? 'border-dashed border-gris-claro bg-fondo-desactivado text-gris'
+    : state === 'all' || state === 'some'
+      ? 'border-azul-ink bg-azul-claro text-tinta'
+      : 'border-azul-ink bg-tarjeta text-tinta'
+  return (
+    <span className={`grid h-6 w-6 place-items-center rounded-[6px] border-[1.5px] ${cls}`}>
+      {state === 'all' ? <AppIcon name="check" className="text-xs" /> : null}
+      {state === 'some' ? <AppIcon name="minus" className="text-xs" /> : null}
+    </span>
+  )
+}
+
+function triState(selected: number, selectable: number): 'none' | 'some' | 'all' {
+  if (selectable === 0 || selected === 0) return 'none'
+  if (selected >= selectable) return 'all'
+  return 'some'
+}
+
+function toSelectableRow(row: MovementRow): SelectableInputRow {
+  return {
+    id: row.id,
+    kind: row.isSalary ? 'sueldo' : row.kind,
+    title: row.title,
+    amount: row.amount,
+    spentOn: row.spentOn,
+    period: row.period,
+    isShared: row.isShared,
+    expense: row.expense,
+    extraId: row.extra?.id ?? null,
+    transfer: row.transfer,
+    savingMove: row.savingMove,
+    isSalary: row.isSalary,
+    mpOperationId: row.mpOperationId ?? row.expense?.mpOperationId ?? row.extra?.mpOperationId ?? null,
+  }
+}
+
+function negFooterMessage(warning: { savingName: string; retiroDay: string }): string {
+  return `Tu parte de ${warning.savingName} quedaría en negativo. Elegí también el retiro del ${warning.retiroDay} o destildá el aporte.`
+}
+
+function mapBulkDeleteError(raw: string, partnerName: string, monthLabel: string): string {
+  if (/saldado/i.test(raw)) return `${monthLabel} se saldó mientras elegías. No eliminé ninguno.`
+  if (/Solo quien la cargó|cargó/i.test(raw)) return `Una transferencia la cargó ${partnerName}. No eliminé ninguno.`
+  if (/negativo/i.test(raw)) return `Tu parte de un ahorro quedaría en negativo. No eliminé ninguno.`
+  if (/archivado/i.test(raw)) return 'El ahorro está archivado. No eliminé ninguno.'
+  if (/gasto fijo|Avisos/i.test(raw)) return 'Es el pago de un gasto fijo: se deshace en Avisos. No eliminé ninguno.'
+  return 'No pude eliminar los movimientos y no eliminé ninguno. Revisá la conexión y probá de nuevo.'
+}
+
+function ConfirmSummary({
+  rows,
+  meId,
+  partnerName,
+}: {
+  rows: MovementRow[]
+  meId: string
+  partnerName: string
+}) {
+  const gastos = rows.filter((row) => row.kind === 'gasto')
+  const ingresos = rows.filter((row) => row.kind === 'ingreso')
+  const transferencias = rows.filter((row) => row.kind === 'transferencia')
+  const aportes = rows.filter((row) => row.kind === 'aporte')
+  const retiros = rows.filter((row) => row.kind === 'retiro')
+  const sharedCount = gastos.filter((row) => row.isShared).length
+  const mpCount = rows.filter(
+    (row) =>
+      row.mpOperationId ||
+      row.expense?.mpOperationId ||
+      row.extra?.mpOperationId ||
+      row.transfer?.mpOperationId,
+  ).length
+  const lines: { label: string; value: string; tone: string }[] = []
+  if (gastos.length) {
+    lines.push({
+      label: gastos.length === 1 ? '1 gasto' : `${gastos.length} gastos`,
+      value: formatMoney(gastos.reduce((sum, row) => sum + row.amount, 0)),
+      tone: 'text-tinta',
+    })
+  }
+  if (ingresos.length) {
+    lines.push({
+      label: ingresos.length === 1 ? '1 ingreso' : `${ingresos.length} ingresos`,
+      value: `+${formatMoney(ingresos.reduce((sum, row) => sum + row.amount, 0))}`,
+      tone: 'text-mostaza-ink',
+    })
+  }
+  for (const row of transferencias) {
+    const sent = row.transfer?.fromId === meId
+    lines.push({
+      label: sent ? `1 transferencia a ${partnerName}` : `1 transferencia de ${partnerName}`,
+      value: formatSigned(sent ? -row.amount : row.amount),
+      tone: 'text-ciruela-ink',
+    })
+  }
+  for (const row of aportes) {
+    lines.push({
+      label: `1 aporte a ${savingNameFromRow(row)}`,
+      value: formatSigned(-row.amount),
+      tone: 'text-tinta',
+    })
+  }
+  for (const row of retiros) {
+    lines.push({
+      label: `1 retiro de ${savingNameFromRow(row)}`,
+      value: formatSigned(row.amount),
+      tone: 'text-tinta',
+    })
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="rounded-2xl border-[1.5px] border-azul bg-crema px-3 py-2.5">
+        {lines.map((line) => (
+          <div key={line.label} className="flex items-baseline justify-between gap-3 py-0.5">
+            <span className="text-sm font-semibold text-tinta">{line.label}</span>
+            <span className={`whitespace-nowrap font-display text-lg font-semibold ${line.tone}`}>{line.value}</span>
+          </div>
+        ))}
+      </div>
+      {sharedCount > 0 ? (
+        <p className="flex items-start gap-2 text-sm font-semibold text-tinta">
+          <AppIcon name="circle-info" className="mt-0.5 shrink-0" />
+          <span>
+            {sharedCount === 1
+              ? `1 gasto es compartido: ${partnerName} también deja de verlo.`
+              : `${sharedCount} gastos son compartidos: ${partnerName} también deja de verlos.`}
+          </span>
+        </p>
+      ) : null}
+      {transferencias.length > 0 ? (
+        <p className="flex items-start gap-2 text-sm font-semibold text-tinta">
+          <AppIcon name="circle-info" className="mt-0.5 shrink-0" />
+          <span>
+            {transferencias.length === 1
+              ? 'La transferencia se elimina para las dos.'
+              : 'Las transferencias se eliminan para las dos.'}
+          </span>
+        </p>
+      ) : null}
+      {mpCount > 0 ? (
+        <p className="flex items-start gap-2 text-sm font-semibold text-tinta">
+          <AppIcon name="circle-info" className="mt-0.5 shrink-0" />
+          <span>
+            {mpCount === 1
+              ? '1 vino del resumen de Mercado Pago: si lo volvés a subir, aparece para cargar otra vez.'
+              : `${mpCount} vinieron del resumen de Mercado Pago: si lo volvés a subir, aparecen para cargar otra vez.`}
+          </span>
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
+function savingNameFromRow(row: MovementRow): string {
+  const parts = row.subtitle.split(' · ')
+  if ((parts[0] === 'Aporte' || parts[0] === 'Retiro') && parts[1] && !parts[1].startsWith('Con ')) {
+    return parts[1]
+  }
+  return row.title || 'ahorro'
 }
 
 function showingLabel(input: {
@@ -516,6 +1125,7 @@ function buildRows(input: {
       fill: surface.background,
       border: surface.border,
       expense,
+      mpOperationId: expense.mpOperationId,
     })
   }
   for (const extra of data.extrasThisMonth) {
@@ -536,6 +1146,8 @@ function buildRows(input: {
       icon: 'sack-dollar',
       fill: 'var(--color-mostaza-claro)',
       border: 'var(--color-mostaza-ink)',
+      extra,
+      mpOperationId: extra.mpOperationId,
     })
   }
   const base = data.bases[meId] ?? 0
@@ -557,6 +1169,7 @@ function buildRows(input: {
         icon: 'sack-dollar',
         fill: 'var(--color-mostaza-claro)',
         border: 'var(--color-mostaza-ink)',
+        isSalary: true,
       })
     }
   }
@@ -584,6 +1197,7 @@ function buildRows(input: {
       fill: 'var(--color-ciruela-claro)',
       border: 'var(--color-ciruela-ink)',
       transfer,
+      mpOperationId: transfer.mpOperationId,
     })
   }
   for (const move of data.savingMoves) {

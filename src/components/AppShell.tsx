@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router'
 import { BottomNav } from '../components/BottomNav.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
@@ -6,19 +7,24 @@ import { ModulesProvider } from '../context/ModulesProvider.tsx'
 import { shareReturnPath } from '../lib/shareInbox.ts'
 import { supabaseConfigError } from '../lib/supabase.ts'
 
+export type AppChromeContext = {
+  setHideChrome: (hide: boolean) => void
+}
+
 export function AppShell() {
   const { pathname } = useLocation()
-  const hideNav = pathname === '/cargar'
+  const [hideChrome, setHideChrome] = useState(false)
+  const bare = pathname === '/cargar'
+  const hideNav = bare || hideChrome
+  const shellClass = bare
+    ? 'mx-auto min-h-dvh max-w-[var(--ancho-columna)] bg-bg'
+    : hideChrome
+      ? 'mx-auto min-h-dvh max-w-[var(--ancho-columna)] bg-bg px-4 pt-6 pb-[env(safe-area-inset-bottom)]'
+      : 'mx-auto min-h-dvh max-w-[var(--ancho-columna)] bg-bg px-4 pt-6 pb-[calc(89px+env(safe-area-inset-bottom))]'
   return (
     <div className="min-h-dvh bg-shell text-title">
-      <div
-        className={
-          hideNav
-            ? 'mx-auto min-h-dvh max-w-[var(--ancho-columna)] bg-bg'
-            : 'mx-auto min-h-dvh max-w-[var(--ancho-columna)] bg-bg px-4 pt-6 pb-[calc(89px+env(safe-area-inset-bottom))]'
-        }
-      >
-        <Outlet />
+      <div className={shellClass}>
+        <Outlet context={{ setHideChrome } satisfies AppChromeContext} />
       </div>
       {hideNav ? null : <BottomNav />}
     </div>

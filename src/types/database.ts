@@ -668,6 +668,16 @@ export type Database = {
         }
         Returns: { inserted: number; skipped: number }
       }
+      delete_movements: {
+        Args: {
+          p_month: string
+          expense_ids?: string[]
+          extra_ids?: string[]
+          transfer_ids?: string[]
+          saving_move_ids?: string[]
+        }
+        Returns: { deleted: number }
+      }
       household_split_percents: {
         Args: { target_month: string }
         Returns: { user_id: string; percent: number }[]
