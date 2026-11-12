@@ -4,6 +4,28 @@ import { creditoMpDueDay } from './mpStatement.ts'
 
 export { settledSharedHelp as settledMonthHelp }
 
+/** Mismas sugeridas que Cargar (`MovementForm.tsx`). */
+export const SUGGESTED_CATEGORY_NAMES = ['Súper', 'Comida', 'Hogar', 'Luz', 'Salidas', 'Farmacia']
+
+type CategoryChip = { id: string; name: string; icon: string }
+
+/** Lista de chips: sugeridas (+ elegida si falta) o todas, como en Cargar. */
+export function categoryChipsForEdit<T extends CategoryChip>(
+  categories: readonly T[],
+  selectedId: string,
+  showAll: boolean,
+): T[] {
+  if (showAll) return [...categories]
+  const byName = new Map(categories.map((category) => [category.name.toLowerCase(), category]))
+  const suggested = SUGGESTED_CATEGORY_NAMES.map((name) => byName.get(name.toLowerCase())).filter(
+    Boolean,
+  ) as T[]
+  const base = suggested.slice(0, 6)
+  const selected = categories.find((category) => category.id === selectedId)
+  if (selected && !base.some((category) => category.id === selected.id)) return [...base, selected]
+  return base
+}
+
 export type MpReviewRow = MpClassifiedRow & {
   /** Id estable en la lista (operationId + índice si hay duplicados de par). */
   id: string

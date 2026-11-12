@@ -23,6 +23,7 @@ import { partnerId } from '../lib/derive.ts'
 import { foldMerchant } from '../lib/mpStatement.ts'
 import {
   buildReviewRows,
+  categoryChipsForEdit,
   creditoOfferText,
   dayHeaderLabel,
   groupRowsByDay,
@@ -32,6 +33,7 @@ import {
   rowIsDimmed,
   rowIsToggleable,
   rowSubtitle,
+  SUGGESTED_CATEGORY_NAMES,
   summaryCountsLine,
   type MpReviewRow,
 } from '../lib/mpImportReview.ts'
@@ -877,7 +879,12 @@ function EditBody({
   onChange: (next: EditDraft) => void
 }) {
   const isExpense = row.kind === 'expense' && !row.creditoMp
-  const suggested = categories.slice(0, 8)
+  const [showAllCategories, setShowAllCategories] = useState(false)
+  const suggested = useMemo(() => {
+    const byName = new Map(categories.map((category) => [category.name.toLowerCase(), category]))
+    return SUGGESTED_CATEGORY_NAMES.map((name) => byName.get(name.toLowerCase())).filter(Boolean) as Category[]
+  }, [categories])
+  const categoryList = categoryChipsForEdit(categories, draft.categoryId, showAllCategories)
   return (
     <div className="space-y-4">
       <div className="rounded-2xl border-[1.5px] border-azul bg-crema p-3">
@@ -932,9 +939,9 @@ function EditBody({
       {isExpense ? (
         <>
           <div>
-            <p className="mb-1 text-sm font-semibold text-gris">Categoría</p>
+            <p className="mb-1 text-sm font-semibold text-gris">Categoría (opcional)</p>
             <div className="flex flex-wrap gap-2">
-              {suggested.map((category) => (
+              {categoryList.map((category) => (
                 <Chip
                   key={category.id}
                   active={draft.categoryId === category.id}
@@ -948,6 +955,9 @@ function EditBody({
                   <AppIcon name={category.icon} /> {category.name}
                 </Chip>
               ))}
+              {!showAllCategories && categories.length > suggested.length ? (
+                <Chip onClick={() => setShowAllCategories(true)}>Ver todas ({categories.length})</Chip>
+              ) : null}
             </div>
           </div>
           <div>
