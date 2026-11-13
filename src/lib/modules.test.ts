@@ -7,6 +7,7 @@ const memo = (patch: Partial<MemoItem> & Pick<MemoItem, 'id' | 'ownerId'>): Memo
   done: false,
   shared: false,
   updatedAt: '2026-10-27T15:00:00.000Z',
+  labelIds: [],
   ...patch,
 })
 

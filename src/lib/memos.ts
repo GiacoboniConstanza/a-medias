@@ -1,3 +1,31 @@
+export type MemoLabelColor = 'menta' | 'agua' | 'durazno' | 'lila' | 'avellana'
+
+export const MEMO_LABEL_COLORS: readonly MemoLabelColor[] = [
+  'menta',
+  'agua',
+  'durazno',
+  'lila',
+  'avellana',
+] as const
+
+export const MEMO_LABEL_COLOR_NAMES: Record<MemoLabelColor, string> = {
+  menta: 'Menta',
+  agua: 'Agua',
+  durazno: 'Durazno',
+  lila: 'Lila',
+  avellana: 'Avellana',
+}
+
+export const MEMO_LABEL_MAX = 3
+export const MEMO_LABEL_NAME_MAX = 24
+
+export type MemoLabel = {
+  id: string
+  name: string
+  color: MemoLabelColor
+  count: number
+}
+
 export type MemoItem = {
   id: string
   ownerId: string
@@ -8,6 +36,8 @@ export type MemoItem = {
   createdAt?: string
   /** Cuándo se tachó. undefined = no vino de la base (p. ej. Hub sin migrar el select). */
   doneAt?: string | null
+  /** Etiquetas del memo. undefined = pantallas que aún no cargan uniones (p. ej. Hub). */
+  labelIds?: string[]
 }
 
 export function partnerPendingMemos(memos: readonly MemoItem[], meId: string): MemoItem[] {
@@ -18,10 +48,15 @@ function pendingFirst(memos: readonly MemoItem[]): MemoItem[] {
   return memos.filter((memo) => !memo.done).concat(memos.filter((memo) => memo.done))
 }
 
-export function groupMemos(memos: readonly MemoItem[], meId: string): { shared: MemoItem[]; solo: MemoItem[] } {
+export function groupMemos(
+  memos: readonly MemoItem[],
+  meId: string,
+  labelId?: string | null,
+): { shared: MemoItem[]; solo: MemoItem[] } {
+  const filtered = labelId ? memos.filter((memo) => (memo.labelIds ?? []).includes(labelId)) : memos
   return {
-    shared: pendingFirst(memos.filter((memo) => memo.shared)),
-    solo: pendingFirst(memos.filter((memo) => !memo.shared && memo.ownerId === meId)),
+    shared: pendingFirst(filtered.filter((memo) => memo.shared)),
+    solo: pendingFirst(filtered.filter((memo) => !memo.shared && memo.ownerId === meId)),
   }
 }
 
@@ -117,4 +152,123 @@ export function memoUndoError(): string {
 export function memoToggleError(message?: string): string {
   if (isMemoGoneMessage(message)) return 'Ese memo ya no está o cambió. Actualicé la lista.'
   return 'No pude actualizar el memo. Revisá la conexión y probá de nuevo.'
+}
+
+export function isMemoLabelColor(value: string): value is MemoLabelColor {
+  return (MEMO_LABEL_COLORS as readonly string[]).includes(value)
+}
+
+export function defaultMemoLabelColor(used: readonly MemoLabelColor[]): MemoLabelColor {
+  return MEMO_LABEL_COLORS.find((color) => !used.includes(color)) ?? 'menta'
+}
+
+export function withLabelCounts(
+  labels: readonly { id: string; name: string; color: MemoLabelColor }[],
+  memos: readonly MemoItem[],
+): MemoLabel[] {
+  return labels.map((label) => ({
+    ...label,
+    count: memos.filter((memo) => (memo.labelIds ?? []).includes(label.id)).length,
+  }))
+}
+
+export function labelCountText(count: number): string {
+  if (count <= 0) return 'Sin memos'
+  if (count === 1) return '1 memo'
+  return `${count} memos`
+}
+
+export function labelFilterLive(count: number, name: string): string {
+  if (count <= 0) return `No hay memos con «${name}».`
+  if (count === 1) return `1 memo con «${name}»`
+  return `${count} memos con «${name}»`
+}
+
+export function deleteLabelBody(count: number, partnerName: string): string {
+  if (count <= 0) {
+    return `No la ves en ningún memo. Se saca de todos los que la tienen, también de los de ${partnerName}.`
+  }
+  if (count === 1) {
+    return `La ves en 1 memo. Se saca de todos los que la tienen, también de los de ${partnerName}; los memos quedan.`
+  }
+  return `La ves en ${count} memos. Se saca de todos los que la tienen, también de los de ${partnerName}; los memos quedan.`
+}
+
+export function memoLabelAttachError(name: string): string {
+  return `No pude poner «${name}». Revisá la conexión y probá de nuevo.`
+}
+
+export function memoLabelDetachError(name: string): string {
+  return `No pude sacar «${name}». Revisá la conexión y probá de nuevo.`
+}
+
+export function memoLabelCreateError(message?: string): string {
+  if (message?.includes('Ya hay una etiqueta')) {
+    const match = message.match(/Ya hay una etiqueta «([^»]+)»/)
+    if (match?.[1]) return `Ya hay una etiqueta «${match[1]}».`
+  }
+  return 'No pude crear la etiqueta. Revisá la conexión y probá de nuevo.'
+}
+
+export function memoLabelRenameError(message?: string): string {
+  if (message?.includes('Ya hay una etiqueta')) {
+    const match = message.match(/Ya hay una etiqueta «([^»]+)»/)
+    if (match?.[1]) return `Ya hay una etiqueta «${match[1]}».`
+  }
+  return 'No pude cambiar el nombre. Revisá la conexión y probá de nuevo.'
+}
+
+export function memoLabelDeleteError(): string {
+  return 'No pude eliminar la etiqueta. Revisá la conexión y probá de nuevo.'
+}
+
+export function duplicateLabelNameError(name: string): string {
+  return `Ya hay una etiqueta «${name}».`
+}
+
+export function canToggleMemoLabel(selectedIds: readonly string[], labelId: string): boolean {
+  if (selectedIds.includes(labelId)) return true
+  return selectedIds.length < MEMO_LABEL_MAX
+}
+
+const LABEL_CHIP: Record<MemoLabelColor, { bg: string; ink: string; border: string; outline: string }> = {
+  menta: {
+    bg: 'bg-cat-menta',
+    ink: 'text-cat-menta-ink',
+    border: 'border-cat-menta-ink',
+    outline: 'outline-cat-menta-ink',
+  },
+  agua: {
+    bg: 'bg-cat-agua',
+    ink: 'text-cat-agua-ink',
+    border: 'border-cat-agua-ink',
+    outline: 'outline-cat-agua-ink',
+  },
+  durazno: {
+    bg: 'bg-cat-durazno',
+    ink: 'text-cat-durazno-ink',
+    border: 'border-cat-durazno-ink',
+    outline: 'outline-cat-durazno-ink',
+  },
+  lila: {
+    bg: 'bg-cat-lila',
+    ink: 'text-cat-lila-ink',
+    border: 'border-cat-lila-ink',
+    outline: 'outline-cat-lila-ink',
+  },
+  avellana: {
+    bg: 'bg-cat-avellana',
+    ink: 'text-cat-avellana-ink',
+    border: 'border-cat-avellana-ink',
+    outline: 'outline-cat-avellana-ink',
+  },
+}
+
+export function labelChipClasses(color: MemoLabelColor): {
+  bg: string
+  ink: string
+  border: string
+  outline: string
+} {
+  return LABEL_CHIP[color]
 }
