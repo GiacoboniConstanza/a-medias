@@ -34,6 +34,23 @@ const MealsScreen = lazy(() =>
 const MealAddScreen = lazy(() =>
   import('./screens/MealAddScreen.tsx').then((module) => ({ default: module.MealAddScreen })),
 )
+const MedicationsScreen = lazy(() =>
+  import('./screens/MedicationsScreen.tsx').then((module) => ({ default: module.MedicationsScreen })),
+)
+const MedicationFormScreen = lazy(() =>
+  import('./screens/MedicationFormScreen.tsx').then((module) => ({ default: module.MedicationFormScreen })),
+)
+const MedicationTreatmentsScreen = lazy(() =>
+  import('./screens/MedicationTreatmentsScreen.tsx').then((module) => ({
+    default: module.MedicationTreatmentsScreen,
+  })),
+)
+const MedicationDayScreen = lazy(() =>
+  import('./screens/MedicationDayScreen.tsx').then((module) => ({ default: module.MedicationDayScreen })),
+)
+const NotificationsScreen = lazy(() =>
+  import('./screens/NotificationsScreen.tsx').then((module) => ({ default: module.NotificationsScreen })),
+)
 const ModulesScreen = lazy(() =>
   import('./screens/ModulesScreen.tsx').then((module) => ({ default: module.ModulesScreen })),
 )
@@ -105,6 +122,12 @@ export function App() {
                 <Route path="habitos" element={<HabitsScreen />} />
                 <Route path="comidas" element={<MealsScreen />} />
                 <Route path="comidas/agregar" element={<MealAddScreen />} />
+                <Route path="medicamentos" element={<MedicationsScreen />} />
+                <Route path="medicamentos/agregar" element={<MedicationFormScreen />} />
+                <Route path="medicamentos/tratamientos" element={<MedicationTreatmentsScreen />} />
+                <Route path="medicamentos/dia/:fecha" element={<MedicationDayScreen />} />
+                <Route path="medicamentos/:id" element={<MedicationFormScreen />} />
+                <Route path="notificaciones" element={<NotificationsScreen />} />
                 <Route path="cargar" element={<ExpenseScreen />} />
                 <Route path="compartir" element={<ShareScreen />} />
                 <Route path="movimientos/resumen" element={<StatementImportScreen />} />

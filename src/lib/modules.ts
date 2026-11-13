@@ -2,7 +2,7 @@ import type { AppModule } from '../types/database.ts'
 
 export type ModuleId = AppModule
 
-export const MODULES: readonly ModuleId[] = ['finanzas', 'habitos', 'comidas', 'memos']
+export const MODULES: readonly ModuleId[] = ['finanzas', 'habitos', 'comidas', 'memos', 'medicamentos']
 
 export const COMING_SOON: readonly ModuleId[] = []
 
@@ -18,6 +18,14 @@ export const MODULE_META: Record<ModuleId, { label: string; detail: string; icon
   habitos: { label: 'Hábitos', detail: 'Lo que querés hacer cada día', icon: 'seedling', to: '/habitos', tone: 'bg-salvia', ink: 'text-tinta' },
   comidas: { label: 'Comidas', detail: 'Proteína y lo que comés', icon: 'bowl-food', to: '/comidas', tone: 'bg-rosa', ink: 'text-tinta' },
   memos: { label: 'Memos', detail: 'Notas y cosas para acordarte', icon: 'note-sticky', to: '/memos', tone: 'bg-azul', ink: 'text-tinta' },
+  medicamentos: {
+    label: 'Medicamentos',
+    detail: 'Tus tomas y sus avisos',
+    icon: 'pills',
+    to: '/medicamentos',
+    tone: 'bg-ciruela',
+    ink: 'text-tinta',
+  },
 }
 
 export const FINANCE_ROUTES = {
@@ -60,9 +68,9 @@ export function isHubHome(enabled: readonly ModuleId[]): boolean {
   return enabled.some((id) => id !== 'finanzas')
 }
 
-/** Menú general: Inicio y los módulos activos, en el orden fijo. */
+/** Menú general: Inicio y los módulos activos, en el orden fijo. Medicamentos no entra a la barra (M3). */
 export function navForModules(enabled: readonly ModuleId[]): NavItem[] {
-  const active = MODULES.filter((id) => enabled.includes(id))
+  const active = MODULES.filter((id) => enabled.includes(id) && id !== 'medicamentos')
   const ids = active.length > 0 ? active : (['finanzas'] as const)
   return [
     { to: '/', label: 'Inicio', icon: 'house', end: true },
@@ -99,6 +107,10 @@ export function navFor(pathname: string, enabled: readonly ModuleId[], from?: st
   if (!onFinance) {
     if (pathname.startsWith('/comidas')) {
       return { items: general, activeTo: '/comidas' }
+    }
+    // Medicamentos no tiene lugar en la barra (M3): menú general sin ítem marcado.
+    if (pathname.startsWith('/medicamentos') || pathname === '/notificaciones') {
+      return { items: general, activeTo: pathname === '/notificaciones' ? '/' : '' }
     }
     const active = general.find((item) => item.to === pathname)?.to ?? '/'
     return { items: general, activeTo: active }

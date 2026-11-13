@@ -1,4 +1,4 @@
-export type AppModule = 'finanzas' | 'habitos' | 'comidas' | 'memos'
+export type AppModule = 'finanzas' | 'habitos' | 'comidas' | 'memos' | 'medicamentos'
 
 type Table<Row, Insert, Update> = {
   Row: Row
@@ -515,9 +515,7 @@ export type Database = {
           user_id: string
           name: string
           dose_notes: string | null
-          starts_on: string
-          ends_on: string | null
-          active: boolean
+          archived_at: string | null
           created_at: string
           updated_at: string
         },
@@ -526,20 +524,39 @@ export type Database = {
           user_id: string
           name: string
           dose_notes?: string | null
-          starts_on: string
-          ends_on?: string | null
-          active?: boolean
+          archived_at?: string | null
           created_at?: string
           updated_at?: string
         },
         {
           name?: string
           dose_notes?: string | null
-          starts_on?: string
-          ends_on?: string | null
-          active?: boolean
+          archived_at?: string | null
           updated_at?: string
         }
+      >
+      medication_periods: Table<
+        {
+          id: string
+          medication_id: string
+          user_id: string
+          starts_on: string
+          ends_on: string | null
+          started_at: string
+          ended_at: string | null
+          created_at: string
+        },
+        {
+          id?: string
+          medication_id: string
+          user_id: string
+          starts_on: string
+          ends_on?: string | null
+          started_at?: string
+          ended_at?: string | null
+          created_at?: string
+        },
+        { starts_on?: string; ends_on?: string | null; started_at?: string; ended_at?: string | null }
       >
       medication_schedules: Table<
         {
@@ -567,6 +584,8 @@ export type Database = {
           scheduled_time: string
           status: 'taken' | 'skipped'
           recorded_at: string
+          name_snapshot: string
+          dose_snapshot: string | null
         },
         {
           id?: string
@@ -576,8 +595,25 @@ export type Database = {
           scheduled_time: string
           status: 'taken' | 'skipped'
           recorded_at?: string
+          name_snapshot: string
+          dose_snapshot?: string | null
         },
-        { status?: 'taken' | 'skipped'; recorded_at?: string }
+        {
+          status?: 'taken' | 'skipped'
+          recorded_at?: string
+          name_snapshot?: string
+          dose_snapshot?: string | null
+        }
+      >
+      module_notification_prefs: Table<
+        { user_id: string; module: string; enabled: boolean; updated_at: string },
+        { user_id: string; module: string; enabled?: boolean; updated_at?: string },
+        { enabled?: boolean; updated_at?: string }
+      >
+      medication_push_sends: Table<
+        { user_id: string; dose_on: string; scheduled_time: string; sent_at: string },
+        { user_id: string; dose_on: string; scheduled_time: string; sent_at?: string },
+        { sent_at?: string }
       >
       user_modules: Table<
         { user_id: string; module: AppModule; enabled: boolean; updated_at: string },

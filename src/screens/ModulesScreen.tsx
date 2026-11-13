@@ -63,6 +63,22 @@ export function ModulesScreen() {
           )
         })}
       </ul>
+      <section className="mt-4">
+        <h2 className="mb-2 px-1 text-sm font-semibold text-muted">De toda la app</h2>
+        <Link
+          to="/notificaciones"
+          className="mb-2.5 flex min-h-16 items-center gap-3 rounded-[20px] bg-card px-3.5 py-3 shadow-soft"
+        >
+          <span className="grid h-11 w-11 place-items-center rounded-full bg-azul text-tinta">
+            <AppIcon name="bell" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-[15px] font-semibold">Notificaciones</span>
+            <span className="block text-sm font-semibold text-muted">Avisos en este celu</span>
+          </span>
+          <AppIcon name="chevron-right" className="text-muted" />
+        </Link>
+      </section>
       {error ? <p className="mb-3 text-center text-sm font-bold text-tinta">{error}</p> : null}
       <p className="mt-3 flex gap-2 px-1.5 text-sm font-semibold leading-snug text-muted">
         <AppIcon name="circle-info" className="mt-0.5 shrink-0 text-mostaza-ink" />

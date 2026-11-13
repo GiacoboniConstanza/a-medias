@@ -13,9 +13,24 @@ import { formatMoney } from '../lib/format.ts'
 import { todayCounterLabel, todayProgress, type Habit, type HabitCheck } from '../lib/habits.ts'
 import { argentinaISO, asNumber, dayTotals, proteinLabel, proteinPercent, type MacroInput } from '../lib/meals.ts'
 import { checkedThisWeek, memoCounts, pendingLabel, type MemoItem } from '../lib/memos.ts'
+import {
+  dosesForDay,
+  hubSecondaryLine,
+  summarizeDay,
+  type Medication,
+  type MedicationDose,
+  type MedicationPeriod,
+  type MedicationSchedule,
+} from '../lib/medications.ts'
 import { hubDayLabel, MODULE_META, type ModuleId } from '../lib/modules.ts'
 import { monthName, todayISO } from '../lib/month.ts'
 import { supabase } from '../lib/supabase.ts'
+import {
+  loadMedicationDosesForDay,
+  loadMedicationPeriods,
+  loadMedications,
+  loadMedicationSchedules,
+} from '../lib/api.ts'
 
 export function HubScreen() {
   const { profile } = useAuth()
@@ -31,6 +46,9 @@ export function HubScreen() {
   const [foodGoal, setFoodGoal] = useState<number | null>(null)
   const [foodReady, setFoodReady] = useState(false)
   const [foodError, setFoodError] = useState('')
+  const [medReady, setMedReady] = useState(false)
+  const [medError, setMedError] = useState('')
+  const [medSummary, setMedSummary] = useState({ title: '…', detail: '' })
 
   useEffect(() => {
     if (!profile || !enabled.includes('memos')) {
@@ -142,6 +160,53 @@ export function HubScreen() {
     }
   }, [profile, enabled])
 
+  useEffect(() => {
+    if (!profile || !enabled.includes('medicamentos')) {
+      setMedReady(true)
+      setMedSummary({ title: 'Nada para hoy', detail: '' })
+      setMedError('')
+      return
+    }
+    let active = true
+    setMedReady(false)
+    const day = argentinaISO()
+    Promise.all([
+      loadMedications(profile.id),
+      loadMedicationPeriods(profile.id),
+      loadMedicationSchedules(profile.id),
+      loadMedicationDosesForDay(profile.id, day),
+    ])
+      .then(([medications, periods, schedules, doses]) => {
+        if (!active) return
+        const slots = dosesForDay(
+          medications as Medication[],
+          periods as MedicationPeriod[],
+          schedules as MedicationSchedule[],
+          doses as MedicationDose[],
+          day,
+        )
+        const summary = summarizeDay(slots, new Date(), day)
+        const title =
+          summary.total === 0
+            ? 'Nada para hoy'
+            : summary.taken === summary.total
+              ? `Las ${summary.total} tomas de hoy, listas.`
+              : `${summary.taken} de ${summary.total} tomas hoy`
+        setMedSummary({ title, detail: hubSecondaryLine(slots, summary) })
+        setMedError('')
+        setMedReady(true)
+      })
+      .catch((caught: unknown) => {
+        if (!active) return
+        setMedError(caught instanceof Error ? caught.message : 'No pude cargar')
+        setMedSummary({ title: 'No pude cargar', detail: '' })
+        setMedReady(true)
+      })
+    return () => {
+      active = false
+    }
+  }, [profile, enabled])
+
   if (!profile) return null
 
   const counts = memoCounts(memos)
@@ -202,8 +267,10 @@ export function HubScreen() {
         </div>
       </section>
       <OrnamentDivider />
-      {error || memoError || habitError || foodError ? (
-        <p className="mb-3 text-center text-sm font-bold text-tinta">{error || memoError || habitError || foodError}</p>
+      {error || memoError || habitError || foodError || medError ? (
+        <p className="mb-3 text-center text-sm font-bold text-tinta">
+          {error || memoError || habitError || foodError || medError}
+        </p>
       ) : null}
       {enabled.map((module) => (
         <ModuleCard
@@ -220,6 +287,9 @@ export function HubScreen() {
           foodReady={foodReady}
           foodProtein={foodTotals.protein}
           foodGoal={foodGoal}
+          medReady={medReady}
+          medTitle={medSummary.title}
+          medDetail={medSummary.detail}
         />
       ))}
     </>
@@ -239,6 +309,9 @@ function ModuleCard({
   foodReady,
   foodProtein,
   foodGoal,
+  medReady,
+  medTitle,
+  medDetail,
 }: {
   module: ModuleId
   spent: number
@@ -252,6 +325,9 @@ function ModuleCard({
   foodReady: boolean
   foodProtein: number
   foodGoal: number | null
+  medReady: boolean
+  medTitle: string
+  medDetail: string
 }) {
   const meta = MODULE_META[module]
   return (
@@ -309,6 +385,16 @@ function ModuleCard({
             <span className="block font-display text-xl font-semibold leading-tight">…</span>
           )
         ) : null}
+        {module === 'medicamentos' ? (
+          medReady ? (
+            <>
+              <span className="block font-display text-xl font-semibold leading-tight">{medTitle}</span>
+              {medDetail ? <span className="mt-0.5 block text-sm font-bold text-muted">{medDetail}</span> : null}
+            </>
+          ) : (
+            <span className="block font-display text-xl font-semibold leading-tight">…</span>
+          )
+        ) : null}
       </span>
       <AppIcon name="chevron-right" className="text-muted" />
     </Link>
@@ -320,6 +406,7 @@ const MODULE_BORDER: Record<ModuleId, string> = {
   habitos: 'border-salvia-ink',
   comidas: 'border-rosa-hondo',
   memos: 'border-azul-ink',
+  medicamentos: 'border-ciruela-ink',
 }
 
 function hubPlantCopy({
