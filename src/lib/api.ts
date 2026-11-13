@@ -1610,3 +1610,170 @@ export async function deleteSavedFoodByName(ownerId: string, name: string): Prom
   const { error } = await supabase.from('saved_foods').delete().eq('owner_id', ownerId).ilike('name', name)
   fail(error)
 }
+
+export type MedicationRow = {
+  id: string
+  name: string
+  doseNotes: string | null
+  startsOn: string
+  endsOn: string | null
+  active: boolean
+}
+
+export type MedicationScheduleRow = {
+  id: string
+  medicationId: string
+  localTime: string
+}
+
+export type MedicationDoseRow = {
+  id: string
+  medicationId: string
+  doseOn: string
+  scheduledTime: string
+  status: 'taken' | 'skipped'
+  recordedAt: string
+}
+
+const MEDICATION_SELECT = 'id, name, dose_notes, starts_on, ends_on, active'
+const MEDICATION_SCHEDULE_SELECT = 'id, medication_id, local_time'
+const MEDICATION_DOSE_SELECT = 'id, medication_id, dose_on, scheduled_time, status, recorded_at'
+
+function medicationFromDb(row: {
+  id: string
+  name: string
+  dose_notes: string | null
+  starts_on: string
+  ends_on: string | null
+  active: boolean
+}): MedicationRow {
+  return {
+    id: row.id,
+    name: row.name,
+    doseNotes: row.dose_notes,
+    startsOn: row.starts_on,
+    endsOn: row.ends_on,
+    active: row.active,
+  }
+}
+
+function medicationScheduleFromDb(row: {
+  id: string
+  medication_id: string
+  local_time: string
+}): MedicationScheduleRow {
+  return {
+    id: row.id,
+    medicationId: row.medication_id,
+    localTime: row.local_time,
+  }
+}
+
+function medicationDoseFromDb(row: {
+  id: string
+  medication_id: string
+  dose_on: string
+  scheduled_time: string
+  status: 'taken' | 'skipped'
+  recorded_at: string
+}): MedicationDoseRow {
+  return {
+    id: row.id,
+    medicationId: row.medication_id,
+    doseOn: row.dose_on,
+    scheduledTime: row.scheduled_time,
+    status: row.status,
+    recordedAt: row.recorded_at,
+  }
+}
+
+export async function loadMedications(userId: string): Promise<MedicationRow[]> {
+  const { data, error } = await supabase
+    .from('medications')
+    .select(MEDICATION_SELECT)
+    .eq('user_id', userId)
+    .order('name')
+  fail(error)
+  return (data ?? []).map(medicationFromDb)
+}
+
+export async function loadMedicationSchedules(userId: string): Promise<MedicationScheduleRow[]> {
+  const { data, error } = await supabase
+    .from('medication_schedules')
+    .select(MEDICATION_SCHEDULE_SELECT)
+    .eq('user_id', userId)
+    .order('local_time')
+  fail(error)
+  return (data ?? []).map(medicationScheduleFromDb)
+}
+
+export async function loadMedicationDosesForDay(userId: string, day: string): Promise<MedicationDoseRow[]> {
+  const { data, error } = await supabase
+    .from('medication_doses')
+    .select(MEDICATION_DOSE_SELECT)
+    .eq('user_id', userId)
+    .eq('dose_on', day)
+  fail(error)
+  return (data ?? []).map(medicationDoseFromDb)
+}
+
+export async function createMedication(input: {
+  userId: string
+  name: string
+  doseNotes?: string | null
+  startsOn: string
+  endsOn?: string | null
+  times: string[]
+}): Promise<MedicationRow> {
+  const { data, error } = await supabase
+    .from('medications')
+    .insert({
+      user_id: input.userId,
+      name: input.name,
+      dose_notes: input.doseNotes ?? null,
+      starts_on: input.startsOn,
+      ends_on: input.endsOn ?? null,
+    })
+    .select(MEDICATION_SELECT)
+    .single()
+  fail(error)
+
+  if (input.times.length > 0) {
+    const { error: scheduleError } = await supabase.from('medication_schedules').insert(
+      input.times.map((localTime) => ({
+        medication_id: data.id,
+        user_id: input.userId,
+        local_time: localTime,
+      })),
+    )
+    fail(scheduleError)
+  }
+
+  return medicationFromDb(data)
+}
+
+export async function setMedicationDose(input: {
+  userId: string
+  medicationId: string
+  doseOn: string
+  scheduledTime: string
+  status: 'taken' | 'skipped'
+}): Promise<MedicationDoseRow> {
+  const { data, error } = await supabase
+    .from('medication_doses')
+    .upsert(
+      {
+        user_id: input.userId,
+        medication_id: input.medicationId,
+        dose_on: input.doseOn,
+        scheduled_time: input.scheduledTime,
+        status: input.status,
+        recorded_at: new Date().toISOString(),
+      },
+      { onConflict: 'medication_id,dose_on,scheduled_time' },
+    )
+    .select(MEDICATION_DOSE_SELECT)
+    .single()
+  fail(error)
+  return medicationDoseFromDb(data)
+}

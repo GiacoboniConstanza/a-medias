@@ -1,4 +1,4 @@
-/* Escucha push del PWA. No envía nada: solo muestra lo que llegue si algún día hay un emisor. */
+/* Escucha push del PWA: muestra la notificación y al tocar abre la ruta del payload. */
 self.addEventListener('push', (event) => {
   const fallback = {
     title: 'A Medias',
@@ -28,6 +28,9 @@ self.addEventListener('notificationclick', (event) => {
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
       for (const client of windows) {
         if ('focus' in client) {
+          if ('navigate' in client) {
+            return client.navigate(target).then((navigated) => (navigated && 'focus' in navigated ? navigated.focus() : client.focus()))
+          }
           return client.focus()
         }
       }

@@ -429,7 +429,9 @@ export type Database = {
           auth_key: string
           daily_enabled: boolean
           dues_enabled: boolean
+          user_agent: string | null
           created_at: string
+          updated_at: string
         },
         {
           id?: string
@@ -439,9 +441,143 @@ export type Database = {
           auth_key: string
           daily_enabled?: boolean
           dues_enabled?: boolean
+          user_agent?: string | null
+          created_at?: string
+          updated_at?: string
+        },
+        {
+          daily_enabled?: boolean
+          dues_enabled?: boolean
+          p256dh?: string
+          auth_key?: string
+          user_agent?: string | null
+          updated_at?: string
+        }
+      >
+      scheduled_reminders: Table<
+        {
+          id: string
+          user_id: string
+          module: string
+          title: string
+          body: string | null
+          local_time: string | null
+          fire_at: string | null
+          timezone: string
+          days_of_week: number[] | null
+          starts_on: string | null
+          ends_on: string | null
+          active: boolean
+          ref_table: string | null
+          ref_id: string | null
+          last_sent_at: string | null
+          created_at: string
+          updated_at: string
+        },
+        {
+          id?: string
+          user_id: string
+          module: string
+          title: string
+          body?: string | null
+          local_time?: string | null
+          fire_at?: string | null
+          timezone?: string
+          days_of_week?: number[] | null
+          starts_on?: string | null
+          ends_on?: string | null
+          active?: boolean
+          ref_table?: string | null
+          ref_id?: string | null
+          last_sent_at?: string | null
+          created_at?: string
+          updated_at?: string
+        },
+        {
+          title?: string
+          body?: string | null
+          local_time?: string | null
+          fire_at?: string | null
+          timezone?: string
+          days_of_week?: number[] | null
+          starts_on?: string | null
+          ends_on?: string | null
+          active?: boolean
+          ref_table?: string | null
+          ref_id?: string | null
+          last_sent_at?: string | null
+          updated_at?: string
+        }
+      >
+      medications: Table<
+        {
+          id: string
+          user_id: string
+          name: string
+          dose_notes: string | null
+          starts_on: string
+          ends_on: string | null
+          active: boolean
+          created_at: string
+          updated_at: string
+        },
+        {
+          id?: string
+          user_id: string
+          name: string
+          dose_notes?: string | null
+          starts_on: string
+          ends_on?: string | null
+          active?: boolean
+          created_at?: string
+          updated_at?: string
+        },
+        {
+          name?: string
+          dose_notes?: string | null
+          starts_on?: string
+          ends_on?: string | null
+          active?: boolean
+          updated_at?: string
+        }
+      >
+      medication_schedules: Table<
+        {
+          id: string
+          medication_id: string
+          user_id: string
+          local_time: string
+          created_at: string
+        },
+        {
+          id?: string
+          medication_id: string
+          user_id: string
+          local_time: string
           created_at?: string
         },
-        { daily_enabled?: boolean; dues_enabled?: boolean }
+        { local_time?: string }
+      >
+      medication_doses: Table<
+        {
+          id: string
+          medication_id: string
+          user_id: string
+          dose_on: string
+          scheduled_time: string
+          status: 'taken' | 'skipped'
+          recorded_at: string
+        },
+        {
+          id?: string
+          medication_id: string
+          user_id: string
+          dose_on: string
+          scheduled_time: string
+          status: 'taken' | 'skipped'
+          recorded_at?: string
+        },
+        { status?: 'taken' | 'skipped'; recorded_at?: string }
       >
       user_modules: Table<
         { user_id: string; module: AppModule; enabled: boolean; updated_at: string },
@@ -803,6 +939,14 @@ export type Database = {
       undo_shared_month: {
         Args: { p_settlement: string }
         Returns: undefined
+      }
+      reminders_due_at: {
+        Args: { p_at?: string }
+        Returns: Database['public']['Tables']['scheduled_reminders']['Row'][]
+      }
+      claim_due_reminders: {
+        Args: { p_at?: string }
+        Returns: Database['public']['Tables']['scheduled_reminders']['Row'][]
       }
     }
   }
