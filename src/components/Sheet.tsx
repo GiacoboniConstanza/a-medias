@@ -97,9 +97,11 @@ export function Sheet({
 
     function focusable() {
       if (!dialog) return []
-      return [...dialog.querySelectorAll<HTMLElement>('button, input, [href], [tabindex]:not([tabindex="-1"])')].filter(
-        (element) => !element.hasAttribute('disabled'),
-      )
+      return [
+        ...dialog.querySelectorAll<HTMLElement>(
+          'button, input, textarea, [href], [tabindex]:not([tabindex="-1"])',
+        ),
+      ].filter((element) => !element.hasAttribute('disabled'))
     }
 
     function onKey(event: KeyboardEvent) {

@@ -458,6 +458,7 @@ export type Database = {
           shared: boolean
           created_at: string
           updated_at: string
+          done_at: string | null
         },
         {
           id?: string
@@ -468,8 +469,9 @@ export type Database = {
           shared?: boolean
           created_at?: string
           updated_at?: string
+          done_at?: string | null
         },
-        { text?: string; done?: boolean; shared?: boolean; updated_at?: string }
+        { text?: string; done?: boolean; shared?: boolean; updated_at?: string; done_at?: string | null }
       >
       habits: Table<
         {
