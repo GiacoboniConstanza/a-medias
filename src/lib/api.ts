@@ -1611,35 +1611,6 @@ export async function deleteSavedFoodByName(ownerId: string, name: string): Prom
   fail(error)
 }
 
-export type PushSubscriptionInput = {
-  userId: string
-  endpoint: string
-  p256dh: string
-  authKey: string
-  userAgent?: string | null
-}
-
-export async function upsertPushSubscription(input: PushSubscriptionInput): Promise<void> {
-  const { error } = await supabase.from('push_subscriptions').upsert(
-    {
-      user_id: input.userId,
-      endpoint: input.endpoint,
-      p256dh: input.p256dh,
-      auth_key: input.authKey,
-      user_agent: input.userAgent ?? null,
-      daily_enabled: true,
-      dues_enabled: true,
-    },
-    { onConflict: 'endpoint' },
-  )
-  fail(error)
-}
-
-export async function deletePushSubscription(endpoint: string): Promise<void> {
-  const { error } = await supabase.from('push_subscriptions').delete().eq('endpoint', endpoint)
-  fail(error)
-}
-
 export type MedicationRow = {
   id: string
   name: string

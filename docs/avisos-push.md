@@ -2,24 +2,29 @@
 
 ## Cómo funciona
 
-1. La PWA pide permiso y guarda una fila en `push_subscriptions` (endpoint + claves del browser + `user_agent`).
-2. Cualquier módulo inserta filas en `scheduled_reminders` (hora local, zona, días opcionales, fechas, `module`, título/cuerpo, `ref_table`/`ref_id`).
+1. La PWA pide permiso (`src/lib/push/permissions.ts`) y guarda una fila en `push_subscriptions` (endpoint + claves del browser + `user_agent`). Los flags `daily_enabled` / `dues_enabled` son **solo interruptores de Finanzas** en la UI; el despachador genérico **no** los usa para filtrar.
+2. Cualquier módulo inserta filas en `scheduled_reminders` (ver modos abajo).
 3. Cada minuto, `pg_cron` llama por `pg_net` a la Edge Function `dispatch-push-reminders` (URL y Bearer salen de Vault).
-4. La función ejecuta `claim_due_reminders()` (marca `last_sent_at` para no duplicar), manda Web Push con VAPID y borra suscripciones que respondan 404/410.
-5. El service worker (`public/push-handler.js`) muestra la notificación y, al tocar, abre/enfoca la app en la `url` del payload.
+4. La función ejecuta `claim_due_reminders()` (marca `last_sent_at` para no duplicar; en avisos de una vez también pone `active = false`), manda Web Push con VAPID a **todas** las suscripciones del usuario y borra las que respondan 404/410.
+5. El service worker (`public/push-handler.js`) muestra la notificación y, al tocar, navega/enfoca la app en la `url` del payload (fallback `/recordatorios`).
 
-Medicamentos sincroniza solo: al crear/editar horarios o el tratamiento, un trigger mantiene los `scheduled_reminders` del módulo `medicamentos` (y los desactiva al terminar).
+Horas y días se interpretan siempre en `timezone` de la fila (default `America/Argentina/Buenos_Aires`), nunca como UTC “pelado”.
 
-## Cómo otro módulo crea recordatorios (ej. Finanzas)
+Medicamentos sincroniza solo: al crear/editar horarios o el tratamiento, un trigger mantiene los `scheduled_reminders` del módulo `medicamentos` (modo recurrente) y los desactiva al terminar.
 
-Sin migrar Finanzas todavía. Cuando quieran avisos genéricos:
+## Modos de `scheduled_reminders`
+
+Check `scheduled_reminders_schedule_mode`: **uno u otro**, no ambos.
+
+### Recurrente (hora local ± días)
+
+`local_time` obligatorio; `fire_at` null. `days_of_week` null = todos los días; `0` = lunes … `6` = domingo. `starts_on` / `ends_on` opcionales.
 
 ```sql
 insert into public.scheduled_reminders (
   user_id, module, title, body,
   local_time, timezone, days_of_week,
-  starts_on, ends_on, active,
-  ref_table, ref_id
+  starts_on, ends_on, active
 ) values (
   auth.uid(),
   'finanzas',
@@ -27,15 +32,35 @@ insert into public.scheduled_reminders (
   'Anotalo en dos toques.',
   '21:30',
   'America/Argentina/Buenos_Aires',
-  null,               -- todos los días; o '{0,1,2,3,4}' (lun–vie)
-  null, null, true,
-  'reminder_preferences',  -- opcional
-  null                     -- o un uuid de la entidad
+  null,               -- o '{0,1,2,3,4}' (lun–vie)
+  null, null, true
 );
 ```
 
-`days_of_week`: `null` = todos; `0` = lunes … `6` = domingo (igual que hábitos).  
-Para “solo ciertos días a hora fija” alcanza con `local_time` + `days_of_week`.
+### Una sola vez (`fire_at`) — avisos que dependen de datos
+
+Para vencimientos, “hace N días sin gastos”, etc.: encolá un instante exacto. `fire_at` obligatorio; `local_time`, `days_of_week`, `starts_on` y `ends_on` deben ir null. Se envía **una vez** (queda `last_sent_at` y `active = false`).
+
+Armá el instante en zona Argentina (o la `timezone` de la fila), no en UTC suelto:
+
+```sql
+-- Ejemplo: avisar el 2026-11-15 a las 09:00 en Buenos Aires
+insert into public.scheduled_reminders (
+  user_id, module, title, body,
+  fire_at, timezone, active,
+  ref_table, ref_id
+) values (
+  auth.uid(),
+  'finanzas',
+  'Vence Alquiler',
+  'Marcalo como pagado cuando lo abones.',
+  timestamp '2026-11-15 09:00:00' at time zone 'America/Argentina/Buenos_Aires',
+  'America/Argentina/Buenos_Aires',
+  true,
+  'fixed_expenses',
+  '<uuid-del-fijo>'
+);
+```
 
 Desde el cliente (autenticada): `supabase.from('scheduled_reminders').insert(...)`.
 

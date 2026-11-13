@@ -1,5 +1,8 @@
 /**
- * Envía Web Push de los scheduled_reminders que tocan en este minuto.
+ * Envía Web Push de los scheduled_reminders que tocan ahora (recurrentes o fire_at).
+ * No filtra por daily_enabled/dues_enabled: esos flags son solo de Finanzas en la UI;
+ * Medicamentos y el resto de módulos reciben el aviso igual.
+ * Ante 404/410 del push service borra esa fila de push_subscriptions.
  * Secretos: PUSH_DISPATCH_SECRET, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT.
  * Nunca hardcodear claves. Llamada esperada: Authorization Bearer <PUSH_DISPATCH_SECRET>.
  */
@@ -12,7 +15,8 @@ type Reminder = {
   module: string
   title: string
   body: string | null
-  local_time: string
+  local_time: string | null
+  fire_at: string | null
   timezone: string
   ref_table: string | null
   ref_id: string | null
@@ -78,6 +82,7 @@ Deno.serve(async (req) => {
   let failed = 0
 
   for (const reminder of reminders) {
+    // Todas las suscripciones del usuario; daily_enabled/dues_enabled no aplican acá.
     const { data: subs, error: subError } = await admin
       .from('push_subscriptions')
       .select('id, endpoint, p256dh, auth_key')

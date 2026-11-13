@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
-  decodeVapidKey,
+  decodeVapid,
   isIosLike,
   isIosWithoutPwa,
   isStandalonePwa,
   pushIsConfigured,
-} from './push.ts'
+} from './permissions.ts'
 
 describe('config VAPID', () => {
   it('sin clave no está configurado', () => {
@@ -15,10 +15,9 @@ describe('config VAPID', () => {
   })
 })
 
-describe('decodeVapidKey', () => {
+describe('decodeVapid', () => {
   it('decodifica base64 URL-safe a bytes', () => {
-    // "hi" en base64url
-    const bytes = decodeVapidKey('aGk')
+    const bytes = decodeVapid('aGk')
     expect(Array.from(bytes)).toEqual([104, 105])
   })
 })

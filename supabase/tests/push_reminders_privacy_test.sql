@@ -1,5 +1,5 @@
 begin;
-select plan(9);
+select plan(14);
 
 insert into auth.users (id, email, raw_user_meta_data)
 values
@@ -145,6 +145,83 @@ select is(
   ),
   0::bigint,
   'no duplica en el mismo minuto'
+);
+
+-- Aviso de una sola vez (fire_at), instante en zona AR.
+insert into public.scheduled_reminders (
+  id, user_id, module, title, body, fire_at, timezone, active
+)
+values (
+  'b2222222-2222-4222-8222-222222222222',
+  'a1111111-1111-4111-8111-111111111111',
+  'finanzas',
+  'Vence Alquiler',
+  'Marcalo',
+  timestamp '2026-11-15 09:00:00' at time zone 'America/Argentina/Buenos_Aires',
+  'America/Argentina/Buenos_Aires',
+  true
+);
+
+select throws_ok(
+  $$insert into public.scheduled_reminders (
+      user_id, module, title, local_time, fire_at
+    ) values (
+      'a1111111-1111-4111-8111-111111111111',
+      'finanzas',
+      'Modo mixto',
+      '10:00',
+      now()
+    )$$,
+  '23514',
+  null,
+  'no admite local_time y fire_at a la vez'
+);
+
+select is(
+  (
+    select count(*)
+    from public.reminders_due_at(
+      timestamp '2026-11-15 08:59:00' at time zone 'America/Argentina/Buenos_Aires'
+    )
+    where id = 'b2222222-2222-4222-8222-222222222222'
+  ),
+  0::bigint,
+  'fire_at aún no toca antes de la hora AR'
+);
+
+select is(
+  (
+    select count(*)
+    from public.reminders_due_at(
+      timestamp '2026-11-15 09:00:30' at time zone 'America/Argentina/Buenos_Aires'
+    )
+    where id = 'b2222222-2222-4222-8222-222222222222'
+  ),
+  1::bigint,
+  'fire_at toca a la hora exacta en AR'
+);
+
+select ok(
+  (
+    select last_sent_at is not null and not active
+    from public.claim_due_reminders(
+      timestamp '2026-11-15 09:01:00' at time zone 'America/Argentina/Buenos_Aires'
+    )
+    where id = 'b2222222-2222-4222-8222-222222222222'
+  ),
+  'claim de una vez marca enviado y desactiva'
+);
+
+select is(
+  (
+    select count(*)
+    from public.reminders_due_at(
+      timestamp '2026-11-15 10:00:00' at time zone 'America/Argentina/Buenos_Aires'
+    )
+    where id = 'b2222222-2222-4222-8222-222222222222'
+  ),
+  0::bigint,
+  'fire_at no se vuelve a enviar'
 );
 
 select * from finish();

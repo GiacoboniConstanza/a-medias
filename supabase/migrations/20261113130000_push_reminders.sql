@@ -31,7 +31,10 @@ create trigger push_subscriptions_guard
   for each row
   execute function private.guard_user_owned_row();
 
--- Recordatorios genéricos: hora local, zona, días opcionales, ventana de fechas.
+-- Recordatorios genéricos en dos modos excluyentes:
+--   • recurrente: local_time (+ days_of_week/starts_on/ends_on opcionales)
+--   • una vez: fire_at (instante exacto; se envía una sola vez)
+-- Horas/días se interpretan en timezone de la fila (default AR), nunca como UTC “pelado”.
 -- days_of_week null = todos los días; 0 = lunes … 6 = domingo (igual que hábitos).
 -- ref_table/ref_id apuntan a la entidad del módulo (ej. medication_schedules).
 create table public.scheduled_reminders (
@@ -40,7 +43,8 @@ create table public.scheduled_reminders (
   module text not null,
   title text not null,
   body text,
-  local_time time not null,
+  local_time time,
+  fire_at timestamptz,
   timezone text not null default 'America/Argentina/Buenos_Aires',
   days_of_week integer[],
   starts_on date,
@@ -63,6 +67,19 @@ create table public.scheduled_reminders (
   ),
   constraint scheduled_reminders_dates check (
     starts_on is null or ends_on is null or ends_on >= starts_on
+  ),
+  constraint scheduled_reminders_schedule_mode check (
+    (
+      fire_at is not null
+      and local_time is null
+      and days_of_week is null
+      and starts_on is null
+      and ends_on is null
+    )
+    or (
+      fire_at is null
+      and local_time is not null
+    )
   )
 );
 
@@ -72,7 +89,11 @@ create unique index scheduled_reminders_ref_uidx
 
 create index scheduled_reminders_due_idx
   on public.scheduled_reminders (active, local_time)
-  where active;
+  where active and local_time is not null;
+
+create index scheduled_reminders_fire_at_idx
+  on public.scheduled_reminders (active, fire_at)
+  where active and fire_at is not null;
 
 create index scheduled_reminders_user_idx
   on public.scheduled_reminders (user_id)
@@ -144,6 +165,7 @@ revoke all on table public.scheduled_reminders from public, anon;
 grant select, insert, update, delete on public.scheduled_reminders to authenticated;
 
 -- ¿Este recordatorio toca en p_at? (testeable con pgTAP)
+-- Recurrente: minuto local en r.timezone. Una vez: p_at >= fire_at y aún no enviado.
 create function private.reminder_is_due(
   r public.scheduled_reminders,
   p_at timestamptz
@@ -155,19 +177,25 @@ set search_path = public
 as $$
   select
     r.active
-    and (
-      r.last_sent_at is null
-      or r.last_sent_at < date_trunc('minute', p_at)
-    )
-    and (
-      select
-        local_ts::time >= r.local_time
-        and local_ts::time < (r.local_time + interval '1 minute')
-        and (r.days_of_week is null or (extract(isodow from local_ts)::integer - 1) = any (r.days_of_week))
-        and (r.starts_on is null or local_ts::date >= r.starts_on)
-        and (r.ends_on is null or local_ts::date <= r.ends_on)
-      from (select (p_at at time zone r.timezone) as local_ts) as t
-    );
+    and case
+      when r.fire_at is not null then
+        r.last_sent_at is null
+        and p_at >= r.fire_at
+      else
+        (
+          r.last_sent_at is null
+          or r.last_sent_at < date_trunc('minute', p_at)
+        )
+        and (
+          select
+            local_ts::time >= r.local_time
+            and local_ts::time < (r.local_time + interval '1 minute')
+            and (r.days_of_week is null or (extract(isodow from local_ts)::integer - 1) = any (r.days_of_week))
+            and (r.starts_on is null or local_ts::date >= r.starts_on)
+            and (r.ends_on is null or local_ts::date <= r.ends_on)
+          from (select (p_at at time zone r.timezone) as local_ts) as t
+        )
+    end;
 $$;
 
 revoke all on function private.reminder_is_due(public.scheduled_reminders, timestamptz)
@@ -192,6 +220,8 @@ begin
     update public.scheduled_reminders as s
     set
       last_sent_at = p_at,
+      -- Aviso de una sola vez: queda marcado y deja de estar activo.
+      active = case when s.fire_at is not null then false else s.active end,
       updated_at = statement_timestamp()
     from due
     where s.id = due.id

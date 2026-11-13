@@ -461,7 +461,8 @@ export type Database = {
           module: string
           title: string
           body: string | null
-          local_time: string
+          local_time: string | null
+          fire_at: string | null
           timezone: string
           days_of_week: number[] | null
           starts_on: string | null
@@ -479,7 +480,8 @@ export type Database = {
           module: string
           title: string
           body?: string | null
-          local_time: string
+          local_time?: string | null
+          fire_at?: string | null
           timezone?: string
           days_of_week?: number[] | null
           starts_on?: string | null
@@ -494,7 +496,8 @@ export type Database = {
         {
           title?: string
           body?: string | null
-          local_time?: string
+          local_time?: string | null
+          fire_at?: string | null
           timezone?: string
           days_of_week?: number[] | null
           starts_on?: string | null
