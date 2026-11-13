@@ -1615,9 +1615,16 @@ export type MedicationRow = {
   id: string
   name: string
   doseNotes: string | null
+  archivedAt: string | null
+}
+
+export type MedicationPeriodRow = {
+  id: string
+  medicationId: string
   startsOn: string
   endsOn: string | null
-  active: boolean
+  startedAt: string
+  endedAt: string | null
 }
 
 export type MedicationScheduleRow = {
@@ -1633,27 +1640,45 @@ export type MedicationDoseRow = {
   scheduledTime: string
   status: 'taken' | 'skipped'
   recordedAt: string
+  nameSnapshot: string
+  doseSnapshot: string | null
 }
 
-const MEDICATION_SELECT = 'id, name, dose_notes, starts_on, ends_on, active'
+const MEDICATION_SELECT = 'id, name, dose_notes, archived_at'
+const MEDICATION_PERIOD_SELECT = 'id, medication_id, starts_on, ends_on, started_at, ended_at'
 const MEDICATION_SCHEDULE_SELECT = 'id, medication_id, local_time'
-const MEDICATION_DOSE_SELECT = 'id, medication_id, dose_on, scheduled_time, status, recorded_at'
+const MEDICATION_DOSE_SELECT =
+  'id, medication_id, dose_on, scheduled_time, status, recorded_at, name_snapshot, dose_snapshot'
 
 function medicationFromDb(row: {
   id: string
   name: string
   dose_notes: string | null
-  starts_on: string
-  ends_on: string | null
-  active: boolean
+  archived_at: string | null
 }): MedicationRow {
   return {
     id: row.id,
     name: row.name,
     doseNotes: row.dose_notes,
+    archivedAt: row.archived_at,
+  }
+}
+
+function medicationPeriodFromDb(row: {
+  id: string
+  medication_id: string
+  starts_on: string
+  ends_on: string | null
+  started_at: string
+  ended_at: string | null
+}): MedicationPeriodRow {
+  return {
+    id: row.id,
+    medicationId: row.medication_id,
     startsOn: row.starts_on,
     endsOn: row.ends_on,
-    active: row.active,
+    startedAt: row.started_at,
+    endedAt: row.ended_at,
   }
 }
 
@@ -1676,6 +1701,8 @@ function medicationDoseFromDb(row: {
   scheduled_time: string
   status: 'taken' | 'skipped'
   recorded_at: string
+  name_snapshot: string
+  dose_snapshot: string | null
 }): MedicationDoseRow {
   return {
     id: row.id,
@@ -1684,6 +1711,8 @@ function medicationDoseFromDb(row: {
     scheduledTime: row.scheduled_time,
     status: row.status,
     recordedAt: row.recorded_at,
+    nameSnapshot: row.name_snapshot,
+    doseSnapshot: row.dose_snapshot,
   }
 }
 
@@ -1695,6 +1724,16 @@ export async function loadMedications(userId: string): Promise<MedicationRow[]> 
     .order('name')
   fail(error)
   return (data ?? []).map(medicationFromDb)
+}
+
+export async function loadMedicationPeriods(userId: string): Promise<MedicationPeriodRow[]> {
+  const { data, error } = await supabase
+    .from('medication_periods')
+    .select(MEDICATION_PERIOD_SELECT)
+    .eq('user_id', userId)
+    .order('starts_on')
+  fail(error)
+  return (data ?? []).map(medicationPeriodFromDb)
 }
 
 export async function loadMedicationSchedules(userId: string): Promise<MedicationScheduleRow[]> {
@@ -1717,6 +1756,21 @@ export async function loadMedicationDosesForDay(userId: string, day: string): Pr
   return (data ?? []).map(medicationDoseFromDb)
 }
 
+export async function loadMedicationDosesBetween(
+  userId: string,
+  fromDay: string,
+  toDay: string,
+): Promise<MedicationDoseRow[]> {
+  const { data, error } = await supabase
+    .from('medication_doses')
+    .select(MEDICATION_DOSE_SELECT)
+    .eq('user_id', userId)
+    .gte('dose_on', fromDay)
+    .lte('dose_on', toDay)
+  fail(error)
+  return (data ?? []).map(medicationDoseFromDb)
+}
+
 export async function createMedication(input: {
   userId: string
   name: string
@@ -1731,12 +1785,19 @@ export async function createMedication(input: {
       user_id: input.userId,
       name: input.name,
       dose_notes: input.doseNotes ?? null,
-      starts_on: input.startsOn,
-      ends_on: input.endsOn ?? null,
     })
     .select(MEDICATION_SELECT)
     .single()
   fail(error)
+
+  const { error: periodError } = await supabase.from('medication_periods').insert({
+    medication_id: data.id,
+    user_id: input.userId,
+    starts_on: input.startsOn,
+    ends_on: input.endsOn ?? null,
+    started_at: new Date().toISOString(),
+  })
+  fail(periodError)
 
   if (input.times.length > 0) {
     const { error: scheduleError } = await supabase.from('medication_schedules').insert(
@@ -1752,12 +1813,84 @@ export async function createMedication(input: {
   return medicationFromDb(data)
 }
 
+export async function updateMedication(input: {
+  id: string
+  userId: string
+  name: string
+  doseNotes?: string | null
+  times: string[]
+  endsOn?: string | null
+  periodId: string
+}): Promise<void> {
+  const { error } = await supabase
+    .from('medications')
+    .update({ name: input.name, dose_notes: input.doseNotes ?? null })
+    .eq('id', input.id)
+  fail(error)
+
+  const { error: periodError } = await supabase
+    .from('medication_periods')
+    .update({ ends_on: input.endsOn ?? null })
+    .eq('id', input.periodId)
+  fail(periodError)
+
+  const { error: deleteError } = await supabase.from('medication_schedules').delete().eq('medication_id', input.id)
+  fail(deleteError)
+
+  if (input.times.length > 0) {
+    const { error: scheduleError } = await supabase.from('medication_schedules').insert(
+      input.times.map((localTime) => ({
+        medication_id: input.id,
+        user_id: input.userId,
+        local_time: localTime,
+      })),
+    )
+    fail(scheduleError)
+  }
+}
+
+export async function archiveMedication(input: {
+  id: string
+  userId: string
+  periodId: string
+}): Promise<void> {
+  const now = new Date().toISOString()
+  const { error } = await supabase.from('medications').update({ archived_at: now }).eq('id', input.id)
+  fail(error)
+  const { error: periodError } = await supabase
+    .from('medication_periods')
+    .update({ ended_at: now })
+    .eq('id', input.periodId)
+  fail(periodError)
+}
+
+export async function reactivateMedication(input: {
+  id: string
+  userId: string
+  startsOn: string
+  endsOn?: string | null
+}): Promise<void> {
+  const now = new Date().toISOString()
+  const { error } = await supabase.from('medications').update({ archived_at: null }).eq('id', input.id)
+  fail(error)
+  const { error: periodError } = await supabase.from('medication_periods').insert({
+    medication_id: input.id,
+    user_id: input.userId,
+    starts_on: input.startsOn,
+    ends_on: input.endsOn ?? null,
+    started_at: now,
+  })
+  fail(periodError)
+}
+
 export async function setMedicationDose(input: {
   userId: string
   medicationId: string
   doseOn: string
   scheduledTime: string
   status: 'taken' | 'skipped'
+  nameSnapshot: string
+  doseSnapshot?: string | null
 }): Promise<MedicationDoseRow> {
   const { data, error } = await supabase
     .from('medication_doses')
@@ -1769,6 +1902,8 @@ export async function setMedicationDose(input: {
         scheduled_time: input.scheduledTime,
         status: input.status,
         recorded_at: new Date().toISOString(),
+        name_snapshot: input.nameSnapshot,
+        dose_snapshot: input.doseSnapshot ?? null,
       },
       { onConflict: 'medication_id,dose_on,scheduled_time' },
     )
@@ -1776,4 +1911,47 @@ export async function setMedicationDose(input: {
     .single()
   fail(error)
   return medicationDoseFromDb(data)
+}
+
+export async function clearMedicationDose(input: {
+  userId: string
+  medicationId: string
+  doseOn: string
+  scheduledTime: string
+}): Promise<void> {
+  const { error } = await supabase
+    .from('medication_doses')
+    .delete()
+    .eq('user_id', input.userId)
+    .eq('medication_id', input.medicationId)
+    .eq('dose_on', input.doseOn)
+    .eq('scheduled_time', input.scheduledTime)
+  fail(error)
+}
+
+export async function loadModuleNotificationPrefs(
+  userId: string,
+): Promise<{ module: string; enabled: boolean }[]> {
+  const { data, error } = await supabase
+    .from('module_notification_prefs')
+    .select('module, enabled')
+    .eq('user_id', userId)
+  fail(error)
+  return data ?? []
+}
+
+export async function setModuleNotificationPref(input: {
+  userId: string
+  module: string
+  enabled: boolean
+}): Promise<void> {
+  const { error } = await supabase.from('module_notification_prefs').upsert(
+    {
+      user_id: input.userId,
+      module: input.module,
+      enabled: input.enabled,
+    },
+    { onConflict: 'user_id,module' },
+  )
+  fail(error)
 }

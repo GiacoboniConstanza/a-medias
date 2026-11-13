@@ -72,6 +72,14 @@ describe('menú según la pantalla', () => {
   it('Agregar comida marca Comidas en el menú general', () => {
     expect(navFor('/comidas/agregar', ['finanzas', 'comidas']).activeTo).toBe('/comidas')
   })
+
+  it('Medicamentos no entra a la barra y no marca ningún ítem', () => {
+    const enabled = ['finanzas', 'medicamentos'] as const
+    expect(navForModules([...enabled]).map((item) => item.label)).toEqual(['Inicio', 'Finanzas'])
+    const nav = navFor('/medicamentos', [...enabled])
+    expect(nav.items.map((item) => item.label)).toEqual(['Inicio', 'Finanzas'])
+    expect(nav.activeTo).toBe('')
+  })
 })
 
 describe('al menos un módulo activo', () => {
