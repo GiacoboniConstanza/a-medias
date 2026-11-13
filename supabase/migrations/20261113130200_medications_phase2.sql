@@ -1,37 +1,15 @@
 -- Medicamentos fase 2 (§9): períodos, archivado, snapshots, preferencias de avisos,
 -- despacho agrupado. No reescribe migraciones 30000/30100. No toca Finanzas.
 
--- 1) Módulo en user_modules
+-- 1) Módulo en user_modules: solo ampliar el check.
+-- No redefinir seed_user_modules ni hacer backfill: el hub siembra solo
+-- finanzas=true y el resto se crea al prender (ver 20261028140000).
 alter table public.user_modules
   drop constraint if exists user_modules_module;
 
 alter table public.user_modules
   add constraint user_modules_module
   check (module in ('finanzas', 'habitos', 'comidas', 'memos', 'medicamentos'));
-
-create or replace function private.seed_user_modules()
-returns trigger
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-  insert into public.user_modules (user_id, module, enabled)
-  values
-    (new.id, 'finanzas', true),
-    (new.id, 'habitos', false),
-    (new.id, 'comidas', false),
-    (new.id, 'memos', false),
-    (new.id, 'medicamentos', false)
-  on conflict (user_id, module) do nothing;
-  return new;
-end;
-$$;
-
-insert into public.user_modules (user_id, module, enabled)
-select p.id, 'medicamentos', false
-from public.profiles as p
-on conflict (user_id, module) do nothing;
 
 -- 2) Períodos de uso + archivado (en lugar de starts_on/ends_on/active solos)
 create table public.medication_periods (
