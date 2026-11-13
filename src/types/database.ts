@@ -609,6 +609,36 @@ export type Database = {
         },
         { text?: string; done?: boolean; shared?: boolean; updated_at?: string; done_at?: string | null }
       >
+      memo_labels: Table<
+        {
+          id: string
+          household_id: string
+          name: string
+          color: 'menta' | 'agua' | 'durazno' | 'lila' | 'avellana'
+          created_at: string
+        },
+        {
+          id?: string
+          household_id: string
+          name: string
+          color: 'menta' | 'agua' | 'durazno' | 'lila' | 'avellana'
+          created_at?: string
+        },
+        { name?: string; color?: 'menta' | 'agua' | 'durazno' | 'lila' | 'avellana' }
+      >
+      memo_label_links: Table<
+        {
+          memo_id: string
+          label_id: string
+          created_at: string
+        },
+        {
+          memo_id: string
+          label_id: string
+          created_at?: string
+        },
+        { created_at?: string }
+      >
       habits: Table<
         {
           id: string
