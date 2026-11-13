@@ -1,9 +1,9 @@
-/* Escucha push del PWA. No envía nada: solo muestra lo que llegue si algún día hay un emisor. */
+/* Escucha push del PWA: muestra la notificación y al tocar abre la ruta del payload. */
 self.addEventListener('push', (event) => {
   const fallback = {
     title: 'A Medias',
     body: 'Tenés un aviso.',
-    url: '/recordatorios',
+    url: '/',
   }
   let payload = fallback
   try {
@@ -16,18 +16,21 @@ self.addEventListener('push', (event) => {
       body: payload.body,
       icon: '/icons/icon-192-v3.png',
       badge: '/icons/icon-192-v3.png',
-      data: { url: payload.url || '/recordatorios' },
+      data: { url: payload.url || '/' },
     }),
   )
 })
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  const target = (event.notification.data && event.notification.data.url) || '/recordatorios'
+  const target = (event.notification.data && event.notification.data.url) || '/'
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
       for (const client of windows) {
         if ('focus' in client) {
+          if ('navigate' in client) {
+            return client.navigate(target).then((navigated) => (navigated && 'focus' in navigated ? navigated.focus() : client.focus()))
+          }
           return client.focus()
         }
       }
