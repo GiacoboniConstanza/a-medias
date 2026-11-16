@@ -27,7 +27,7 @@ import {
   type SavingItem,
   type SavingMove,
 } from '../lib/api.ts'
-import { NewSavingSheet } from '../screens/SavingsScreen.tsx'
+import { NewSavingSheet } from './NewSavingSheet.tsx'
 import { savingBalances, withdrawableByUser } from '../lib/saving-balance.ts'
 import { activeSavings, groupSavings } from '../lib/savings.ts'
 import { monthPocket, monthSplit, myPrivateSpent, partnerId } from '../lib/derive.ts'
