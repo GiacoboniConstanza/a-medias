@@ -5,7 +5,7 @@ import { Plantita } from './Adornos.tsx'
 import { IconPicker } from './IconPicker.tsx'
 import { amountFromDigits } from '../lib/format.ts'
 import { MoneyField } from './MoneyField.tsx'
-import { Button, Chip, inputClass } from './ui.tsx'
+import { Button, Chip, inputClass, Toggle } from './ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
 import {
@@ -978,28 +978,7 @@ function MovementFormBody({
         {tipo === 'gasto' ? (
           <>
             {partnerIdValue ? (
-              <button
-                type="button"
-                role="switch"
-                aria-checked={shared}
-                className="flex min-h-[52px] w-full items-center justify-between gap-3"
-                onClick={toggleShared}
-              >
-                <span className="text-lg font-medium text-tinta">¿Es compartido?</span>
-                <span
-                  className={`relative inline-flex h-10 w-16 items-center rounded-full border-[1.5px] px-1 ${
-                    shared ? 'justify-end border-tinta bg-mostaza' : 'justify-start border-gris bg-tarjeta'
-                  }`}
-                >
-                  <span
-                    className={`inline-flex h-7 w-7 items-center justify-center rounded-full ${
-                      shared ? 'bg-tinta text-mostaza' : 'bg-gris text-tarjeta'
-                    }`}
-                  >
-                    {shared ? <AppIcon name="check" className="text-[14px]" /> : null}
-                  </span>
-                </span>
-              </button>
+              <Toggle label="¿Es compartido?" checked={shared} onClick={toggleShared} />
             ) : null}
             {showSharedPayerPicker({ tipo, shared, hasPartner: Boolean(partnerIdValue) }) ? (
               <div>

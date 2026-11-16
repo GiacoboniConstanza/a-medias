@@ -25,6 +25,25 @@ export type SplitResult = {
   usedEvenSplit: boolean
 }
 
+/**
+ * Parte que le toca a una persona de un monto compartido, según los % del mes.
+ * Usa el mismo redondeo a centavos que el reparto del hogar.
+ */
+export function mySharedCut(
+  amount: number,
+  meId: string,
+  splitPercents: Readonly<Record<string, number>>,
+): number {
+  const ids = Object.keys(splitPercents).sort()
+  if (ids.length === 0) return 0
+  const shares = shareAmounts(
+    amount,
+    ids.map((id) => splitPercents[id] ?? 0),
+  )
+  const index = ids.indexOf(meId)
+  return index >= 0 ? (shares[index] ?? 0) : 0
+}
+
 export function shareAmounts(total: number, weights: number[]): number[] {
   const totalCents = toCents(total)
   if (weights.length === 0) return []

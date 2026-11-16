@@ -16,6 +16,8 @@ import { useFinance } from '../context/FinanceProvider.tsx'
 import { useMonth } from '../context/MonthProvider.tsx'
 import { buildSharedCsv, downloadText } from '../lib/csv.ts'
 import { monthSplit, partnerId } from '../lib/derive.ts'
+import { expenseDisplaySigned, expenseFlowSigned } from '../lib/movement-amount.ts'
+import { mySharedCut } from '../lib/split.ts'
 import { expenseSpan, type DatePreset, type ExpenseSpan } from '../lib/expense-range.ts'
 import { matchesCategories, matchesScope, matchesSpan, type ScopeFilter } from '../lib/finance-filters.ts'
 import { formatMoney, normalizeMoney } from '../lib/format.ts'
@@ -40,7 +42,12 @@ type MovementRow = {
   title: string
   subtitle: string
   amount: number
+  /** Signo para mostrar (− en todo gasto). */
   signed: number | null
+  /** Signo que cuenta en Entró/Salió (null si pagó la otra). */
+  flowSigned: number | null
+  /** Mi parte de un compartido que pagó la otra. */
+  myCut: number | null
   spentOn: string
   period: string
   isShared: boolean
@@ -489,18 +496,25 @@ export function MovementsScreen() {
                             >
                               {row.title}
                             </span>
-                            <span
-                              className={`whitespace-nowrap font-display text-lg font-semibold ${
-                                !selectability.canDelete
-                                  ? 'text-gris'
-                                  : row.kind === 'ingreso'
-                                    ? 'text-mostaza-ink'
-                                    : row.kind === 'transferencia'
-                                      ? 'text-ciruela-ink'
-                                      : 'text-tinta'
-                              }`}
-                            >
-                              {amountText}
+                            <span className="flex flex-col items-end">
+                              <span
+                                className={`whitespace-nowrap font-display text-lg font-semibold ${
+                                  !selectability.canDelete
+                                    ? 'text-gris'
+                                    : row.kind === 'ingreso'
+                                      ? 'text-mostaza-ink'
+                                      : row.kind === 'transferencia'
+                                        ? 'text-ciruela-ink'
+                                        : 'text-tinta'
+                                }`}
+                              >
+                                {amountText}
+                              </span>
+                              {row.myCut != null ? (
+                                <span className="whitespace-nowrap text-sm font-medium text-gris">
+                                  Te toca {formatMoney(row.myCut)}
+                                </span>
+                              ) : null}
                             </span>
                             {subtitle ? (
                               <span className="col-span-2 truncate text-sm font-medium text-gris">{subtitle}</span>
@@ -751,7 +765,7 @@ export function MovementsScreen() {
             <Link
               to="/movimientos/resumen"
               state={{ from: location.pathname }}
-              className="mt-3 inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border-[1.5px] border-azul-ink bg-tarjeta px-4 font-bold text-mostaza-ink"
+              className="mt-3 inline-flex min-h-11 items-center justify-center gap-2 rounded-full border-[1.5px] border-mostaza-ink bg-tarjeta px-4 font-bold text-mostaza-ink"
             >
               <AppIcon name="file-arrow-up" /> Subir un resumen de Mercado Pago
             </Link>
@@ -792,16 +806,23 @@ export function MovementsScreen() {
                         </span>
                         {row.subtitle ? <span className="block text-sm font-medium text-gris">{row.subtitle}</span> : null}
                       </span>
-                      <span
-                        className={`whitespace-nowrap font-display text-lg font-semibold ${
-                          row.kind === 'ingreso'
-                            ? 'text-mostaza-ink'
-                            : row.kind === 'transferencia'
-                              ? 'text-ciruela-ink'
-                              : 'text-tinta'
-                        }`}
-                      >
-                        {row.signed == null ? formatMoney(row.amount) : formatSigned(row.signed)}
+                      <span className="flex min-w-0 flex-col items-end self-center">
+                        <span
+                          className={`whitespace-nowrap font-display text-lg font-semibold ${
+                            row.kind === 'ingreso'
+                              ? 'text-mostaza-ink'
+                              : row.kind === 'transferencia'
+                                ? 'text-ciruela-ink'
+                                : 'text-tinta'
+                          }`}
+                        >
+                          {row.signed == null ? formatMoney(row.amount) : formatSigned(row.signed)}
+                        </span>
+                        {row.myCut != null ? (
+                          <span className="whitespace-nowrap text-sm font-medium text-gris">
+                            Te toca {formatMoney(row.myCut)}
+                          </span>
+                        ) : null}
                       </span>
                     </button>
                   </li>
@@ -1108,13 +1129,16 @@ function buildRows(input: {
       title: expense.title,
     })
     const surface = iconSurface(category?.icon || 'tag')
+    const showCut = expense.isShared && !paidByMe
     items.push({
       id: expense.id,
       kind: 'gasto',
       title,
       subtitle,
       amount: expense.amount,
-      signed: paidByMe ? -expense.amount : null,
+      signed: expenseDisplaySigned(expense.amount),
+      flowSigned: expenseFlowSigned(expense.amount, paidByMe),
+      myCut: showCut ? mySharedCut(expense.amount, meId, data.splitPercents) : null,
       spentOn: expense.spentOn,
       period: expense.period,
       isShared: expense.isShared,
@@ -1138,6 +1162,8 @@ function buildRows(input: {
       subtitle: 'Algo puntual',
       amount: extra.amount,
       signed: extra.amount,
+      flowSigned: extra.amount,
+      myCut: null,
       spentOn: extra.receivedOn,
       period: month,
       isShared: false,
@@ -1161,6 +1187,8 @@ function buildRows(input: {
         subtitle: 'Sueldo',
         amount: base,
         signed: base,
+        flowSigned: base,
+        myCut: null,
         spentOn,
         period: month,
         isShared: false,
@@ -1181,13 +1209,16 @@ function buildRows(input: {
       if (!otherId) continue
       if (sent ? transfer.toId !== otherId : transfer.fromId !== otherId) continue
     }
+    const transferSigned = sent ? -transfer.amount : transfer.amount
     items.push({
       id: transfer.id,
       kind: 'transferencia',
       title: 'Transferencia',
       subtitle: sent ? `Le pasaste a ${partnerName}` : `${partnerName} te pasó`,
       amount: transfer.amount,
-      signed: sent ? -transfer.amount : transfer.amount,
+      signed: transferSigned,
+      flowSigned: transferSigned,
+      myCut: null,
       spentOn: transfer.transferredOn,
       period: transfer.period,
       isShared: false,
@@ -1207,6 +1238,7 @@ function buildRows(input: {
     if (preset !== 'month' && !matchesSpan(move.spentOn, span)) continue
     const saving = data.savings.find((item) => item.id === move.savingId)
     if (!saving) continue
+    const moveSigned = move.kind === 'aporte' ? -move.amount : move.amount
     items.push({
       id: move.id,
       kind: move.kind,
@@ -1219,7 +1251,9 @@ function buildRows(input: {
         partnerName,
       }),
       amount: move.amount,
-      signed: move.kind === 'aporte' ? -move.amount : move.amount,
+      signed: moveSigned,
+      flowSigned: moveSigned,
+      myCut: null,
       spentOn: move.spentOn,
       period: move.period,
       isShared: saving.isShared,
@@ -1278,8 +1312,12 @@ function movementTotals(rows: MovementRow[], tipo: MovementKind): { label: strin
     const total = rows.reduce((sum, row) => sum + row.amount, 0)
     return [{ label: 'Total de ingresos', value: formatMoney(total), tone: 'text-mostaza-ink' }]
   }
-  const entered = rows.filter((row) => (row.signed ?? 0) > 0).reduce((sum, row) => sum + Math.abs(row.signed ?? 0), 0)
-  const left = rows.filter((row) => (row.signed ?? 0) < 0).reduce((sum, row) => sum + Math.abs(row.signed ?? 0), 0)
+  const entered = rows
+    .filter((row) => (row.flowSigned ?? 0) > 0)
+    .reduce((sum, row) => sum + Math.abs(row.flowSigned ?? 0), 0)
+  const left = rows
+    .filter((row) => (row.flowSigned ?? 0) < 0)
+    .reduce((sum, row) => sum + Math.abs(row.flowSigned ?? 0), 0)
   if (tipo === 'ahorros') {
     const put = rows.filter((row) => row.kind === 'aporte').reduce((sum, row) => sum + row.amount, 0)
     const took = rows.filter((row) => row.kind === 'retiro').reduce((sum, row) => sum + row.amount, 0)

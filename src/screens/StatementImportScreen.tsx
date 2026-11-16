@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { ConfirmSheet } from '../components/ConfirmSheet.tsx'
 import { Sheet } from '../components/Sheet.tsx'
-import { Button, Chip, FieldError, inputClass } from '../components/ui.tsx'
+import { Button, Chip, FieldError, inputClass, Toggle } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
 import { useMonth } from '../context/MonthProvider.tsx'
@@ -893,22 +893,12 @@ function EditBody({
         <p className="mt-1 text-sm font-medium text-gris">{longDateLabel(row.date)}</p>
         <p className="mt-1 font-display text-lg font-semibold text-tinta">{formatSignedMoney(row.signedAmount)}</p>
       </div>
-      <label className="flex min-h-[52px] items-center justify-between gap-3 text-sm font-semibold text-tinta">
-        Cargar este movimiento
-        <button
-          type="button"
-          role="switch"
-          aria-checked={draft.checked}
-          className={`relative h-[32px] w-[52px] rounded-full border-2 border-tinta ${draft.checked ? 'bg-mostaza' : 'bg-tarjeta'}`}
-          onClick={() => onChange({ ...draft, checked: !draft.checked })}
-        >
-          <span
-            className={`absolute top-0.5 h-6 w-6 rounded-full bg-tinta transition-transform ${
-              draft.checked ? 'translate-x-[22px]' : 'translate-x-0.5'
-            }`}
-          />
-        </button>
-      </label>
+      <Toggle
+        label="Cargar este movimiento"
+        checked={draft.checked}
+        onClick={() => onChange({ ...draft, checked: !draft.checked })}
+        className="text-sm font-semibold"
+      />
       <div>
         <p className="mb-1 text-sm font-semibold text-gris">Se carga como</p>
         <div className="flex flex-wrap gap-2">

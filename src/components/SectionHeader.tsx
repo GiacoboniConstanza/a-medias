@@ -67,8 +67,12 @@ export function SectionHeader({
     )
   }
 
+  // sticky: -mt-6 cancela el pt-6 del shell; el propio pt mantiene el aire al pegarse.
+  // z-10 queda bajo FAB (30), nav (20) y sheets (40/50).
   return (
-    <header className={`mb-4 flex items-center justify-between gap-1 ${className}`}>
+    <header
+      className={`sticky top-0 z-10 -mx-4 -mt-6 mb-4 flex items-center justify-between gap-1 bg-bg px-4 pt-[max(1.5rem,env(safe-area-inset-top))] pb-2 ${className}`}
+    >
       {left}
       {aside ? <div className={`flex shrink-0 items-center ${asideGap === '4' ? 'gap-1' : 'gap-2.5'}`}>{aside}</div> : null}
     </header>

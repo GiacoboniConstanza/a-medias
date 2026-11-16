@@ -1,9 +1,11 @@
 import { AppIcon } from './AppIcon.tsx'
 import type { ExpenseItem } from '../lib/api.ts'
-import { formatMoney } from '../lib/format.ts'
+import { formatMoney, normalizeMoney } from '../lib/format.ts'
 import { iconSurface } from '../lib/icons.ts'
+import { expenseDisplaySigned } from '../lib/movement-amount.ts'
 import { shortDate } from '../lib/month.ts'
 import { shortPeriodLabel } from '../lib/period.ts'
+import { mySharedCut } from '../lib/split.ts'
 import { useMonth } from '../context/MonthProvider.tsx'
 
 export function PeriodTag({ expense }: { expense: Pick<ExpenseItem, 'period'> }) {
@@ -16,6 +18,12 @@ export function PeriodTag({ expense }: { expense: Pick<ExpenseItem, 'period'> })
   )
 }
 
+function formatSigned(value: number): string {
+  const amount = normalizeMoney(value)
+  if (amount > 0) return `+${formatMoney(amount)}`
+  return formatMoney(amount)
+}
+
 export function ExpenseLine({
   expense,
   categoryName,
@@ -23,6 +31,8 @@ export function ExpenseLine({
   whoPaid = null,
   personName = '',
   showPrivate = false,
+  meId,
+  splitPercents,
   onOpen,
 }: {
   expense: ExpenseItem
@@ -31,6 +41,8 @@ export function ExpenseLine({
   whoPaid?: 'me' | 'partner' | null
   personName?: string
   showPrivate?: boolean
+  meId?: string
+  splitPercents?: Readonly<Record<string, number>>
   onOpen: () => void
 }) {
   const surface = iconSurface(categoryIcon)
@@ -43,6 +55,10 @@ export function ExpenseLine({
         Pagó <span className={`font-bold ${personTone(personName)}`}>{personName}</span>
       </span>
     ) : null
+  const myCut =
+    expense.isShared && whoPaid === 'partner' && meId && splitPercents
+      ? mySharedCut(expense.amount, meId, splitPercents)
+      : null
   return (
     <button
       type="button"
@@ -72,7 +88,14 @@ export function ExpenseLine({
           {shortDate(expense.spentOn)} · {categoryName}
         </span>
       </span>
-      <span className="whitespace-nowrap pl-2 font-display text-lg font-semibold leading-[26px] text-tinta">{formatMoney(expense.amount)}</span>
+      <span className="flex flex-col items-end self-center pl-2">
+        <span className="whitespace-nowrap font-display text-lg font-semibold leading-[26px] text-tinta">
+          {formatSigned(expenseDisplaySigned(expense.amount))}
+        </span>
+        {myCut != null ? (
+          <span className="whitespace-nowrap text-sm font-medium text-gris">Te toca {formatMoney(myCut)}</span>
+        ) : null}
+      </span>
     </button>
   )
 }

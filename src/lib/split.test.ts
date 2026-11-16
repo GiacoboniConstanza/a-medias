@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { paidHalfCaption, pairBalance, shareAmounts, sharedHalf, splitByPercents } from './split.ts'
+import { normalizeMoney } from './format.ts'
+import { mySharedCut, paidHalfCaption, pairBalance, shareAmounts, sharedHalf, splitByPercents } from './split.ts'
 
 const owed = splitByPercents(
   25_000,
@@ -49,5 +50,21 @@ describe('mitad de un gasto', () => {
     expect(sharedHalf(10.01)).toBe(5.01)
     expect(shareAmounts(10.01, [1, 1])).toEqual([5, 5.01])
     expect(paidHalfCaption('Coty', 10.01)).toBe('Pagó Coty, mitad: $ 5,01')
+  })
+})
+
+describe('te toca de un gasto compartido', () => {
+  const percents = { coty: 60, maru: 40 }
+
+  it('usa el % del mes con el mismo redondeo', () => {
+    expect(mySharedCut(59_900, 'coty', percents)).toBe(35_940)
+    expect(mySharedCut(59_900, 'maru', percents)).toBe(23_960)
+  })
+
+  it('reparte centavos sin perder plata', () => {
+    const amount = 100.01
+    const mine = mySharedCut(amount, 'coty', percents)
+    const theirs = mySharedCut(amount, 'maru', percents)
+    expect(normalizeMoney(mine + theirs)).toBe(amount)
   })
 })

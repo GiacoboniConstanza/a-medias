@@ -326,19 +326,16 @@ function EditSavingSheet({
         Para cuándo (opcional)
         <input type="date" value={targetDate} onChange={(e) => setTargetDate(e.target.value)} className={`mt-1 ${inputClass}`} />
       </label>
-      <button
+      <Button
         type="button"
+        variant="alt"
+        className="mt-6"
         aria-disabled={!canArchive || undefined}
         disabled={!canArchive || savingBusy}
         onClick={() => void archive()}
-        className={`mt-6 flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl text-sm font-bold ${
-          canArchive
-            ? 'border-[1.5px] border-azul-ink bg-tarjeta text-tinta'
-            : 'border-[1.5px] border-dashed border-gris-claro bg-fondo-desactivado text-gris'
-        }`}
       >
-        <AppIcon name="box-archive" /> Archivar ahorro
-      </button>
+        <AppIcon name="box-archive" className="mr-1" /> Archivar ahorro
+      </Button>
       {!canArchive ? (
         <p className="mt-2 text-sm font-semibold text-gris">
           {saving.isShared

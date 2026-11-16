@@ -368,13 +368,9 @@ export function FilterSheet({
           >
             {applyLabel}
           </Button>
-          <button
-            type="button"
-            onClick={clearDraft}
-            className="mt-2 block min-h-[52px] w-full rounded-2xl border-2 border-mostaza-ink bg-card text-base font-semibold text-mostaza-ink"
-          >
+          <Button type="button" variant="secondary" tall className="mt-2" onClick={clearDraft}>
             Limpiar
-          </button>
+          </Button>
         </div>
       </div>
     </div>,

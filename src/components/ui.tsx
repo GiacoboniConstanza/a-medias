@@ -13,13 +13,17 @@ export function Button({
   tall = false,
   className = '',
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'alt' | 'pink' | 'danger'; tall?: boolean }) {
+}: ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: 'primary' | 'alt' | 'secondary' | 'pink' | 'danger'
+  tall?: boolean
+}) {
   const off = Boolean(props.disabled || props['aria-disabled'])
   const tone = off
     ? 'border-[1.5px] border-dashed border-gris-claro bg-fondo-desactivado text-gris'
     : {
         primary: 'border-[1.5px] border-tinta bg-mostaza text-tinta',
         alt: 'border-[1.5px] border-azul-ink bg-card text-tinta',
+        secondary: 'border-[1.5px] border-mostaza-ink bg-card text-mostaza-ink',
         pink: 'border-[1.5px] border-tinta bg-mostaza text-tinta',
         danger: 'border-[1.5px] border-tinta bg-card text-tinta',
       }[variant]
@@ -112,32 +116,56 @@ export function Field({
   )
 }
 
+/** Switch de Finanzas: pista h-10 w-16, perilla tinta con check (como «¿Es compartido?»). */
 export function Toggle({
   checked,
   labelledBy,
+  label,
   onClick,
   disabled,
+  className = '',
 }: {
   checked: boolean
-  labelledBy: string
+  labelledBy?: string
+  /** Si hay label, el control ocupa el ancho y el texto va a la izquierda. */
+  label?: string
   onClick: () => void
   disabled?: boolean
+  className?: string
 }) {
+  const track = (
+    <span
+      aria-hidden="true"
+      className={`relative inline-flex h-10 w-16 shrink-0 items-center rounded-full border-[1.5px] px-1 ${
+        checked ? 'justify-end border-tinta bg-mostaza' : 'justify-start border-gris bg-tarjeta'
+      }`}
+    >
+      <span
+        className={`inline-flex h-7 w-7 items-center justify-center rounded-full ${
+          checked ? 'bg-tinta text-mostaza' : 'bg-gris text-tarjeta'
+        }`}
+      >
+        {checked ? <AppIcon name="check" className="text-[14px]" /> : null}
+      </span>
+    </span>
+  )
   return (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
       aria-labelledby={labelledBy}
+      aria-label={label}
       disabled={disabled}
       onClick={onClick}
-      className={`relative h-11 w-16 shrink-0 rounded-full border border-line disabled:opacity-50 ${checked ? 'bg-mostaza' : 'bg-sand'}`}
+      className={
+        label
+          ? `flex min-h-[52px] w-full items-center justify-between gap-3 disabled:opacity-50 ${className}`
+          : `shrink-0 disabled:opacity-50 ${className}`
+      }
     >
-      <span
-        className={`absolute left-1 top-1.5 h-8 w-8 rounded-full bg-sand-soft shadow-soft transition-transform motion-reduce:transition-none ${
-          checked ? 'translate-x-6' : 'translate-x-0'
-        }`}
-      />
+      {label ? <span className="text-left text-lg font-medium text-tinta">{label}</span> : null}
+      {track}
     </button>
   )
 }

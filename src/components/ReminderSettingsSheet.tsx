@@ -1,7 +1,7 @@
 import { useId, useState } from 'react'
 import { AppIcon } from './AppIcon.tsx'
 import { Sheet } from './Sheet.tsx'
-import { ErrorText, Toggle } from './ui.tsx'
+import { Button, ErrorText, Toggle } from './ui.tsx'
 import { MAX_ASK_TIMES, nextTimeSlot, reminderFootnote, timesValid, type ReminderPrefs } from '../lib/reminders.ts'
 
 const pill =
@@ -60,14 +60,14 @@ export function ReminderSettingsSheet({
       <section className="mb-3 rounded-2xl bg-sand px-4 py-4">
         <p className="text-base font-bold text-title">Activar notificaciones en el celu</p>
         <p className="mt-1 text-sm font-semibold text-muted">Si el celular no está configurado, no enviamos nada.</p>
-        <button
+        <Button
           type="button"
-          className="mt-3 min-h-11 rounded-2xl bg-mostaza px-4 text-sm font-bold text-tinta disabled:opacity-50"
+          className="mt-3"
           onClick={onActivatePush}
           disabled={prefs.pushEnabled}
         >
           {prefs.pushEnabled ? 'Activadas' : 'Activar'}
-        </button>
+        </Button>
       </section>
 
       <section className="mb-4">
