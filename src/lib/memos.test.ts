@@ -1,20 +1,27 @@
 import { describe, expect, it } from 'vitest'
 import {
+  archivedMemos,
   canToggleMemoLabel,
   checkedThisWeek,
   defaultMemoLabelColor,
   deleteLabelBody,
   duplicateLabelNameError,
   groupMemos,
+  hideDoneStorageKey,
   isMemoGoneMessage,
   labelCountText,
   labelFilterLive,
+  memoArchivedEmpty,
   memoCharHint,
+  memoCounts,
   memoDeleteError,
+  memoHiddenDoneEmpty,
   memoLabelAttachError,
   memoLabelCreateError,
   memoSaveError,
   memoShareDetail,
+  memoShowDoneLabel,
+  partnerPendingMemos,
   withLabelCounts,
   type MemoItem,
 } from './memos.ts'
@@ -88,6 +95,78 @@ describe('checkedThisWeek con done_at', () => {
         now,
       ),
     ).toBe(0)
+  })
+
+  it('cuenta tachados de esta semana aunque estén archivados', () => {
+    expect(
+      checkedThisWeek(
+        [
+          memo({
+            id: 'a',
+            ownerId: 'coty',
+            done: true,
+            doneAt: '2026-10-27T12:00:00.000Z',
+            archivedAt: '2026-10-28T09:00:00.000Z',
+          }),
+        ],
+        'coty',
+        now,
+      ),
+    ).toBe(1)
+  })
+})
+
+describe('archivar memos', () => {
+  it('excluye archivados de la lista, conteos y partnerPendingMemos', () => {
+    const items = [
+      memo({ id: '1', ownerId: 'coty', shared: true }),
+      memo({ id: '2', ownerId: 'coty', archivedAt: '2026-11-16T10:00:00.000Z' }),
+      memo({ id: '3', ownerId: 'maru', shared: true, archivedAt: '2026-11-16T11:00:00.000Z' }),
+      memo({ id: '4', ownerId: 'maru', shared: true }),
+    ]
+    expect(groupMemos(items, 'coty').shared.map((item) => item.id)).toEqual(['1', '4'])
+    expect(groupMemos(items, 'coty').solo).toEqual([])
+    expect(memoCounts(items)).toEqual({ pending: 2, sharedPending: 2 })
+    expect(partnerPendingMemos(items, 'coty').map((item) => item.id)).toEqual(['4'])
+  })
+
+  it('vista archivados ordenada por archivedAt más reciente primero', () => {
+    const items = [
+      memo({ id: 'old', ownerId: 'coty', archivedAt: '2026-11-10T10:00:00.000Z' }),
+      memo({ id: 'new', ownerId: 'coty', archivedAt: '2026-11-16T12:00:00.000Z' }),
+      memo({ id: 'mid', ownerId: 'maru', shared: true, archivedAt: '2026-11-14T08:00:00.000Z' }),
+      memo({ id: 'live', ownerId: 'coty' }),
+    ]
+    expect(archivedMemos(items).map((item) => item.id)).toEqual(['new', 'mid', 'old'])
+  })
+
+  it('ocultar hechos saca los tachados de la lista activa', () => {
+    const items = [
+      memo({ id: '1', ownerId: 'coty', shared: true, done: true }),
+      memo({ id: '2', ownerId: 'coty', shared: true }),
+      memo({ id: '3', ownerId: 'coty' }),
+    ]
+    const groups = groupMemos(items, 'coty', null, { hideDone: true })
+    expect(groups.shared.map((item) => item.id)).toEqual(['2'])
+    expect(groups.solo.map((item) => item.id)).toEqual(['3'])
+  })
+
+  it('conteos de etiquetas no cuentan archivados', () => {
+    const labels = withLabelCounts(
+      [{ id: 'casa', name: 'Casa', color: 'avellana' }],
+      [
+        memo({ id: '1', ownerId: 'coty', labelIds: ['casa'] }),
+        memo({ id: '2', ownerId: 'coty', labelIds: ['casa'], archivedAt: '2026-11-16T10:00:00.000Z' }),
+      ],
+    )
+    expect(labels[0]?.count).toBe(1)
+  })
+
+  it('textos de vacíos y clave de ocultar hechos', () => {
+    expect(memoArchivedEmpty()).toBe('No tenés memos archivados.')
+    expect(memoHiddenDoneEmpty()).toBe('Todo hecho. Están ocultos.')
+    expect(memoShowDoneLabel()).toBe('Mostrar hechos')
+    expect(hideDoneStorageKey('user-1')).toBe('amedias:memos:ocultar-hechos:user-1')
   })
 })
 

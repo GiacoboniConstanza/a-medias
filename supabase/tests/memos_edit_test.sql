@@ -150,7 +150,7 @@ select throws_ok(
     set text = 'Lo cambió Maru'
     where id = 'b1b1b1b1-b1b1-41b1-81b1-b1b1b1b1b1b1'$$,
   'P0001',
-  'Solo podés marcarlo hecho',
+  'Solo podés marcarlo hecho o archivarlo',
   'la otra no puede editar el texto'
 );
 

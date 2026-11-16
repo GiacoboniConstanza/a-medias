@@ -7,7 +7,7 @@ import { Fab, FabSpace } from '../components/Fab.tsx'
 import { ModuleTitle } from '../components/ModulePill.tsx'
 import { ModuleSwitch } from '../components/ModuleSwitch.tsx'
 import { Sheet } from '../components/Sheet.tsx'
-import { Button, FieldError, Toast } from '../components/ui.tsx'
+import { Button, FieldError, Toast, Toggle } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
 import { useModules } from '../context/ModulesProvider.tsx'
@@ -17,18 +17,23 @@ import {
   MEMO_LABEL_COLOR_NAMES,
   MEMO_LABEL_MAX,
   MEMO_LABEL_NAME_MAX,
+  archivedMemos,
   canToggleMemoLabel,
   defaultMemoLabelColor,
   deleteLabelBody,
   duplicateLabelNameError,
   groupMemos,
+  isMemoArchived,
   isMemoGoneMessage,
   isMemoLabelColor,
   labelChipClasses,
   labelCountText,
   labelFilterLive,
+  memoArchiveError,
+  memoArchivedEmpty,
   memoCharHint,
   memoDeleteError,
+  memoHiddenDoneEmpty,
   memoLabelAttachError,
   memoLabelCreateError,
   memoLabelDeleteError,
@@ -37,9 +42,13 @@ import {
   memoLoadError,
   memoSaveError,
   memoShareDetail,
+  memoShowDoneLabel,
   memoToggleError,
+  memoUnarchiveError,
   memoUndoError,
+  readHideDone,
   withLabelCounts,
+  writeHideDone,
   type MemoItem,
   type MemoLabel,
   type MemoLabelColor,
@@ -58,6 +67,7 @@ type MemoRow = {
   updated_at: string
   created_at: string
   done_at: string | null
+  archived_at: string | null
 }
 
 type LabelRow = {
@@ -82,6 +92,7 @@ function mapRow(row: MemoRow, labelIds: string[] = []): MemoItem {
     updatedAt: row.updated_at,
     createdAt: row.created_at,
     doneAt: row.done_at,
+    archivedAt: row.archived_at,
     labelIds,
   }
 }
@@ -105,7 +116,7 @@ function linksByMemo(links: LinkRow[]): Map<string, string[]> {
   return map
 }
 
-const MEMO_SELECT = 'id, owner_id, text, done, shared, updated_at, created_at, done_at'
+const MEMO_SELECT = 'id, owner_id, text, done, shared, updated_at, created_at, done_at, archived_at'
 
 async function fetchMemosWithLabels(): Promise<
   { memos: MemoItem[]; error?: undefined } | { memos: MemoItem[]; error: string }
@@ -165,10 +176,18 @@ export function MemosScreen() {
   const [manageOpen, setManageOpen] = useState(false)
   const [toast, setToast] = useState('')
   const [undoMemo, setUndoMemo] = useState<MemoItem | null>(null)
+  const [undoArchive, setUndoArchive] = useState<MemoItem | null>(null)
+  const [hideDone, setHideDone] = useState(() => (profile ? readHideDone(profile.id) : false))
 
   const filterId = params.get('etiqueta')
   const filterLabel = filterId ? labels.find((label) => label.id === filterId) ?? null : null
-  const activeFilterId = filterLabel ? filterLabel.id : null
+  const viewArchived = params.get('vista') === 'archivados'
+  const activeFilterId = viewArchived ? null : filterLabel ? filterLabel.id : null
+
+  useEffect(() => {
+    if (!profile) return
+    setHideDone(readHideDone(profile.id))
+  }, [profile])
 
   async function loadLabels(nextMemos: MemoItem[]) {
     const { data: rows, error: loadError } = await supabase
@@ -240,17 +259,41 @@ export function MemosScreen() {
 
   const otherId = data ? partnerId(data, profile.id) : null
   const partnerName = (otherId && data?.names[otherId]) || 'tu compañera'
-  const groups = groupMemos(memos, profile.id, activeFilterId)
-  const filteredCount = activeFilterId
-    ? memos.filter((memo) => (memo.labelIds ?? []).includes(activeFilterId)).length
-    : memos.length
+  const hideDoneActive = hideDone && !viewArchived
+  const groups = viewArchived
+    ? { shared: [] as MemoItem[], solo: [] as MemoItem[] }
+    : groupMemos(memos, profile.id, activeFilterId, { hideDone: hideDoneActive })
+  const archivedList = viewArchived ? archivedMemos(memos) : []
   const labelsWithCounts = withLabelCounts(labels, memos)
+  const filteredCount = activeFilterId
+    ? labelsWithCounts.find((label) => label.id === activeFilterId)?.count ?? 0
+    : 0
+  const activeListEmpty =
+    !viewArchived && groups.shared.length === 0 && groups.solo.length === 0
+  const hasActiveMemos =
+    memos.some((memo) => !isMemoArchived(memo) && (!activeFilterId || (memo.labelIds ?? []).includes(activeFilterId)))
+  const allDoneHidden = hideDoneActive && activeListEmpty && hasActiveMemos
 
   function setFilter(nextId: string | null) {
     const nextParams = new URLSearchParams(params)
+    nextParams.delete('vista')
     if (!nextId) nextParams.delete('etiqueta')
     else nextParams.set('etiqueta', nextId)
     setParams(nextParams, { replace: true })
+  }
+
+  function setArchivedView(on: boolean) {
+    const nextParams = new URLSearchParams(params)
+    nextParams.delete('etiqueta')
+    if (on) nextParams.set('vista', 'archivados')
+    else nextParams.delete('vista')
+    setParams(nextParams, { replace: true })
+  }
+
+  function setHideDonePref(next: boolean) {
+    if (!profile) return
+    setHideDone(next)
+    writeHideDone(profile.id, next)
   }
 
   function patchMemoLabels(memoId: string, labelIds: string[]) {
@@ -316,6 +359,96 @@ export function MemosScreen() {
     setEditing(memo)
   }
 
+  async function setArchived(memo: MemoItem, archived: boolean) {
+    const previous = memo.archivedAt
+    const optimistic = archived ? new Date().toISOString() : null
+    setMemos((current) =>
+      current.map((item) =>
+        item.id === memo.id
+          ? { ...item, archivedAt: optimistic, updatedAt: new Date().toISOString() }
+          : item,
+      ),
+    )
+    setEditing(null)
+    setUndoArchive({ ...memo, archivedAt: previous ?? null })
+    setUndoMemo(null)
+    setToast(archived ? 'Memo archivado' : 'Memo desarchivado')
+    const { data: rows, error: saveError } = await supabase
+      .from('memos')
+      .update({ archived_at: archived ? new Date().toISOString() : null })
+      .eq('id', memo.id)
+      .select(MEMO_SELECT)
+    const errMsg = saveError ? saveError.message : undefined
+    if (saveError || !rows?.length) {
+      setMemos((current) =>
+        current.map((item) =>
+          item.id === memo.id
+            ? { ...item, archivedAt: previous, updatedAt: memo.updatedAt }
+            : item,
+        ),
+      )
+      setToast('')
+      setUndoArchive(null)
+      if (!rows?.length || isMemoGoneMessage(errMsg)) {
+        setError('Ese memo ya no está o cambió. Actualicé la lista.')
+        void reload()
+      } else {
+        setError(archived ? memoArchiveError(errMsg) : memoUnarchiveError(errMsg))
+      }
+      return
+    }
+    const row = rows[0]! as MemoRow
+    setMemos((current) =>
+      current.map((item) =>
+        item.id === memo.id ? mapRow(row, item.labelIds ?? memo.labelIds ?? []) : item,
+      ),
+    )
+  }
+
+  async function undoArchiveToggle() {
+    if (!undoArchive) {
+      setError(memoUndoError())
+      return false
+    }
+    // undoArchive guarda el estado previo: null = desarchivar; no null = archivar de nuevo
+    const restoreTo = undoArchive.archivedAt ?? null
+    const target = memos.find((item) => item.id === undoArchive.id) ?? undoArchive
+    const previous = target.archivedAt
+    setMemos((current) =>
+      current.map((item) =>
+        item.id === target.id
+          ? {
+              ...item,
+              archivedAt: restoreTo === null ? null : restoreTo || new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            }
+          : item,
+      ),
+    )
+    setUndoArchive(null)
+    const { data: rows, error: saveError } = await supabase
+      .from('memos')
+      .update({ archived_at: restoreTo === null ? null : new Date().toISOString() })
+      .eq('id', target.id)
+      .select(MEMO_SELECT)
+    if (saveError || !rows?.length) {
+      setMemos((current) =>
+        current.map((item) =>
+          item.id === target.id ? { ...item, archivedAt: previous, updatedAt: target.updatedAt } : item,
+        ),
+      )
+      setError(memoUndoError())
+      return false
+    }
+    const row = rows[0]! as MemoRow
+    setMemos((current) =>
+      current.map((item) =>
+        item.id === target.id ? mapRow(row, item.labelIds ?? target.labelIds ?? []) : item,
+      ),
+    )
+    return true
+  }
+
   async function undoDelete() {
     const householdId = profile?.householdId
     if (!undoMemo || !householdId) {
@@ -333,6 +466,7 @@ export function MemosScreen() {
         done: undoMemo.done,
         created_at: undoMemo.createdAt,
         done_at: undoMemo.doneAt ?? null,
+        archived_at: undoMemo.archivedAt ?? null,
       })
       .select(MEMO_SELECT)
       .single()
@@ -380,20 +514,47 @@ export function MemosScreen() {
         <Plantita width={46} height={60} />
         <span>Cuando taches uno, tu plantita florece.</span>
       </div>
-      {labelsWithCounts.length > 0 ? (
-        <LabelFilterRow
-          labels={labelsWithCounts}
-          activeId={activeFilterId}
-          onSelect={setFilter}
-          onEdit={() => setManageOpen(true)}
-        />
-      ) : null}
+      <LabelFilterRow
+        labels={labelsWithCounts}
+        activeId={activeFilterId}
+        archived={viewArchived}
+        onSelect={setFilter}
+        onArchived={() => setArchivedView(true)}
+        onEdit={() => setManageOpen(true)}
+      />
       {activeFilterId && filterLabel ? (
         <p className="sr-only" aria-live="polite">
           {labelFilterLive(filteredCount, filterLabel.name)}
         </p>
       ) : null}
+      {!viewArchived ? (
+        <div className="mb-1 mt-1 flex min-h-11 items-center justify-between gap-3">
+          <span id="memos-ocultar-hechos" className="text-sm font-semibold text-tinta">
+            Ocultar hechos
+          </span>
+          <Toggle
+            checked={hideDone}
+            labelledBy="memos-ocultar-hechos"
+            onClick={() => setHideDonePref(!hideDone)}
+          />
+        </div>
+      ) : null}
       {loading ? <p className="py-8 text-center font-semibold text-muted">Cargando memos…</p> : null}
+      {!loading && viewArchived && archivedList.length === 0 ? (
+        <p className="py-8 text-center font-semibold text-muted">{memoArchivedEmpty()}</p>
+      ) : null}
+      {!loading && !viewArchived && allDoneHidden ? (
+        <div className="mt-7 px-2 text-center">
+          <p className="text-base font-semibold text-tinta">{memoHiddenDoneEmpty()}</p>
+          <button
+            type="button"
+            className="mt-4 text-sm font-bold text-azul-ink underline"
+            onClick={() => setHideDonePref(false)}
+          >
+            {memoShowDoneLabel()}
+          </button>
+        </div>
+      ) : null}
       {!loading && activeFilterId && filterLabel && filteredCount === 0 ? (
         <div className="mt-7 px-2 text-center">
           <p className="text-base font-semibold text-tinta">No hay memos con «{filterLabel.name}».</p>
@@ -409,41 +570,64 @@ export function MemosScreen() {
           </button>
         </div>
       ) : null}
-      {!loading && !activeFilterId && groups.shared.length === 0 && groups.solo.length === 0 ? (
+      {!loading && !viewArchived && !activeFilterId && !allDoneHidden && activeListEmpty ? (
         <p className="py-8 text-center font-semibold text-muted">Todavía no hay memos.</p>
       ) : null}
-      <MemoGroup
-        title="Con"
-        accent={partnerName}
-        accentClass="text-salvia-ink"
-        memos={groups.shared}
-        labels={labelsWithCounts}
-        meId={profile.id}
-        partnerName={partnerName}
-        onToggle={toggleDone}
-        onOpen={openMemo}
-      />
-      <MemoGroup
-        title="Solo"
-        accent="vos"
-        accentClass="text-rosa-texto"
-        memos={groups.solo}
-        labels={labelsWithCounts}
-        meId={profile.id}
-        partnerName={partnerName}
-        onToggle={toggleDone}
-        onOpen={openMemo}
-      />
+      {viewArchived ? (
+        <MemoGroup
+          title="Archivados"
+          accent=""
+          accentClass=""
+          memos={archivedList}
+          labels={labelsWithCounts}
+          meId={profile.id}
+          partnerName={partnerName}
+          onToggle={toggleDone}
+          onOpen={openMemo}
+        />
+      ) : (
+        <>
+          <MemoGroup
+            title="Con"
+            accent={partnerName}
+            accentClass="text-salvia-ink"
+            memos={groups.shared}
+            labels={labelsWithCounts}
+            meId={profile.id}
+            partnerName={partnerName}
+            onToggle={toggleDone}
+            onOpen={openMemo}
+          />
+          <MemoGroup
+            title="Solo"
+            accent="vos"
+            accentClass="text-rosa-texto"
+            memos={groups.solo}
+            labels={labelsWithCounts}
+            meId={profile.id}
+            partnerName={partnerName}
+            onToggle={toggleDone}
+            onOpen={openMemo}
+          />
+        </>
+      )}
       {error ? <p className="text-center text-sm font-bold text-tinta">{error}</p> : null}
       <FabSpace avisos={Boolean(toast)} />
-      <Fab label="Nuevo memo" onClick={() => setOpen(true)} />
+      {!viewArchived ? <Fab label="Nuevo memo" onClick={() => setOpen(true)} /> : null}
       {toast ? (
         <Toast
           aboveFab
-          onUndo={undoMemo ? () => undoDelete() : undefined}
+          onUndo={
+            undoMemo
+              ? () => undoDelete()
+              : undoArchive
+                ? () => undoArchiveToggle()
+                : undefined
+          }
           onDone={() => {
             setToast('')
             setUndoMemo(null)
+            setUndoArchive(null)
           }}
         >
           {toast}
@@ -481,8 +665,12 @@ export function MemosScreen() {
           onDeleted={(memo) => {
             setEditing(null)
             removeMemo(memo.id)
+            setUndoArchive(null)
             setUndoMemo(memo)
             setToast('Eliminé el memo.')
+          }}
+          onArchive={(memo) => {
+            void setArchived(memo, !isMemoArchived(memo))
           }}
           onGone={() => {
             setEditing(null)
@@ -505,6 +693,9 @@ export function MemosScreen() {
             void toggleDone(editing)
             setEditing(null)
           }}
+          onArchive={() => {
+            void setArchived(editing, !isMemoArchived(editing))
+          }}
         />
       ) : null}
       <ManageLabelsSheet
@@ -524,34 +715,40 @@ export function MemosScreen() {
 function LabelFilterRow({
   labels,
   activeId,
+  archived,
   onSelect,
+  onArchived,
   onEdit,
 }: {
   labels: MemoLabel[]
   activeId: string | null
+  archived: boolean
   onSelect: (id: string | null) => void
+  onArchived: () => void
   onEdit: () => void
 }) {
   useEffect(() => {
     const selected = document.querySelector<HTMLElement>('[data-label-filter][aria-checked="true"]')
     selected?.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' })
-  }, [activeId, labels])
+  }, [activeId, archived, labels])
+
+  const allSelected = !archived && !activeId
 
   return (
     <div className="-mx-4 mb-3 mt-3">
       <div
         className="flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         role="radiogroup"
-        aria-label="Filtrar por etiqueta"
+        aria-label="Filtrar memos"
         style={{ scrollPaddingInline: 16 }}
       >
         <button
           type="button"
           role="radio"
           data-label-filter
-          aria-checked={!activeId}
+          aria-checked={allSelected}
           className={`inline-flex h-11 shrink-0 items-center gap-1 rounded-full border-[1.5px] px-3 text-sm ${
-            !activeId
+            allSelected
               ? 'border-azul-ink bg-azul-claro font-bold text-tinta'
               : 'border-azul-ink bg-tarjeta font-semibold text-tinta'
           }`}
@@ -560,11 +757,11 @@ function LabelFilterRow({
             event.currentTarget.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' })
           }}
         >
-          {!activeId ? <AppIcon name="check" /> : null}
+          {allSelected ? <AppIcon name="check" /> : null}
           Todas
         </button>
         {labels.map((label) => {
-          const selected = activeId === label.id
+          const selected = !archived && activeId === label.id
           return (
             <button
               key={label.id}
@@ -587,6 +784,24 @@ function LabelFilterRow({
             </button>
           )
         })}
+        <button
+          type="button"
+          role="radio"
+          data-label-filter
+          aria-checked={archived}
+          className={`inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full border-[1.5px] px-3 text-sm ${
+            archived
+              ? 'border-azul-ink bg-azul-claro font-bold text-tinta'
+              : 'border-azul-ink bg-tarjeta font-semibold text-tinta'
+          }`}
+          onClick={(event) => {
+            onArchived()
+            event.currentTarget.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' })
+          }}
+        >
+          {archived ? <AppIcon name="check" /> : <AppIcon name="box-archive" />}
+          Archivados
+        </button>
         <button
           type="button"
           className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full border-[1.5px] border-dashed border-azul-ink bg-tarjeta px-3 text-sm font-semibold text-tinta"
@@ -788,6 +1003,7 @@ function MemoFormSheet({
   onClose,
   onSaved,
   onDeleted,
+  onArchive,
   onGone,
 }: {
   open: boolean
@@ -802,6 +1018,7 @@ function MemoFormSheet({
   onClose: () => void
   onSaved: (memo: MemoItem) => void
   onDeleted?: (memo: MemoItem) => void
+  onArchive?: (memo: MemoItem) => void
   onGone?: () => void
 }) {
   const [text, setText] = useState('')
@@ -826,6 +1043,7 @@ function MemoFormSheet({
   const empty = trimmed.length === 0
   const canSave = !busy && !empty && dirty
   const charHint = memoCharHint(text.length)
+  const archived = memo ? isMemoArchived(memo) : false
 
   useEffect(() => {
     if (!open) return
@@ -1070,6 +1288,21 @@ function MemoFormSheet({
             <span>{labelError}</span>
           </p>
         ) : null}
+        {editing && memo && onArchive ? (
+          <div className="mt-3">
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={busy}
+              onClick={() => onArchive({ ...memo, labelIds: selectedIds })}
+            >
+              <span className="inline-flex items-center justify-center gap-2">
+                <AppIcon name={archived ? 'box-open' : 'box-archive'} />
+                {archived ? 'Desarchivar' : 'Archivar'}
+              </span>
+            </Button>
+          </div>
+        ) : null}
         {editing ? (
           <div className="mt-3">
             {deleteError ? <FieldError>{deleteError}</FieldError> : null}
@@ -1122,6 +1355,7 @@ function PartnerMemoSheet({
   onMemoLabels,
   onClose,
   onToggle,
+  onArchive,
 }: {
   open: boolean
   memo: MemoItem
@@ -1132,10 +1366,12 @@ function PartnerMemoSheet({
   onMemoLabels: (memoId: string, labelIds: string[]) => void
   onClose: () => void
   onToggle: () => void
+  onArchive: () => void
 }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([...(memo.labelIds ?? [])])
   const [labelError, setLabelError] = useState('')
   const [newLabelOpen, setNewLabelOpen] = useState(false)
+  const archived = isMemoArchived(memo)
 
   useEffect(() => {
     if (!open) return
@@ -1183,12 +1419,20 @@ function PartnerMemoSheet({
         title={`Memo de ${partnerName}`}
         onClose={onClose}
         footer={
-          <Button type="button" onClick={onToggle}>
-            <span className="inline-flex items-center justify-center gap-2">
-              <AppIcon name="check" />
-              {memo.done ? 'Marcar pendiente' : 'Marcar hecho'}
-            </span>
-          </Button>
+          <div className="space-y-2">
+            <Button type="button" onClick={onToggle}>
+              <span className="inline-flex items-center justify-center gap-2">
+                <AppIcon name="check" />
+                {memo.done ? 'Marcar pendiente' : 'Marcar hecho'}
+              </span>
+            </Button>
+            <Button type="button" variant="secondary" onClick={onArchive}>
+              <span className="inline-flex items-center justify-center gap-2">
+                <AppIcon name={archived ? 'box-open' : 'box-archive'} />
+                {archived ? 'Desarchivar' : 'Archivar'}
+              </span>
+            </Button>
+          </div>
         }
       >
         <p className="text-lg font-medium text-tinta">{memo.text}</p>
@@ -1200,8 +1444,8 @@ function PartnerMemoSheet({
         <p className="mt-4 flex items-start gap-2 rounded-[20px] bg-azul-claro px-3.5 py-3 text-base font-semibold text-tinta">
           <AppIcon name="lock" className="mt-0.5 shrink-0 text-azul-ink" />
           <span>
-            Lo escribió {partnerName}. Solo ella lo puede cambiar o eliminar. Vos lo podés tachar y cambiarle las
-            etiquetas.
+            Lo escribió {partnerName}. Solo ella lo puede cambiar o eliminar. Vos lo podés tachar, archivarlo y
+            cambiarle las etiquetas.
           </span>
         </p>
         <MemoLabelPicker

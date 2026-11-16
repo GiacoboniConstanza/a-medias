@@ -631,6 +631,7 @@ export type Database = {
           created_at: string
           updated_at: string
           done_at: string | null
+          archived_at: string | null
         },
         {
           id?: string
@@ -642,8 +643,16 @@ export type Database = {
           created_at?: string
           updated_at?: string
           done_at?: string | null
+          archived_at?: string | null
         },
-        { text?: string; done?: boolean; shared?: boolean; updated_at?: string; done_at?: string | null }
+        {
+          text?: string
+          done?: boolean
+          shared?: boolean
+          updated_at?: string
+          done_at?: string | null
+          archived_at?: string | null
+        }
       >
       memo_labels: Table<
         {

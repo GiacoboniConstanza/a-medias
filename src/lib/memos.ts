@@ -36,12 +36,29 @@ export type MemoItem = {
   createdAt?: string
   /** Cuándo se tachó. undefined = no vino de la base (p. ej. Hub sin migrar el select). */
   doneAt?: string | null
+  /** Cuándo se archivó. undefined = pantallas que aún no cargan la columna (p. ej. Hub). */
+  archivedAt?: string | null
   /** Etiquetas del memo. undefined = pantallas que aún no cargan uniones (p. ej. Hub). */
   labelIds?: string[]
 }
 
+export function isMemoArchived(memo: MemoItem): boolean {
+  return memo.archivedAt != null
+}
+
+export function activeMemos(memos: readonly MemoItem[]): MemoItem[] {
+  return memos.filter((memo) => !isMemoArchived(memo))
+}
+
+export function archivedMemos(memos: readonly MemoItem[]): MemoItem[] {
+  return memos
+    .filter((memo) => isMemoArchived(memo))
+    .slice()
+    .sort((a, b) => (b.archivedAt ?? '').localeCompare(a.archivedAt ?? ''))
+}
+
 export function partnerPendingMemos(memos: readonly MemoItem[], meId: string): MemoItem[] {
-  return memos.filter((memo) => memo.shared && !memo.done && memo.ownerId !== meId)
+  return activeMemos(memos).filter((memo) => memo.shared && !memo.done && memo.ownerId !== meId)
 }
 
 function pendingFirst(memos: readonly MemoItem[]): MemoItem[] {
@@ -52,8 +69,11 @@ export function groupMemos(
   memos: readonly MemoItem[],
   meId: string,
   labelId?: string | null,
+  options?: { hideDone?: boolean },
 ): { shared: MemoItem[]; solo: MemoItem[] } {
-  const filtered = labelId ? memos.filter((memo) => (memo.labelIds ?? []).includes(labelId)) : memos
+  let filtered = activeMemos(memos)
+  if (labelId) filtered = filtered.filter((memo) => (memo.labelIds ?? []).includes(labelId))
+  if (options?.hideDone) filtered = filtered.filter((memo) => !memo.done)
   return {
     shared: pendingFirst(filtered.filter((memo) => memo.shared)),
     solo: pendingFirst(filtered.filter((memo) => !memo.shared && memo.ownerId === meId)),
@@ -61,11 +81,46 @@ export function groupMemos(
 }
 
 export function memoCounts(memos: readonly MemoItem[]): { pending: number; sharedPending: number } {
-  const pending = memos.filter((memo) => !memo.done)
+  const pending = activeMemos(memos).filter((memo) => !memo.done)
   return {
     pending: pending.length,
     sharedPending: pending.filter((memo) => memo.shared).length,
   }
+}
+
+export const HIDE_DONE_STORAGE_PREFIX = 'amedias:memos:ocultar-hechos:'
+
+export function hideDoneStorageKey(userId: string): string {
+  return `${HIDE_DONE_STORAGE_PREFIX}${userId}`
+}
+
+export function readHideDone(userId: string): boolean {
+  try {
+    return localStorage.getItem(hideDoneStorageKey(userId)) === '1'
+  } catch {
+    return false
+  }
+}
+
+export function writeHideDone(userId: string, value: boolean): void {
+  try {
+    if (value) localStorage.setItem(hideDoneStorageKey(userId), '1')
+    else localStorage.removeItem(hideDoneStorageKey(userId))
+  } catch {
+    /* ignore */
+  }
+}
+
+export function memoArchivedEmpty(): string {
+  return 'No tenés memos archivados.'
+}
+
+export function memoHiddenDoneEmpty(): string {
+  return 'Todo hecho. Están ocultos.'
+}
+
+export function memoShowDoneLabel(): string {
+  return 'Mostrar hechos'
 }
 
 export function pendingLabel(count: number): string {
@@ -125,10 +180,21 @@ export function isMemoGoneMessage(message: string | undefined): boolean {
   return (
     message.includes('No podés editar este memo') ||
     message.includes('Solo podés marcarlo hecho') ||
+    message.includes('Solo podés marcarlo hecho o archivarlo') ||
     message.includes('Solo quien lo escribió puede borrarlo') ||
     message.includes('JSON object requested, multiple (or no) rows returned') ||
     message.includes('Contains 0 rows')
   )
+}
+
+export function memoArchiveError(message?: string): string {
+  if (isMemoGoneMessage(message)) return 'Ese memo ya no está o cambió. Actualicé la lista.'
+  return 'No pude archivar el memo. Revisá la conexión y probá de nuevo.'
+}
+
+export function memoUnarchiveError(message?: string): string {
+  if (isMemoGoneMessage(message)) return 'Ese memo ya no está o cambió. Actualicé la lista.'
+  return 'No pude desarchivar el memo. Revisá la conexión y probá de nuevo.'
 }
 
 export function memoLoadError(): string {
@@ -166,9 +232,10 @@ export function withLabelCounts(
   labels: readonly { id: string; name: string; color: MemoLabelColor }[],
   memos: readonly MemoItem[],
 ): MemoLabel[] {
+  const visible = activeMemos(memos)
   return labels.map((label) => ({
     ...label,
-    count: memos.filter((memo) => (memo.labelIds ?? []).includes(label.id)).length,
+    count: visible.filter((memo) => (memo.labelIds ?? []).includes(label.id)).length,
   }))
 }
 

@@ -197,7 +197,7 @@ select throws_ok(
     set text = 'Otra cosa'
     where id = 'f2f2f2f2-f2f2-42f2-82f2-f2f2f2f2f2f2'$$,
   'P0001',
-  'Solo podés marcarlo hecho',
+  'Solo podés marcarlo hecho o archivarlo',
   'la otra no puede editar el texto'
 );
 

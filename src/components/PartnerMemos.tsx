@@ -16,9 +16,10 @@ export function PartnerMemos() {
     let active = true
     supabase
       .from('memos')
-      .select('id, owner_id, text, done, shared, updated_at')
+      .select('id, owner_id, text, done, shared, updated_at, archived_at')
       .eq('shared', true)
       .eq('done', false)
+      .is('archived_at', null)
       .order('created_at', { ascending: false })
       .then(({ data: rows, error: loadError }) => {
         if (!active) return
@@ -35,6 +36,7 @@ export function PartnerMemos() {
             done: row.done,
             shared: row.shared,
             updatedAt: row.updated_at,
+            archivedAt: row.archived_at,
           })),
         )
       })

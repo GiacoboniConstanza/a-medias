@@ -151,4 +151,21 @@ describe('memos del hub', () => {
     ).toBe(1)
     expect(plantLine(2, 0).detail).toBe('Tenés 2 memos pendientes.')
   })
+
+  it('con archivedAt el hub no cuenta pendientes archivados y la plantita sí cuenta tachados archivados', () => {
+    const now = new Date(2026, 9, 28)
+    const hubRows = [
+      memo({ id: '1', ownerId: 'coty', shared: true }),
+      memo({ id: '2', ownerId: 'coty', archivedAt: '2026-10-28T10:00:00.000Z' }),
+      memo({
+        id: '3',
+        ownerId: 'coty',
+        done: true,
+        doneAt: '2026-10-27T12:00:00.000Z',
+        archivedAt: '2026-10-28T11:00:00.000Z',
+      }),
+    ]
+    expect(memoCounts(hubRows)).toEqual({ pending: 1, sharedPending: 1 })
+    expect(checkedThisWeek(hubRows, 'coty', now)).toBe(1)
+  })
 })
