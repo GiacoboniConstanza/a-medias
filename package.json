@@ -36,5 +36,10 @@
   },
   "optionalDependencies": {
     "@tailwindcss/oxide-linux-x64-gnu": "^4.3.5"
+  },
+  "overrides": {
+    "deepmerge": "4.1.2",
+    "glob": "14.0.6",
+    "minimatch": "11.0.8"
   }
 }
