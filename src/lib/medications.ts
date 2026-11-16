@@ -336,3 +336,64 @@ export function groupTreatments(
 export function maxSchedules(): number {
   return 6
 }
+
+/** Fila de hora del formulario: identidad estable distinta del valor HH:MM. */
+export type MedicationTimeRow = {
+  id: string
+  time: string
+}
+
+function newTimeRowId(): string {
+  return crypto.randomUUID()
+}
+
+/** Próxima hora en punto según el reloj de Argentina. */
+export function nextHourOnTheHour(at: Date = new Date()): string {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(at)
+  const hour = Number(parts.find((part) => part.type === 'hour')?.value ?? '0')
+  const next = (hour + 1) % 24
+  return `${String(next).padStart(2, '0')}:00`
+}
+
+/** Primera hora en punto libre siguiente a `afterTime` (no repite las existentes). */
+export function nextFreeHourOnTheHour(existingTimes: readonly string[], afterTime: string): string {
+  const occupied = new Set(existingTimes.map((time) => time.slice(0, 5)))
+  const hour = Number((afterTime.slice(0, 5).split(':')[0] ?? '0'))
+  for (let step = 1; step <= 24; step += 1) {
+    const candidate = `${String((hour + step) % 24).padStart(2, '0')}:00`
+    if (!occupied.has(candidate)) return candidate
+  }
+  return `${String((hour + 1) % 24).padStart(2, '0')}:00`
+}
+
+export function createTimeRows(times: readonly string[]): MedicationTimeRow[] {
+  return times.map((time) => ({ id: newTimeRowId(), time: time.slice(0, 5) }))
+}
+
+export function sortedTimeValues(rows: readonly MedicationTimeRow[]): string[] {
+  return rows.map((row) => row.time.slice(0, 5)).slice().sort()
+}
+
+export function addTimeRow(rows: readonly MedicationTimeRow[], at: Date = new Date()): MedicationTimeRow[] {
+  const existing = rows.map((row) => row.time.slice(0, 5))
+  const after = existing[existing.length - 1] ?? nextHourOnTheHour(at)
+  const time = existing.length === 0 ? nextHourOnTheHour(at) : nextFreeHourOnTheHour(existing, after)
+  return [...rows, { id: newTimeRowId(), time }]
+}
+
+export function updateTimeRow(
+  rows: readonly MedicationTimeRow[],
+  id: string,
+  time: string,
+): MedicationTimeRow[] {
+  return rows.map((row) => (row.id === id ? { ...row, time: time.slice(0, 5) } : row))
+}
+
+export function removeTimeRow(rows: readonly MedicationTimeRow[], id: string): MedicationTimeRow[] {
+  return rows.filter((row) => row.id !== id)
+}

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  addTimeRow,
+  createTimeRows,
   dayDoseProgress,
   dosesForDay,
   firstEligibleDay,
@@ -9,7 +11,11 @@ import {
   isSlotInPeriod,
   isTreatmentArchivedView,
   isTreatmentInCourse,
+  nextFreeHourOnTheHour,
+  removeTimeRow,
+  sortedTimeValues,
   summarizeDay,
+  updateTimeRow,
   weekSummaries,
   type Medication,
   type MedicationDose,
@@ -106,6 +112,40 @@ describe('tomas del día', () => {
     expect(summary.overdueUnmarked).toBe(1)
     expect(formatHourLabel(summary.nextTime!)).toBe('14:00')
     expect(hubSecondaryLine(slots, summary, noon)).toMatch(/sin marcar/)
+  })
+})
+
+describe('filas de horas del formulario', () => {
+  it('al sumar una segunda hora propone un valor distinto y libre', () => {
+    const first = createTimeRows(['17:00'])
+    const withSecond = addTimeRow(first)
+    expect(withSecond).toHaveLength(2)
+    expect(withSecond[1]?.time).toBe('18:00')
+    expect(withSecond[1]?.time).not.toBe(withSecond[0]?.time)
+    expect(withSecond[1]?.id).not.toBe(withSecond[0]?.id)
+    expect(nextFreeHourOnTheHour(['17:00', '18:00'], '18:00')).toBe('19:00')
+  })
+
+  it('cambiar la primera y la segunda hora se refleja en cada fila sin reordenar', () => {
+    let rows = createTimeRows(['17:00', '18:00'])
+    const firstId = rows[0]!.id
+    const secondId = rows[1]!.id
+    rows = updateTimeRow(rows, firstId, '09:30')
+    rows = updateTimeRow(rows, secondId, '21:15')
+    expect(rows.map((row) => row.time)).toEqual(['09:30', '21:15'])
+    expect(rows[0]?.id).toBe(firstId)
+    expect(rows[1]?.id).toBe(secondId)
+    expect(sortedTimeValues(rows)).toEqual(['09:30', '21:15'])
+  })
+
+  it('quitar una fila quita la correcta por id', () => {
+    const rows = createTimeRows(['08:00', '14:00', '20:00'])
+    const keepFirst = rows[0]!.id
+    const removeMiddle = rows[1]!.id
+    const keepLast = rows[2]!.id
+    const next = removeTimeRow(rows, removeMiddle)
+    expect(next.map((row) => row.id)).toEqual([keepFirst, keepLast])
+    expect(next.map((row) => row.time)).toEqual(['08:00', '20:00'])
   })
 })
 

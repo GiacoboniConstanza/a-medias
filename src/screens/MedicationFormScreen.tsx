@@ -14,19 +14,19 @@ import {
   updateMedication,
 } from '../lib/api.ts'
 import { argentinaISO } from '../lib/meals.ts'
-import { currentPeriod, formatHourLabel, latestPeriod, maxSchedules } from '../lib/medications.ts'
-
-function nextHourOnTheHour(): string {
-  const parts = new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'America/Argentina/Buenos_Aires',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).formatToParts(new Date())
-  const hour = Number(parts.find((part) => part.type === 'hour')?.value ?? '0')
-  const next = (hour + 1) % 24
-  return `${String(next).padStart(2, '0')}:00`
-}
+import {
+  addTimeRow,
+  createTimeRows,
+  currentPeriod,
+  formatHourLabel,
+  latestPeriod,
+  maxSchedules,
+  nextHourOnTheHour,
+  removeTimeRow,
+  sortedTimeValues,
+  updateTimeRow,
+  type MedicationTimeRow,
+} from '../lib/medications.ts'
 
 export function MedicationFormScreen() {
   const { id } = useParams()
@@ -38,7 +38,7 @@ export function MedicationFormScreen() {
   const [loading, setLoading] = useState(editing)
   const [name, setName] = useState('')
   const [doseNotes, setDoseNotes] = useState('')
-  const [times, setTimes] = useState<string[]>([nextHourOnTheHour()])
+  const [timeRows, setTimeRows] = useState<MedicationTimeRow[]>(() => createTimeRows([nextHourOnTheHour()]))
   const [startsOn, setStartsOn] = useState(today)
   const [hasEnd, setHasEnd] = useState(false)
   const [endsOn, setEndsOn] = useState('')
@@ -83,7 +83,7 @@ export function MedicationFormScreen() {
           .filter((row) => row.medicationId === med.id)
           .map((row) => row.localTime.slice(0, 5))
           .sort()
-        setTimes(medTimes.length > 0 ? medTimes : [nextHourOnTheHour()])
+        setTimeRows(createTimeRows(medTimes.length > 0 ? medTimes : [nextHourOnTheHour()]))
         setLoading(false)
       })
       .catch((caught: unknown) => {
@@ -96,7 +96,7 @@ export function MedicationFormScreen() {
     }
   }, [profile, id, today])
 
-  const sortedTimes = useMemo(() => [...times].sort(), [times])
+  const sortedTimes = useMemo(() => sortedTimeValues(timeRows), [timeRows])
 
   function validate(): boolean {
     const next: Record<string, string> = {}
@@ -229,32 +229,30 @@ export function MedicationFormScreen() {
           <div>
             <span className="mb-1 block text-sm font-semibold">Horas</span>
             <div className="flex flex-wrap gap-2">
-              {sortedTimes.map((time) => (
-                <span key={time} className="inline-flex min-h-[52px] items-center gap-1 rounded-full border-2 border-azul-ink bg-card px-3 font-semibold">
+              {timeRows.map((row) => (
+                <span key={row.id} className="inline-flex min-h-[52px] items-center gap-1 rounded-full border-2 border-azul-ink bg-card px-3 font-semibold">
                   <input
                     type="time"
-                    value={time}
-                    onChange={(event) =>
-                      setTimes((current) => current.map((row) => (row === time ? event.target.value : row)))
-                    }
+                    value={row.time}
+                    onChange={(event) => setTimeRows((current) => updateTimeRow(current, row.id, event.target.value))}
                     className="bg-transparent font-semibold"
                   />
                   <button
                     type="button"
                     aria-label="Quitar hora"
                     className="grid h-11 w-11 place-items-center"
-                    onClick={() => setTimes((current) => current.filter((row) => row !== time))}
+                    onClick={() => setTimeRows((current) => removeTimeRow(current, row.id))}
                   >
                     <AppIcon name="xmark" />
                   </button>
                 </span>
               ))}
             </div>
-            {times.length < maxSchedules() ? (
+            {timeRows.length < maxSchedules() ? (
               <button
                 type="button"
                 className="mt-2 inline-flex min-h-11 items-center font-semibold text-mostaza-ink"
-                onClick={() => setTimes((current) => [...current, nextHourOnTheHour()])}
+                onClick={() => setTimeRows((current) => addTimeRow(current))}
               >
                 + Sumar otra hora
               </button>
@@ -358,7 +356,7 @@ export function MedicationFormScreen() {
         <p className="font-semibold">
           Ya no te van a llegar avisos y sale de Hoy. Lo que marcaste queda en Últimos 7 días. La ves en Tus tratamientos, en Archivados.
         </p>
-        {times.length > 0 ? (
+        {timeRows.length > 0 ? (
           <p className="mt-2 text-sm font-semibold text-muted">
             Horas: {sortedTimes.map((time) => formatHourLabel(`${time}:00`)).join(', ')}.
           </p>
