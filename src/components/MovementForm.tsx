@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import { AppIcon } from './AppIcon.tsx'
 import { Plantita } from './Adornos.tsx'
@@ -425,8 +425,10 @@ function MovementFormBody({
   const [saving, setSaving] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [keyboard, setKeyboard] = useState(0)
+  const [footerH, setFooterH] = useState(120) // 7.5rem: piso del alta; en edición crece con Eliminar
   const montoRef = useRef<HTMLDivElement>(null)
   const tipoRef = useRef<HTMLDivElement>(null)
+  const footerRef = useRef<HTMLDivElement>(null)
   const moreId = useId()
 
   const amount = normalizeMoney(amountFromDigits(digits))
@@ -459,6 +461,18 @@ function MovementFormBody({
       viewport.removeEventListener('resize', sync)
       viewport.removeEventListener('scroll', sync)
     }
+  }, [])
+
+  // El pie fijo es más alto en edición (Eliminar / confirmación); el padding del alta no alcanza.
+  useLayoutEffect(() => {
+    const el = footerRef.current
+    if (!el) return
+    const sync = () => setFooterH(Math.max(120, Math.ceil(el.getBoundingClientRect().height)))
+    sync()
+    if (typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(sync)
+    ro.observe(el)
+    return () => ro.disconnect()
   }, [])
 
   function missingReason(): string | null {
@@ -930,8 +944,8 @@ function MovementFormBody({
       </section>
 
       <div
-        className="space-y-4 px-4 pb-[calc(7.5rem+env(safe-area-inset-bottom))] pt-[calc(var(--feston-alto)+1rem)]"
-        style={{ paddingBottom: `calc(7.5rem + ${keyboard}px)` }}
+        className="space-y-4 px-4 pt-[calc(var(--feston-alto)+1rem)]"
+        style={{ paddingBottom: `calc(${footerH}px + ${keyboard}px)` }}
       >
         <label className="block text-sm font-semibold text-gris">
           Nombre (opcional)
@@ -1220,6 +1234,7 @@ function MovementFormBody({
       />
 
       <div
+        ref={footerRef}
         className="fixed inset-x-0 bottom-0 border-t border-linea-punteada bg-crema px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-3"
         style={{ bottom: keyboard }}
       >
