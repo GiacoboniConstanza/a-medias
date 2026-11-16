@@ -27,6 +27,7 @@ export function ReminderSettingsSheet({
   const dailyId = useId()
   const sharedId = useId()
   const sundayId = useId()
+  const silenceId = useId()
   const extra = nextTimeSlot(prefs.times)
   const [hint, setHint] = useState('')
 
@@ -152,7 +153,7 @@ export function ReminderSettingsSheet({
         />
       </section>
 
-      <section className="mb-2 flex items-center justify-between gap-3">
+      <section className="mb-4 flex items-center justify-between gap-3">
         <p id={sundayId} className="text-base font-bold text-title">
           Resumen del domingo
         </p>
@@ -160,6 +161,17 @@ export function ReminderSettingsSheet({
           labelledBy={sundayId}
           checked={prefs.sundaySummary}
           onClick={() => onChange({ ...prefs, sundaySummary: !prefs.sundaySummary })}
+        />
+      </section>
+
+      <section className="mb-2 flex items-center justify-between gap-3">
+        <p id={silenceId} className="text-base font-bold text-title">
+          Si no anoto en 3 días
+        </p>
+        <Toggle
+          labelledBy={silenceId}
+          checked={prefs.silenceEnabled}
+          onClick={() => onChange({ ...prefs, silenceEnabled: !prefs.silenceEnabled })}
         />
       </section>
       <p className="mt-4 text-sm font-semibold text-muted">{reminderFootnote(prefs)}</p>

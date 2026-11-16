@@ -711,7 +711,9 @@ export async function deleteFixedExpense(id: string): Promise<void> {
 export async function loadReminderPreferences(userId: string): Promise<ReminderPrefs> {
   const { data, error } = await supabase
     .from('reminder_preferences')
-    .select('enabled, first_time, second_time, ask_times, due_lead_days, notify_shared, sunday_summary, push_enabled, reviewed_on, hidden_until')
+    .select(
+      'enabled, first_time, second_time, ask_times, due_lead_days, notify_shared, sunday_summary, silence_enabled, push_enabled, reviewed_on, hidden_until',
+    )
     .eq('user_id', userId)
     .maybeSingle()
   fail(error)
@@ -725,6 +727,7 @@ export async function loadReminderPreferences(userId: string): Promise<ReminderP
     dueLeadDays: data.due_lead_days,
     notifyShared: data.notify_shared,
     sundaySummary: data.sunday_summary,
+    silenceEnabled: data.silence_enabled ?? true,
     pushEnabled: data.push_enabled,
   }
 }
@@ -743,6 +746,7 @@ export async function saveReminderPreferences(userId: string, prefs: ReminderPre
       due_lead_days: prefs.dueLeadDays,
       notify_shared: prefs.notifyShared,
       sunday_summary: prefs.sundaySummary,
+      silence_enabled: prefs.silenceEnabled,
       push_enabled: prefs.pushEnabled,
       reviewed_on: prefs.reviewedOn,
       hidden_until: prefs.hiddenUntil,
@@ -1938,6 +1942,16 @@ export async function loadModuleNotificationPrefs(
     .eq('user_id', userId)
   fail(error)
   return data ?? []
+}
+
+/** Sin fila: Medicamentos asume prendido; Finanzas es opt-in (apagado). */
+export function modulePrefEnabled(
+  prefs: readonly { module: string; enabled: boolean }[],
+  module: string,
+  fallbackWhenMissing: boolean,
+): boolean {
+  const row = prefs.find((item) => item.module === module)
+  return row ? row.enabled : fallbackWhenMissing
 }
 
 export async function setModuleNotificationPref(input: {

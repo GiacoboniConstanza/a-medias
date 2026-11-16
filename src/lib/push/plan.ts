@@ -3,8 +3,9 @@
  * `public/push-handler.js` escucha `push` dentro del service worker.
  * Si existe `VITE_VAPID_PUBLIC_KEY`, la app puede pedir permiso y guardar la
  * suscripción. Sin esa clave no pide permiso y nadie envía avisos al celular.
+ * Finanzas (diario / vencimientos / silencio) se despacha con claim_finance_due_pushes.
  */
-export const PUSH_STATUS = 'not_configured' as const
+export const PUSH_STATUS = 'active' as const
 
 export const pushPlan = {
   status: PUSH_STATUS,
@@ -20,9 +21,19 @@ export const pushPlan = {
   },
   silence: {
     daysWithoutExpenses: 3,
+    title: '¿Seguimos anotando?',
     body: 'Hace unos días que no anotás nada. ¿Todo bien?',
   },
 } as const
+
+/** Título de vencimientos (misma regla que private.finance_dues_title). */
+export function duesPushTitle(names: readonly string[]): string {
+  const sorted = [...names].map((name) => name.trim()).filter(Boolean).sort((a, b) => a.localeCompare(b, 'es'))
+  if (sorted.length === 0) return 'Vence un fijo'
+  if (sorted.length === 1) return `Vence ${sorted[0]}`
+  if (sorted.length === 2) return `Vencen ${sorted[0]} y ${sorted[1]}`
+  return `Vence ${sorted[0]} y ${sorted.length - 1} más`
+}
 
 export type PushSubscriptionDraft = {
   endpoint: string

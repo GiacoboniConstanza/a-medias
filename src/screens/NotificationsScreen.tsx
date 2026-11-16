@@ -4,7 +4,7 @@ import { AppIcon } from '../components/AppIcon.tsx'
 import { ModuleSwitch } from '../components/ModuleSwitch.tsx'
 import { Button } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
-import { loadModuleNotificationPrefs, setModuleNotificationPref } from '../lib/api.ts'
+import { loadModuleNotificationPrefs, modulePrefEnabled, setModuleNotificationPref } from '../lib/api.ts'
 import {
   isIosWithoutPwa,
   pushIsConfigured,
@@ -31,6 +31,7 @@ export function NotificationsScreen() {
   const backTo = params.get('desde') === 'medicamentos' ? '/medicamentos' : '/modulos'
   const [state, setState] = useState<ScreenState>('loading')
   const [medEnabled, setMedEnabled] = useState(true)
+  const [financeEnabled, setFinanceEnabled] = useState(false)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
 
@@ -55,8 +56,9 @@ export function NotificationsScreen() {
     }
     if (profile) {
       const prefs = await loadModuleNotificationPrefs(profile.id)
-      const med = prefs.find((row) => row.module === 'medicamentos')
-      setMedEnabled(med?.enabled ?? true)
+      setMedEnabled(modulePrefEnabled(prefs, 'medicamentos', true))
+      // Sin fila = apagado (opt-in); coherente con el servidor.
+      setFinanceEnabled(modulePrefEnabled(prefs, 'finanzas', false))
     }
     if (Notification.permission === 'granted') {
       const registration = await navigator.serviceWorker.ready
@@ -95,6 +97,7 @@ export function NotificationsScreen() {
       }
       await setModuleNotificationPref({ userId: profile.id, module: 'medicamentos', enabled: true })
       setMedEnabled(true)
+      // Finanzas es opt-in: no se prende al activar; solo con su switch o el seed de migración.
       setState('ready')
     } catch {
       setMessage('No pude activar los avisos. Revisá la conexión y probá de nuevo.')
@@ -123,6 +126,17 @@ export function NotificationsScreen() {
       await setModuleNotificationPref({ userId: profile.id, module: 'medicamentos', enabled: next })
     } catch {
       setMedEnabled(!next)
+      setMessage('No pude guardar la preferencia.')
+    }
+  }
+
+  async function toggleFinance(next: boolean) {
+    if (!profile) return
+    setFinanceEnabled(next)
+    try {
+      await setModuleNotificationPref({ userId: profile.id, module: 'finanzas', enabled: next })
+    } catch {
+      setFinanceEnabled(!next)
       setMessage('No pude guardar la preferencia.')
     }
   }
@@ -212,12 +226,27 @@ export function NotificationsScreen() {
           </div>
           <div className="rounded-2xl border-2 border-azul-ink bg-card p-4">
             <h3 className="mb-3 font-semibold">Qué te avisa</h3>
-            <div className="flex items-center gap-3">
-              <div className="min-w-0 flex-1">
-                <p className="font-semibold">Medicamentos</p>
-                <p className="text-sm font-semibold text-muted">A la hora de cada toma. Vale para todos tus celus.</p>
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold">Medicamentos</p>
+                  <p className="text-sm font-semibold text-muted">A la hora de cada toma. Vale para todos tus celus.</p>
+                </div>
+                <ModuleSwitch on={medEnabled} label="Medicamentos" onToggle={() => void toggleMed(!medEnabled)} />
               </div>
-              <ModuleSwitch on={medEnabled} label="Medicamentos" onToggle={() => void toggleMed(!medEnabled)} />
+              <div className="flex items-center gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold">Finanzas</p>
+                  <p className="text-sm font-semibold text-muted">
+                    Diario, vencimientos y si no anotás. Vale para todos tus celus.
+                  </p>
+                </div>
+                <ModuleSwitch
+                  on={financeEnabled}
+                  label="Finanzas"
+                  onToggle={() => void toggleFinance(!financeEnabled)}
+                />
+              </div>
             </div>
           </div>
           <Button tall variant="alt" className="w-full" disabled={busy} onClick={() => void sendTest()}>

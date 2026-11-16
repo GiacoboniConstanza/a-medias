@@ -1,7 +1,8 @@
 /**
  * Despacha avisos push:
- *  - scheduled_reminders (Finanzas / genéricos, fire_at o recurrente)
+ *  - scheduled_reminders (genéricos, fire_at o recurrente)
  *  - medicamentos: slots sin marcar, agrupados por usuaria+hora (M23), lookback 5 min
+ *  - finanzas: diario / vencimientos / silencio vía claim_finance_due_pushes
  * No filtra por daily_enabled/dues_enabled.
  * POST { action: 'test', endpoint } con Authorization del usuario → aviso de prueba a ese celu (M21).
  */
@@ -26,6 +27,15 @@ type MedSlot = {
   medication_id: string
   name: string
   dose_notes: string | null
+}
+
+type FinancePush = {
+  user_id: string
+  kind: string
+  send_key: string
+  title: string
+  body: string
+  tag: string
 }
 
 type PushRow = {
@@ -227,11 +237,56 @@ Deno.serve(async (req) => {
     }
   }
 
-  return json(200, {
+  // 3) Finanzas: diario / vencimientos / silencio (title/body/tag ya vienen del claim).
+  // Si el claim falla, no tapamos lo ya enviado por 1 y 2: se reporta al final.
+  let financeErrorMessage: string | null = null
+  let financePushes: FinancePush[] = []
+  const { data: financeData, error: financeError } = await admin.rpc('claim_finance_due_pushes', {
+    p_lookback: '5 minutes',
+  })
+  if (financeError) {
+    financeErrorMessage = financeError.message
+    console.error('claim_finance_due_pushes', financeError.message)
+  } else {
+    financePushes = (financeData ?? []) as FinancePush[]
+  }
+
+  for (const push of financePushes) {
+    const { data: subs } = await admin
+      .from('push_subscriptions')
+      .select('id, endpoint, p256dh, auth_key')
+      .eq('user_id', push.user_id)
+
+    const payload = JSON.stringify({
+      title: push.title,
+      body: push.body,
+      url: '/recordatorios',
+      module: 'finanzas',
+      tag: push.tag,
+      kind: push.kind,
+    })
+
+    for (const sub of (subs ?? []) as PushRow[]) {
+      const result = await sendToSub(sub, payload)
+      if (result === 'sent') sent += 1
+      else if (result === 'gone') {
+        await admin.from('push_subscriptions').delete().eq('id', sub.id)
+        gone += 1
+      } else failed += 1
+    }
+  }
+
+  const summary: Record<string, unknown> = {
     claimedReminders: (due ?? []).length,
     claimedMedGroups: groups.size,
+    claimedFinancePushes: financePushes.length,
     sent,
     gone,
     failed,
-  })
+  }
+  if (financeErrorMessage) {
+    summary.financeError = financeErrorMessage
+    return json(500, summary)
+  }
+  return json(200, summary)
 })

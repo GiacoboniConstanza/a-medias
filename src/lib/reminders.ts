@@ -19,6 +19,7 @@ export type ReminderPrefs = {
   dueLeadDays: number
   notifyShared: boolean
   sundaySummary: boolean
+  silenceEnabled: boolean
   pushEnabled: boolean
 }
 
@@ -30,6 +31,7 @@ export const DEFAULT_REMINDER_PREFS: ReminderPrefs = {
   dueLeadDays: 2,
   notifyShared: true,
   sundaySummary: false,
+  silenceEnabled: true,
   pushEnabled: false,
 }
 
@@ -154,7 +156,7 @@ export function reminderFootnote(prefs: Pick<ReminderPrefs, 'enabled' | 'times'>
   const schedule = prefs.enabled
     ? `Te preguntamos a las ${slots.join(' y a las ')} si gastaste algo.`
     : 'El recordatorio diario está apagado.'
-  return `${schedule} Los avisos del celular quedan preparados y todavía no se envían.`
+  return `${schedule} Si activaste avisos en Notificaciones, también te llegan al celular.`
 }
 
 export function shiftDay(iso: string, delta: number): string {

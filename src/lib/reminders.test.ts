@@ -115,8 +115,13 @@ describe('aviso diario', () => {
   it('el texto de abajo usa los horarios elegidos', () => {
     expect(reminderFootnote(prefs)).toContain('14:00')
     expect(reminderFootnote(prefs)).toContain('21:30')
-    expect(reminderFootnote(prefs)).toContain('todavía no se envían')
+    expect(reminderFootnote(prefs)).toContain('Notificaciones')
+    expect(reminderFootnote(prefs)).not.toContain('todavía no se envían')
     expect(reminderFootnote({ ...prefs, enabled: false, times: ['09:00', '18:00'] })).toContain('apagado')
+  })
+
+  it('el silencio de 3 días viene prendido por defecto', () => {
+    expect(DEFAULT_REMINDER_PREFS.silenceEnabled).toBe(true)
   })
 
   it('cuenta los días seguidos anotando', () => {

@@ -325,6 +325,7 @@ export type Database = {
           due_lead_days: number
           notify_shared: boolean
           sunday_summary: boolean
+          silence_enabled: boolean
           push_enabled: boolean
           reviewed_on: string | null
           hidden_until: string | null
@@ -339,6 +340,7 @@ export type Database = {
           due_lead_days?: number
           notify_shared?: boolean
           sunday_summary?: boolean
+          silence_enabled?: boolean
           push_enabled?: boolean
           reviewed_on?: string | null
           hidden_until?: string | null
@@ -352,6 +354,7 @@ export type Database = {
           due_lead_days?: number
           notify_shared?: boolean
           sunday_summary?: boolean
+          silence_enabled?: boolean
           push_enabled?: boolean
           reviewed_on?: string | null
           hidden_until?: string | null
@@ -613,6 +616,11 @@ export type Database = {
       medication_push_sends: Table<
         { user_id: string; dose_on: string; scheduled_time: string; sent_at: string },
         { user_id: string; dose_on: string; scheduled_time: string; sent_at?: string },
+        { sent_at?: string }
+      >
+      finance_push_sends: Table<
+        { user_id: string; kind: 'daily' | 'dues' | 'silence'; send_key: string; sent_at: string },
+        { user_id: string; kind: 'daily' | 'dues' | 'silence'; send_key: string; sent_at?: string },
         { sent_at?: string }
       >
       user_modules: Table<

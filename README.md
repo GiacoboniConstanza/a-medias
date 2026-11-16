@@ -12,7 +12,7 @@ El trabajo de la app vive en la rama `develop`.
 - Saldar mes cierra solo el reparto de gastos compartidos.
 - Ahorros propios y compartidos con saldo, meta opcional, aportes y retiros; el detalle muestra el historial.
 - Auth por correo, hogar de dos personas con código de invitación.
-- Estructura de push web (tabla y textos), sin enviarla todavía.
+- Avisos push: Medicamentos y Finanzas (diario, vencimientos, silencio) vía Edge Function + cron.
 
 ## Requisitos
 
@@ -124,17 +124,11 @@ El porcentaje sale solo del sueldo base del mes (`base_salaries`). Si alguna no 
 
 Los gastos privados, los extras y los ahorros propios no los ve la otra persona. En un ahorro compartido cada una aporta lo suyo; el saldo junta las dos, pero “Te quedan” solo descuenta lo propio. Los aportes y retiros no entran en el reparto ni en “estamos a mano”.
 
-## Push (preparado, no activo)
+## Push
 
-No se pide permiso de notificaciones y el service worker no escucha `push`.
+Medicamentos y Finanzas se despachan con `dispatch-push-reminders` (VAPID + cron). En la app: `/notificaciones` pide permiso y guarda la suscripción; Recordatorios configura horarios, vencimientos y «Si no anoto en 3 días».
 
-Ya está definido:
-
-- La tabla `push_subscriptions` (endpoint, p256dh, auth, avisos diarios y de vencimientos), con RLS para que cada persona vea solo las suyas.
-- Los textos y horarios en `src/lib/push/plan.ts`: todos los días a las 21:30 “¿Gastaste algo hoy?” y un aviso dos días antes de cada vencimiento.
-- En Recordatorios, la tarjeta de “¿Gastaste algo hoy?” y el silencio de tres días salen de los gastos reales, dentro de la app.
-
-Para activarlo más adelante: claves VAPID, `PushManager.subscribe`, guardar la suscripción en esa tabla y un cron que lea vencimientos y suscripciones. Hasta entonces no hace falta ninguna clave de push.
+Detalle de infra y pasos en producción: `docs/avisos-push.md`. Textos y reglas en `src/lib/push/plan.ts`.
 
 ## Scripts
 
