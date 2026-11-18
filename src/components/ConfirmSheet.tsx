@@ -10,6 +10,7 @@ export function ConfirmSheet({
   children,
   note,
   confirmLabel,
+  cancelLabel = 'Cancelar',
   onConfirm,
   disabled = false,
   busy = false,
@@ -23,6 +24,7 @@ export function ConfirmSheet({
   children: ReactNode
   note?: string
   confirmLabel: string
+  cancelLabel?: string
   onConfirm: () => void
   disabled?: boolean
   busy?: boolean
@@ -54,7 +56,7 @@ export function ConfirmSheet({
             {confirmLabel}
           </Button>
           <Button type="button" variant="alt" onClick={onClose} disabled={busy}>
-            Cancelar
+            {cancelLabel}
           </Button>
         </div>
       }

@@ -7,16 +7,20 @@ import { Sheet } from '../components/Sheet.tsx'
 import { Button, Chip, Toast, inputClass } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useModules } from '../context/ModulesProvider.tsx'
+import { RecipePortionSheet, type RecipePortionDraft } from '../components/RecipePortionSheet.tsx'
 import {
   createMeal,
   deleteMeal,
   deleteSavedFood,
   loadRecentMeals,
+  loadRecipes,
   loadSavedFoods,
   searchCommonFoods,
+  searchRecipes,
   upsertSavedFood,
   type CommonFoodRow,
   type MealRow,
+  type RecipeRow,
   type SavedFoodRow,
 } from '../lib/api.ts'
 import {
@@ -39,7 +43,9 @@ import {
   type FoodSource,
   type MealType,
 } from '../lib/meals.ts'
+import { MEAL_ROUTES } from '../lib/modules.ts'
 import { offRowMeta, searchOpenFoodFacts, type OffProduct } from '../lib/openFoodFacts.ts'
+import { formatRecipePortionsLabel, macrosPerServing } from '../lib/recipes.ts'
 
 type Tab = 'recientes' | 'mios'
 type LocationState = { eatenOn?: string; mealType?: MealType }
@@ -58,11 +64,15 @@ export function MealAddScreen() {
   const [query, setQuery] = useState('')
   const [recent, setRecent] = useState<MealRow[]>([])
   const [saved, setSaved] = useState<SavedFoodRow[]>([])
+  const [recipes, setRecipes] = useState<RecipeRow[]>([])
+  const [recipeHits, setRecipeHits] = useState<RecipeRow[]>([])
   const [common, setCommon] = useState<CommonFoodRow[]>([])
   const [offProducts, setOffProducts] = useState<OffProduct[]>([])
   const [offStatus, setOffStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
   const [online, setOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine)
   const [draft, setDraft] = useState<PortionDraft | null>(null)
+  const [recipeDraft, setRecipeDraft] = useState<RecipePortionDraft | null>(null)
+  const [recipeQty, setRecipeQty] = useState(1)
   const [sheetMode, setSheetMode] = useState<'add' | 'saved'>('add')
   const [manualOpen, setManualOpen] = useState(false)
   const [added, setAdded] = useState<MealRow[]>([])
@@ -98,11 +108,29 @@ export function MealAddScreen() {
   useEffect(() => {
     if (!profile) return
     let active = true
-    Promise.all([loadRecentMeals(), loadSavedFoods()])
-      .then(([meals, foods]) => {
+    Promise.all([loadRecentMeals(), loadSavedFoods(), loadRecipes()])
+      .then(async ([meals, foods, recipeRows]) => {
         if (!active) return
         setRecent(recentFromMeals(meals))
         setSaved(foods)
+        setRecipes(recipeRows)
+        const openId = (location.state as { openRecipeId?: string } | null)?.openRecipeId
+        if (openId) {
+          const match = recipeRows.find((row) => row.id === openId)
+          if (match) {
+            setQuery(match.name)
+            setRecipeQty(1)
+            setRecipeDraft({
+              recipeId: match.id,
+              name: match.name,
+              servings: match.servings,
+              ingredients: match.ingredients,
+              logged: null,
+              recipeStillExists: true,
+            })
+          }
+          window.history.replaceState({}, '')
+        }
       })
       .catch((err: Error) => {
         if (active) setError(err.message)
@@ -110,12 +138,13 @@ export function MealAddScreen() {
     return () => {
       active = false
     }
-  }, [profile])
+  }, [profile, location.state])
 
   useEffect(() => {
     const q = query.trim()
     if (!q) {
       setCommon([])
+      setRecipeHits([])
       setOffProducts([])
       setOffStatus('idle')
       return
@@ -128,16 +157,26 @@ export function MealAddScreen() {
       .catch(() => {
         if (active) setCommon([])
       })
+    searchRecipes(q)
+      .then((rows) => {
+        if (active) setRecipeHits(rows)
+      })
+      .catch(() => {
+        if (active) setRecipeHits([])
+      })
     return () => {
       active = false
     }
   }, [query])
 
-  const filteredRecent = useMemo(
-    () => (query.trim() ? recent.filter((item) => matchesSearch(item.name, query)) : recent),
-    [recent, query],
-  )
+  const filteredRecent = useMemo(() => {
+    const list = query.trim() ? recent.filter((item) => matchesSearch(item.name, query)) : recent
+    // RC12: una receta no se repite en «Ya lo comiste» si ya está en Recetas.
+    if (!query.trim()) return list
+    return list.filter((item) => item.foodSource !== 'recipe')
+  }, [recent, query])
   const searching = query.trim().length > 0
+  const recipeResults = searching ? recipeHits : []
 
   if (!profile) return null
   if (ready && !enabled.includes('comidas')) return <Navigate to="/" replace />
@@ -162,8 +201,12 @@ export function MealAddScreen() {
         brand: from.brand,
       })
       setAdded((current) => [...current, meal])
+      const qtyLabel =
+        from.foodSource === 'recipe' && from.portionQty
+          ? formatRecipePortionsLabel(from.portionQty)
+          : null
       setToast({
-        message: `Sumaste ${meal.name}.`,
+        message: qtyLabel ? `Sumaste ${qtyLabel} de ${meal.name}.` : `Sumaste ${meal.name}.`,
         undo: async () => {
           await deleteMeal(meal.id)
           setAdded((current) => current.filter((item) => item.id !== meal.id))
@@ -174,7 +217,42 @@ export function MealAddScreen() {
     }
   }
 
+  function openRecipe(recipe: RecipeRow, qty = 1) {
+    setRecipeQty(qty)
+    setRecipeDraft({
+      recipeId: recipe.id,
+      name: recipe.name,
+      servings: recipe.servings,
+      ingredients: recipe.ingredients,
+      logged: null,
+      recipeStillExists: true,
+    })
+  }
+
   function openFromRecent(item: MealRow) {
+    if (item.foodSource === 'recipe' && item.foodRef) {
+      const match = recipes.find((recipe) => recipe.id === item.foodRef)
+      if (match) {
+        openRecipe(match, item.portionQty ?? 1)
+        return
+      }
+      setRecipeQty(item.portionQty ?? 1)
+      setRecipeDraft({
+        recipeId: item.foodRef,
+        name: item.name,
+        servings: 1,
+        ingredients: [],
+        logged: {
+          proteinG: item.proteinG,
+          carbsG: item.carbsG,
+          fatG: item.fatG,
+          kcal: item.kcal,
+          portionQty: item.portionQty ?? 1,
+        },
+        recipeStillExists: false,
+      })
+      return
+    }
     setSheetMode('add')
     setDraft({
       name: item.name,
@@ -505,6 +583,38 @@ export function MealAddScreen() {
           </>
         ) : (
           <div className="space-y-4">
+            <section>
+              <h2 className="mb-1 inline-flex items-center gap-2 text-sm font-bold">
+                <AppIcon name="book-open" /> Recetas
+              </h2>
+              {recipeResults.length === 0 ? (
+                <p className="text-sm font-semibold text-muted">No hay recetas con «{query.trim()}».</p>
+              ) : (
+                <FoodList
+                  inactive={inactive}
+                  items={recipeResults.map((recipe) => {
+                    const per = macrosPerServing(recipe.ingredients, recipe.servings)
+                    const last = recent.find(
+                      (item) => item.foodSource === 'recipe' && item.foodRef === recipe.id,
+                    )
+                    const qty = last?.portionQty && last.portionQty > 0 ? last.portionQty : 1
+                    return {
+                      key: recipe.id,
+                      name: recipe.name,
+                      detail: foodRowSubtitle({
+                        qty,
+                        proteinG: last ? last.proteinG : per.proteinG,
+                        foodSource: 'recipe',
+                      }),
+                      onOpen: () => openRecipe(recipe, qty),
+                      onQuick: last ? () => void quickAdd(last) : undefined,
+                      chevron: !last,
+                    }
+                  })}
+                />
+              )}
+            </section>
+
             {filteredRecent.length > 0 ? (
               <section>
                 <h2 className="mb-1 inline-flex items-center gap-2 text-sm font-bold">
@@ -531,6 +641,9 @@ export function MealAddScreen() {
 
             <section>
               <h2 className="mb-1 text-sm font-bold">De todos los días</h2>
+              {common.length === 0 ? (
+                <p className="mb-2 text-sm font-semibold text-muted">No hay nada con «{query.trim()}».</p>
+              ) : null}
               <FoodList
                 inactive={inactive}
                 items={common.map((item) => {
@@ -606,7 +719,11 @@ export function MealAddScreen() {
               </section>
             ) : null}
 
-            {offStatus === 'done' && filteredRecent.length === 0 && common.length === 0 && offProducts.length === 0 ? (
+            {offStatus === 'done' &&
+            filteredRecent.length === 0 &&
+            common.length === 0 &&
+            offProducts.length === 0 &&
+            recipeResults.length === 0 ? (
               <div className="py-6 text-center">
                 <p className="font-display text-lg font-semibold">No encontramos «{query.trim()}».</p>
                 <p className="mt-1 text-sm font-semibold text-muted">
@@ -616,8 +733,36 @@ export function MealAddScreen() {
                 <Button className="mt-3" variant="alt" onClick={() => setManualOpen(true)}>
                   Cargarlo a mano
                 </Button>
+                <Button
+                  className="mt-2"
+                  variant="alt"
+                  onClick={() =>
+                    navigate(MEAL_ROUTES.recetaNueva, {
+                      state: { presetName: query.trim(), fromAdd: true, eatenOn, mealType },
+                    })
+                  }
+                >
+                  <span className="inline-flex items-center justify-center gap-2">
+                    <AppIcon name="book-open" /> Armar una receta nueva
+                  </span>
+                </Button>
               </div>
-            ) : null}
+            ) : (
+              <button
+                type="button"
+                className="flex min-h-[52px] w-full items-center justify-between gap-2 rounded-2xl border-[1.5px] border-azul-ink bg-card px-3 font-semibold"
+                onClick={() =>
+                  navigate(MEAL_ROUTES.recetaNueva, {
+                    state: { presetName: query.trim(), fromAdd: true, eatenOn, mealType },
+                  })
+                }
+              >
+                <span className="inline-flex items-center gap-2">
+                  <AppIcon name="book-open" /> Armar una receta nueva
+                </span>
+                <AppIcon name="chevron-right" />
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -693,6 +838,45 @@ export function MealAddScreen() {
                 }
               : undefined
           }
+        />
+      ) : null}
+
+      {recipeDraft ? (
+        <RecipePortionSheet
+          open
+          mode="add"
+          mealType={mealType}
+          draft={recipeDraft}
+          initialQty={recipeQty}
+          onClose={() => setRecipeDraft(null)}
+          onSave={async (qty, macros) => {
+            const meal = await createMeal({
+              ownerId: profile!.id,
+              eatenOn,
+              mealType,
+              name: recipeDraft.name.trim().slice(0, 80),
+              proteinG: macros.proteinG,
+              carbsG: macros.carbsG,
+              fatG: macros.fatG,
+              kcal: macros.kcal,
+              portionLabel: 'porción',
+              portionQty: qty,
+              portionGrams: null,
+              foodSource: 'recipe',
+              foodRef: recipeDraft.recipeId,
+              brand: null,
+            })
+            setAdded((current) => [...current, meal])
+            setRecipeDraft(null)
+            setQuery('')
+            setToast({
+              message: `Sumaste ${formatRecipePortionsLabel(qty)} de ${meal.name}.`,
+              undo: async () => {
+                await deleteMeal(meal.id)
+                setAdded((current) => current.filter((item) => item.id !== meal.id))
+              },
+            })
+          }}
         />
       ) : null}
 

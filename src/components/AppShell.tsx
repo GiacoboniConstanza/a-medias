@@ -17,6 +17,8 @@ export function AppShell() {
   const bare =
     pathname === '/cargar' ||
     pathname === '/comidas/agregar' ||
+    pathname === '/comidas/recetas/nueva' ||
+    (pathname.startsWith('/comidas/recetas/') && pathname !== '/comidas/recetas') ||
     pathname === '/medicamentos/agregar' ||
     (pathname.startsWith('/medicamentos/') &&
       pathname !== '/medicamentos/stock' &&

@@ -60,6 +60,19 @@ export const MEDICATION_TABS: readonly NavItem[] = [
   { to: MEDICATION_ROUTES.stock, label: 'Stock', icon: 'box-open' },
 ]
 
+export const MEAL_ROUTES = {
+  dia: '/comidas',
+  recetas: '/comidas/recetas',
+  agregar: '/comidas/agregar',
+  recetaNueva: '/comidas/recetas/nueva',
+} as const
+
+/** Pestañas propias de Comidas (RC1): Día · Recetas. */
+export const MEAL_TABS: readonly NavItem[] = [
+  { to: MEAL_ROUTES.dia, label: 'Día', icon: 'calendar-day', end: true },
+  { to: MEAL_ROUTES.recetas, label: 'Recetas', icon: 'book-open' },
+]
+
 const RESUMEN_ALIASES = new Set<string>([FINANCE_ROUTES.avisos, FINANCE_ROUTES.anio, FINANCE_ROUTES.sueldo, FINANCE_ROUTES.compartir])
 
 const MEDICATION_TOMAS_ALIASES = new Set<string>([MEDICATION_ROUTES.tratamientos])
@@ -120,8 +133,19 @@ export function navFor(pathname: string, enabled: readonly ModuleId[], from?: st
     pathname === '/compartidos' ||
     pathname === '/prestamos'
   if (!onFinance) {
+    // Comidas: barra propia Día | Recetas (RC1).
     if (pathname.startsWith('/comidas')) {
-      return { items: general, activeTo: '/comidas' }
+      const tabs = [...MEAL_TABS]
+      const isRecetas =
+        pathname === MEAL_ROUTES.recetas || pathname.startsWith(`${MEAL_ROUTES.recetas}/`)
+      const isAgregar = pathname === MEAL_ROUTES.agregar
+      if (isAgregar) {
+        const origin =
+          from && tabs.some((item) => item.to === from) ? from : MEAL_ROUTES.dia
+        return { items: tabs, activeTo: origin }
+      }
+      if (isRecetas) return { items: tabs, activeTo: MEAL_ROUTES.recetas }
+      return { items: tabs, activeTo: MEAL_ROUTES.dia }
     }
     // Notificaciones: menú general con Inicio (S5).
     if (pathname === '/notificaciones') {

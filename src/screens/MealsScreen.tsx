@@ -43,6 +43,9 @@ import {
   type MealType,
 } from '../lib/meals.ts'
 import { MealPortionSheet, type PortionDraft } from '../components/MealPortionSheet.tsx'
+import { RecipePortionSheet, type RecipePortionDraft } from '../components/RecipePortionSheet.tsx'
+import { loadRecipe, recipeExists } from '../lib/api.ts'
+import { rescaleLoggedRecipe } from '../lib/recipes.ts'
 
 type DayOffset = -1 | 0 | 1
 
@@ -70,6 +73,10 @@ export function MealsScreen() {
   const [compositionOpen, setCompositionOpen] = useState(false)
   const [goalOpen, setGoalOpen] = useState(false)
   const [editing, setEditing] = useState<MealRow | null>(null)
+  const [recipeEdit, setRecipeEdit] = useState<{
+    meal: MealRow
+    draft: RecipePortionDraft
+  } | null>(null)
   const [toast, setToast] = useState<{ message: string; undo?: () => Promise<void> } | null>(null)
   const eatenOn = shiftArgentinaISO(today, offset)
   const fabMealType = mealTypeForContext(eatenOn)
@@ -120,6 +127,37 @@ export function MealsScreen() {
 
   if (!profile) return null
   if (ready && !enabled.includes('comidas')) return <Navigate to="/" replace />
+
+  async function openRecipeMeal(meal: MealRow) {
+    const exists = meal.foodRef ? await recipeExists(meal.foodRef) : false
+    let draft: RecipePortionDraft = {
+      recipeId: meal.foodRef,
+      name: meal.name,
+      servings: 1,
+      ingredients: [],
+      logged: {
+        proteinG: meal.proteinG,
+        carbsG: meal.carbsG,
+        fatG: meal.fatG,
+        kcal: meal.kcal,
+        portionQty: meal.portionQty ?? 1,
+      },
+      recipeStillExists: exists,
+    }
+    if (exists && meal.foodRef) {
+      const recipe = await loadRecipe(meal.foodRef)
+      if (recipe) {
+        draft = {
+          ...draft,
+          // RC15/§3.8: el nombre y macros de la fila quedan; solo hace falta el id para «Ver o cambiar».
+          servings: recipe.servings,
+          ingredients: recipe.ingredients,
+          recipeStillExists: true,
+        }
+      }
+    }
+    setRecipeEdit({ meal, draft })
+  }
 
   async function removeMeal(meal: MealRow) {
     setMeals((current) => current.filter((item) => item.id !== meal.id))
@@ -313,7 +351,13 @@ export function MealsScreen() {
                       <li key={meal.id}>
                         <button
                           type="button"
-                          onClick={() => setEditing(meal)}
+                          onClick={() => {
+                            if (meal.foodSource === 'recipe') {
+                              void openRecipeMeal(meal)
+                              return
+                            }
+                            setEditing(meal)
+                          }}
                           className="flex min-h-[52px] w-full flex-col items-start justify-center px-1 py-2 text-left"
                         >
                           <span className="text-sm font-bold">{meal.name}</span>
@@ -425,6 +469,47 @@ export function MealsScreen() {
             })
             setMeals((current) => current.map((item) => (item.id === updated.id ? updated : item)))
             setEditing(null)
+          }}
+        />
+      ) : null}
+
+      {recipeEdit ? (
+        <RecipePortionSheet
+          open
+          mode="edit"
+          mealType={recipeEdit.meal.mealType}
+          draft={recipeEdit.draft}
+          initialQty={recipeEdit.meal.portionQty ?? 1}
+          onClose={() => setRecipeEdit(null)}
+          onRemove={() => {
+            void removeMeal(recipeEdit.meal)
+            setRecipeEdit(null)
+          }}
+          onSave={async (qty) => {
+            const macros = rescaleLoggedRecipe(
+              {
+                proteinG: recipeEdit.meal.proteinG,
+                carbsG: recipeEdit.meal.carbsG,
+                fatG: recipeEdit.meal.fatG,
+                kcal: recipeEdit.meal.kcal,
+                portionQty: recipeEdit.meal.portionQty,
+              },
+              qty,
+            )
+            const updated = await updateMeal(recipeEdit.meal.id, {
+              proteinG: macros.proteinG,
+              carbsG: macros.carbsG,
+              fatG: macros.fatG,
+              kcal: macros.kcal,
+              portionLabel: 'porción',
+              portionQty: qty,
+              portionGrams: null,
+              foodSource: 'recipe',
+              foodRef: recipeEdit.meal.foodRef,
+              brand: null,
+            })
+            setMeals((current) => current.map((item) => (item.id === updated.id ? updated : item)))
+            setRecipeEdit(null)
           }}
         />
       ) : null}

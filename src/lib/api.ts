@@ -1615,6 +1615,306 @@ export async function deleteSavedFoodByName(ownerId: string, name: string): Prom
   fail(error)
 }
 
+export type RecipeIngredientRow = {
+  id: string
+  recipeId: string
+  name: string
+  grams: number
+  proteinG: number | null
+  carbsG: number | null
+  fatG: number | null
+  kcal: number | null
+  foodSource: Extract<FoodSource, 'common' | 'off' | 'manual'> | null
+  foodRef: string | null
+  brand: string | null
+  position: number
+}
+
+export type RecipeRow = {
+  id: string
+  householdId: string
+  createdBy: string
+  updatedBy: string | null
+  name: string
+  servings: number
+  notes: string | null
+  createdAt: string
+  updatedAt: string
+  ingredients: RecipeIngredientRow[]
+}
+
+const RECIPE_SELECT =
+  'id, household_id, created_by, updated_by, name, servings, notes, created_at, updated_at'
+const RECIPE_INGREDIENT_SELECT =
+  'id, recipe_id, name, grams, protein_g, carbs_g, fat_g, kcal, food_source, food_ref, brand, position, created_at'
+
+function ingredientFromDb(row: {
+  id: string
+  recipe_id: string
+  name: string
+  grams: number
+  protein_g: number | null
+  carbs_g: number | null
+  fat_g: number | null
+  kcal: number | null
+  food_source: string | null
+  food_ref: string | null
+  brand: string | null
+  position: number
+}): RecipeIngredientRow {
+  const source =
+    row.food_source === 'common' || row.food_source === 'off' || row.food_source === 'manual'
+      ? row.food_source
+      : null
+  return {
+    id: row.id,
+    recipeId: row.recipe_id,
+    name: row.name,
+    grams: asNumber(row.grams) ?? 0,
+    proteinG: asNumber(row.protein_g),
+    carbsG: asNumber(row.carbs_g),
+    fatG: asNumber(row.fat_g),
+    kcal: asNumber(row.kcal),
+    foodSource: source,
+    foodRef: row.food_ref,
+    brand: row.brand,
+    position: row.position,
+  }
+}
+
+function recipeFromDb(
+  row: {
+    id: string
+    household_id: string
+    created_by: string
+    updated_by?: string | null
+    name: string
+    servings: number
+    notes: string | null
+    created_at: string
+    updated_at: string
+  },
+  ingredients: RecipeIngredientRow[] = [],
+): RecipeRow {
+  return {
+    id: row.id,
+    householdId: row.household_id,
+    createdBy: row.created_by,
+    updatedBy: row.updated_by ?? null,
+    name: row.name,
+    servings: asNumber(row.servings) ?? 1,
+    notes: row.notes,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    ingredients,
+  }
+}
+
+async function attachIngredients(recipes: Parameters<typeof recipeFromDb>[0][]): Promise<RecipeRow[]> {
+  if (recipes.length === 0) return []
+  const ids = recipes.map((row) => row.id)
+  const ingredients = await supabase
+    .from('recipe_ingredients')
+    .select(RECIPE_INGREDIENT_SELECT)
+    .in('recipe_id', ids)
+    .order('position')
+    .order('created_at')
+  fail(ingredients.error)
+  const byRecipe = new Map<string, RecipeIngredientRow[]>()
+  for (const row of ingredients.data ?? []) {
+    const list = byRecipe.get(row.recipe_id) ?? []
+    list.push(ingredientFromDb(row))
+    byRecipe.set(row.recipe_id, list)
+  }
+  return recipes.map((row) => recipeFromDb(row, byRecipe.get(row.id) ?? []))
+}
+
+export async function loadRecipes(): Promise<RecipeRow[]> {
+  const { data, error } = await supabase
+    .from('recipes')
+    .select(RECIPE_SELECT)
+    .order('name')
+  fail(error)
+  return attachIngredients(data ?? [])
+}
+
+export async function searchRecipes(query: string, limit = 20): Promise<RecipeRow[]> {
+  const needle = query.trim()
+  if (!needle) return []
+  const { data, error } = await supabase
+    .from('recipes')
+    .select(RECIPE_SELECT)
+    .ilike('name', `%${needle}%`)
+    .order('name')
+    .limit(limit)
+  fail(error)
+  return attachIngredients(data ?? [])
+}
+
+export async function recipeExists(id: string): Promise<boolean> {
+  const { data, error } = await supabase.from('recipes').select('id').eq('id', id).maybeSingle()
+  fail(error)
+  return Boolean(data?.id)
+}
+
+export async function loadRecipe(id: string): Promise<RecipeRow | null> {
+  const { data, error } = await supabase.from('recipes').select(RECIPE_SELECT).eq('id', id).maybeSingle()
+  fail(error)
+  if (!data) return null
+  const ingredients = await supabase
+    .from('recipe_ingredients')
+    .select(RECIPE_INGREDIENT_SELECT)
+    .eq('recipe_id', id)
+    .order('position')
+    .order('created_at')
+  fail(ingredients.error)
+  return recipeFromDb(data, (ingredients.data ?? []).map(ingredientFromDb))
+}
+
+export type RecipeIngredientWrite = {
+  name: string
+  grams: number
+  proteinG: number | null
+  carbsG: number | null
+  fatG: number | null
+  kcal: number | null
+  foodSource: Extract<FoodSource, 'common' | 'off' | 'manual'> | null
+  foodRef: string | null
+  brand: string | null
+  position?: number
+}
+
+export type RecipeWriteInput = {
+  householdId: string
+  name: string
+  servings: number
+  notes?: string | null
+  ingredients: readonly RecipeIngredientWrite[]
+}
+
+export async function createRecipe(input: RecipeWriteInput): Promise<RecipeRow> {
+  const { data, error } = await supabase
+    .from('recipes')
+    .insert({
+      household_id: input.householdId,
+      name: input.name.trim(),
+      servings: input.servings,
+      notes: input.notes?.trim() || null,
+    })
+    .select(RECIPE_SELECT)
+    .single()
+  fail(error)
+  if (input.ingredients.length > 0) {
+    const { error: ingredientError } = await supabase.from('recipe_ingredients').insert(
+      input.ingredients.map((item, index) => ({
+        recipe_id: data.id,
+        name: item.name.trim(),
+        grams: item.grams,
+        protein_g: item.proteinG,
+        carbs_g: item.carbsG,
+        fat_g: item.fatG,
+        kcal: item.kcal,
+        food_source: item.foodSource,
+        food_ref: item.foodRef,
+        brand: item.brand,
+        position: item.position ?? index,
+      })),
+    )
+    fail(ingredientError)
+  }
+  const full = await loadRecipe(data.id)
+  if (!full) throw new Error('No se pudo cargar la receta.')
+  return full
+}
+
+export class RecipeConflictError extends Error {
+  readonly recipe: RecipeRow
+  constructor(recipe: RecipeRow) {
+    super('conflict')
+    this.name = 'RecipeConflictError'
+    this.recipe = recipe
+  }
+}
+
+export class RecipeDeletedConflictError extends Error {
+  constructor() {
+    super('deleted')
+    this.name = 'RecipeDeletedConflictError'
+  }
+}
+
+export async function updateRecipe(
+  id: string,
+  input: {
+    name: string
+    servings: number
+    notes?: string | null
+    ingredients: readonly RecipeIngredientWrite[]
+    expectedUpdatedAt: string
+    force?: boolean
+  },
+): Promise<RecipeRow> {
+  let query = supabase
+    .from('recipes')
+    .update({
+      name: input.name.trim(),
+      servings: input.servings,
+      notes: input.notes?.trim() || null,
+    })
+    .eq('id', id)
+  if (!input.force) {
+    query = query.eq('updated_at', input.expectedUpdatedAt)
+  }
+  const { data, error } = await query.select(RECIPE_SELECT).maybeSingle()
+  fail(error)
+  if (!data) {
+    const current = await loadRecipe(id)
+    if (!current) throw new RecipeDeletedConflictError()
+    throw new RecipeConflictError(current)
+  }
+  const { error: clearError } = await supabase.from('recipe_ingredients').delete().eq('recipe_id', id)
+  fail(clearError)
+  if (input.ingredients.length > 0) {
+    const { error: ingredientError } = await supabase.from('recipe_ingredients').insert(
+      input.ingredients.map((item, index) => ({
+        recipe_id: id,
+        name: item.name.trim(),
+        grams: item.grams,
+        protein_g: item.proteinG,
+        carbs_g: item.carbsG,
+        fat_g: item.fatG,
+        kcal: item.kcal,
+        food_source: item.foodSource,
+        food_ref: item.foodRef,
+        brand: item.brand,
+        position: item.position ?? index,
+      })),
+    )
+    fail(ingredientError)
+  }
+  const full = await loadRecipe(data.id)
+  if (!full) throw new Error('No se pudo cargar la receta.')
+  return full
+}
+
+export async function deleteRecipe(id: string): Promise<void> {
+  const { error } = await supabase.from('recipes').delete().eq('id', id)
+  fail(error)
+}
+
+export async function loadHouseholdPartnerName(
+  householdId: string,
+  selfId: string,
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, display_name')
+    .eq('household_id', householdId)
+  fail(error)
+  const other = (data ?? []).find((row) => row.id !== selfId)
+  return other?.display_name ?? null
+}
+
 export type MedicationRow = {
   id: string
   name: string

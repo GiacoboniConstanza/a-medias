@@ -18,7 +18,7 @@ export const MEAL_ICON: Record<MealType, string> = {
   snack: 'apple-whole',
 }
 
-export type FoodSource = 'common' | 'off' | 'manual' | 'saved'
+export type FoodSource = 'common' | 'off' | 'manual' | 'saved' | 'recipe'
 
 export type FoodPortion = {
   label: string
@@ -208,7 +208,13 @@ export function asNumber(value: number | string | null): number | null {
 }
 
 export function isFoodSource(value: string | null | undefined): value is FoodSource {
-  return value === 'common' || value === 'off' || value === 'manual' || value === 'saved'
+  return (
+    value === 'common' ||
+    value === 'off' ||
+    value === 'manual' ||
+    value === 'saved' ||
+    value === 'recipe'
+  )
 }
 
 /** Escala macros cada 100 g a una porción en gramos; redondea (R27). */
@@ -336,6 +342,26 @@ export function foodRowSubtitle(input: {
   foodSource?: FoodSource | null
   manualLegacy?: boolean
 }): string {
+  const protein =
+    input.proteinG == null ? null : `${formatAmount(input.proteinG)} g de proteína`
+  if (input.foodSource === 'recipe') {
+    const qty = input.qty != null && input.qty > 0 ? input.qty : 1
+    const portions =
+      qty === 0.5
+        ? '½ porción'
+        : qty === 1
+          ? '1 porción'
+          : qty === 1.5
+            ? '1 ½ porciones'
+            : Number.isInteger(qty)
+              ? `${qty} porciones`
+              : (() => {
+                  const whole = Math.floor(qty)
+                  if (qty - whole === 0.5 && whole >= 1) return `${whole} ½ porciones`
+                  return `${formatPortionQty(qty)} porciones`
+                })()
+    return protein ? `${portions} · ${protein}` : portions
+  }
   const manual = input.manualLegacy || input.foodSource === 'manual'
   const portion = portionDisplay({
     label: input.label,
@@ -343,8 +369,6 @@ export function foodRowSubtitle(input: {
     grams: input.grams,
     manual: Boolean(manual && !input.label),
   })
-  const protein =
-    input.proteinG == null ? null : `${formatAmount(input.proteinG)} g de proteína`
   if (manual && !input.label && protein) return `${portion} · ${protein} · a mano`
   if (protein) return `${portion} · ${protein}`
   return portion

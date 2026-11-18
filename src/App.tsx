@@ -34,6 +34,12 @@ const MealsScreen = lazy(() =>
 const MealAddScreen = lazy(() =>
   import('./screens/MealAddScreen.tsx').then((module) => ({ default: module.MealAddScreen })),
 )
+const RecipesScreen = lazy(() =>
+  import('./screens/RecipesScreen.tsx').then((module) => ({ default: module.RecipesScreen })),
+)
+const RecipeFormScreen = lazy(() =>
+  import('./screens/RecipeFormScreen.tsx').then((module) => ({ default: module.RecipeFormScreen })),
+)
 const MedicationsScreen = lazy(() =>
   import('./screens/MedicationsScreen.tsx').then((module) => ({ default: module.MedicationsScreen })),
 )
@@ -125,6 +131,9 @@ export function App() {
                 <Route path="habitos" element={<HabitsScreen />} />
                 <Route path="comidas" element={<MealsScreen />} />
                 <Route path="comidas/agregar" element={<MealAddScreen />} />
+                <Route path="comidas/recetas" element={<RecipesScreen />} />
+                <Route path="comidas/recetas/nueva" element={<RecipeFormScreen />} />
+                <Route path="comidas/recetas/:id" element={<RecipeFormScreen />} />
                 <Route path="medicamentos" element={<MedicationsScreen />} />
                 <Route path="medicamentos/stock" element={<MedicationStockScreen />} />
                 <Route path="medicamentos/agregar" element={<MedicationFormScreen />} />

@@ -70,8 +70,18 @@ describe('menú según la pantalla', () => {
     expect(nav.items[0]?.label).toBe('Inicio')
   })
 
-  it('Agregar comida marca Comidas en el menú general', () => {
-    expect(navFor('/comidas/agregar', ['finanzas', 'comidas']).activeTo).toBe('/comidas')
+  it('Comidas usa barra propia Día | Recetas (RC1)', () => {
+    const enabled = ['finanzas', 'comidas'] as const
+    const dia = navFor('/comidas', [...enabled])
+    expect(dia.items.map((item) => item.label)).toEqual(['Día', 'Recetas'])
+    expect(dia.activeTo).toBe('/comidas')
+    expect(navFor('/comidas/recetas', [...enabled]).activeTo).toBe('/comidas/recetas')
+    expect(navFor('/comidas/recetas/nueva', [...enabled]).activeTo).toBe('/comidas/recetas')
+    expect(navFor('/comidas/recetas/abc', [...enabled]).activeTo).toBe('/comidas/recetas')
+    expect(navFor('/comidas/agregar', [...enabled], '/comidas/recetas').activeTo).toBe(
+      '/comidas/recetas',
+    )
+    expect(navFor('/comidas/agregar', [...enabled]).activeTo).toBe('/comidas')
   })
 
   it('Medicamentos no entra al menú general y usa barra Tomas | Stock', () => {

@@ -952,6 +952,81 @@ export type Database = {
           source?: string
         }
       >
+      recipes: Table<
+        {
+          id: string
+          household_id: string
+          created_by: string
+          updated_by: string | null
+          name: string
+          servings: number
+          notes: string | null
+          created_at: string
+          updated_at: string
+        },
+        {
+          id?: string
+          household_id: string
+          created_by?: string
+          updated_by?: string | null
+          name: string
+          servings?: number
+          notes?: string | null
+          created_at?: string
+          updated_at?: string
+        },
+        {
+          name?: string
+          servings?: number
+          notes?: string | null
+          updated_by?: string | null
+          updated_at?: string
+        }
+      >
+      recipe_ingredients: Table<
+        {
+          id: string
+          recipe_id: string
+          name: string
+          grams: number
+          protein_g: number | null
+          carbs_g: number | null
+          fat_g: number | null
+          kcal: number | null
+          food_source: string | null
+          food_ref: string | null
+          brand: string | null
+          position: number
+          created_at: string
+        },
+        {
+          id?: string
+          recipe_id: string
+          name: string
+          grams: number
+          protein_g?: number | null
+          carbs_g?: number | null
+          fat_g?: number | null
+          kcal?: number | null
+          food_source?: string | null
+          food_ref?: string | null
+          brand?: string | null
+          position?: number
+          created_at?: string
+        },
+        {
+          name?: string
+          grams?: number
+          protein_g?: number | null
+          carbs_g?: number | null
+          fat_g?: number | null
+          kcal?: number | null
+          food_source?: string | null
+          food_ref?: string | null
+          brand?: string | null
+          position?: number
+        }
+      >
       transfers: Table<
         {
           id: string
