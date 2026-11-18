@@ -1,11 +1,14 @@
 /** Dominio puro de medicamentos (sin I/O). */
-import { argentinaISO } from './meals.ts'
+import { argentinaISO, shiftArgentinaISO } from './meals.ts'
 
 export type Medication = {
   id: string
   name: string
   doseNotes: string | null
   archivedAt: string | null
+  /** null = sin stock registrado */
+  stockQty: number | null
+  unitsPerDose: number
 }
 
 export type MedicationPeriod = {
@@ -34,6 +37,7 @@ export type MedicationDose = {
   recordedAt: string
   nameSnapshot: string
   doseSnapshot: string | null
+  unitsDeducted: number
 }
 
 export type DayDoseSlot = {
@@ -396,4 +400,169 @@ export function updateTimeRow(
 
 export function removeTimeRow(rows: readonly MedicationTimeRow[], id: string): MedicationTimeRow[] {
   return rows.filter((row) => row.id !== id)
+}
+
+/** Consumo diario = cantidad de horas × unidades por toma (S14). */
+export function dailyConsumption(scheduleCount: number, unitsPerDose: number): number {
+  if (scheduleCount <= 0 || unitsPerDose <= 0) return 0
+  return scheduleCount * unitsPerDose
+}
+
+/** Días que alcanza = floor(stock / consumo diario). */
+export function daysStockLasts(stockQty: number, daily: number): number | null {
+  if (daily <= 0) return null
+  if (stockQty < 0) return 0
+  return Math.floor(stockQty / daily)
+}
+
+export function formatStockDate(iso: string): string {
+  const [y, m, d] = iso.split('-')
+  return `${d}/${m}/${y}`
+}
+
+export function addDaysToIso(iso: string, days: number): string {
+  return shiftArgentinaISO(iso, days)
+}
+
+export type StockEstimate = {
+  daily: number
+  daysLeft: number | null
+  /** ISO de la fecha estimada, o null si no aplica */
+  estimatedOn: string | null
+  /** S17: la fecha cae después del fin del tratamiento */
+  reachesUntilEnd: boolean
+  lowStock: boolean
+  outOfStock: boolean
+}
+
+/**
+ * Fecha estimada = día de arranque + floor(stock / consumo).
+ * El arranque es hoy, o el Desde si el tratamiento empieza más adelante (S14, S21).
+ */
+export function estimateStock(
+  stockQty: number | null,
+  scheduleCount: number,
+  unitsPerDose: number,
+  today: string,
+  treatmentStartsOn: string | null = null,
+  treatmentEndsOn: string | null = null,
+): StockEstimate {
+  const daily = dailyConsumption(scheduleCount, unitsPerDose)
+  if (stockQty == null) {
+    return {
+      daily,
+      daysLeft: null,
+      estimatedOn: null,
+      reachesUntilEnd: false,
+      lowStock: false,
+      outOfStock: false,
+    }
+  }
+  if (stockQty === 0) {
+    return {
+      daily,
+      daysLeft: 0,
+      estimatedOn: null,
+      reachesUntilEnd: false,
+      lowStock: true,
+      outOfStock: true,
+    }
+  }
+  const daysLeft = daysStockLasts(stockQty, daily)
+  if (daysLeft == null) {
+    return {
+      daily,
+      daysLeft: null,
+      estimatedOn: null,
+      reachesUntilEnd: false,
+      lowStock: false,
+      outOfStock: false,
+    }
+  }
+  const fromDay =
+    treatmentStartsOn && treatmentStartsOn > today ? treatmentStartsOn : today
+  const estimatedOn = addDaysToIso(fromDay, daysLeft)
+  const reachesUntilEnd = Boolean(treatmentEndsOn && estimatedOn > treatmentEndsOn)
+  const lowStock = daysLeft <= 3
+  return {
+    daily,
+    daysLeft,
+    estimatedOn: reachesUntilEnd ? treatmentEndsOn : estimatedOn,
+    reachesUntilEnd,
+    lowStock,
+    outOfStock: false,
+  }
+}
+
+export function isStockLow(stockQty: number | null, scheduleCount: number, unitsPerDose: number): boolean {
+  if (stockQty == null) return false
+  if (stockQty === 0) return true
+  const days = daysStockLasts(stockQty, dailyConsumption(scheduleCount, unitsPerDose))
+  return days != null && days <= 3
+}
+
+export type StockCardModel = {
+  medication: Medication
+  scheduleCount: number
+  startsOn: string | null
+  endsOn: string | null
+  upcoming: boolean
+  estimate: StockEstimate
+}
+
+/** Orden S22: 0 → stock bajo → resto por fecha estimada → sin registrar; empates por nombre. */
+export function sortStockCards(cards: readonly StockCardModel[]): StockCardModel[] {
+  return cards.slice().sort((a, b) => {
+    const rank = (card: StockCardModel): number => {
+      if (card.medication.stockQty == null) return 3
+      if (card.estimate.outOfStock || card.medication.stockQty === 0) return 0
+      if (card.estimate.lowStock) return 1
+      return 2
+    }
+    const ra = rank(a)
+    const rb = rank(b)
+    if (ra !== rb) return ra - rb
+    if (ra === 2 && rb === 2) {
+      const ea = a.estimate.estimatedOn ?? '9999-99-99'
+      const eb = b.estimate.estimatedOn ?? '9999-99-99'
+      if (ea !== eb) return ea.localeCompare(eb)
+    }
+    return a.medication.name.localeCompare(b.medication.name, 'es')
+  })
+}
+
+/** Bajada del bloque Stock (S18). */
+export function stockHeaderSummary(cards: readonly StockCardModel[]): string | null {
+  if (cards.length === 0) return null
+  const low = cards.filter((card) => card.medication.stockQty != null && card.estimate.lowStock).length
+  const unregistered = cards.filter((card) => card.medication.stockQty == null).length
+  if (low === 0 && unregistered === 0) return 'Todos con stock para más de 3 días.'
+  const parts: string[] = []
+  if (low > 0) parts.push(`${low} con stock bajo`)
+  if (unregistered > 0) parts.push(`${unregistered} sin registrar`)
+  return parts.join(' · ')
+}
+
+/** Cuenta en texto del formulario (S10). */
+export function stockDailyAccountLabel(scheduleCount: number, unitsPerDose: number): string {
+  const daily = dailyConsumption(scheduleCount, unitsPerDose)
+  const tomaWord = scheduleCount === 1 ? 'toma' : 'tomas'
+  const unitWord = unitsPerDose === 1 ? 'unidad' : 'unidades'
+  const dailyWord = daily === 1 ? 'unidad' : 'unidades'
+  return `${daily} ${dailyWord} por día: ${scheduleCount} ${tomaWord} de ${unitsPerDose} ${unitWord}.`
+}
+
+/**
+ * En Tomas (S26): índice de la fila donde mostrar el aviso de stock bajo
+ * (próxima sin marcar; si todas marcadas, la última del día).
+ */
+export function stockHintSlotIndex(slots: readonly DayDoseSlot[], medicationId: string): number {
+  const indexes: number[] = []
+  slots.forEach((slot, index) => {
+    if (slot.medicationId === medicationId) indexes.push(index)
+  })
+  if (indexes.length === 0) return -1
+  const nextUnmarked = indexes.find((index) => slots[index]?.status === null)
+  if (nextUnmarked != null) return nextUnmarked
+  return indexes[indexes.length - 1] ?? -1
 }

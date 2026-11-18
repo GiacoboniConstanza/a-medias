@@ -201,7 +201,9 @@ export function NotificationsScreen() {
           <p className="mt-2 font-semibold">
             Te llegan aunque la app esté cerrada. Para eso, el navegador te va a pedir permiso.
           </p>
-          <p className="mt-2 text-sm font-semibold text-muted">Medicamentos te avisa a la hora de cada toma.</p>
+          <p className="mt-2 text-sm font-semibold text-muted">
+            Medicamentos te avisa a la hora de cada toma y cuando queda poco stock.
+          </p>
           {message ? (
             <p className="mt-2 text-sm font-bold text-tinta" role="alert">
               {message}
@@ -230,7 +232,9 @@ export function NotificationsScreen() {
               <div className="flex items-center gap-3">
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold">Medicamentos</p>
-                  <p className="text-sm font-semibold text-muted">A la hora de cada toma. Vale para todos tus celus.</p>
+                  <p className="text-sm font-semibold text-muted">
+                    A la hora de cada toma y cuando queda poco stock. Vale para todos tus celus.
+                  </p>
                 </div>
                 <ModuleSwitch on={medEnabled} label="Medicamentos" onToggle={() => void toggleMed(!medEnabled)} />
               </div>

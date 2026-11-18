@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { ConfirmSheet } from '../components/ConfirmSheet.tsx'
 import { Button } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import {
+  adjustMedicationStock,
   archiveMedication,
   createMedication,
   loadMedicationPeriods,
@@ -18,22 +19,29 @@ import {
   addTimeRow,
   createTimeRows,
   currentPeriod,
+  estimateStock,
   formatHourLabel,
+  formatStockDate,
   latestPeriod,
   maxSchedules,
   nextHourOnTheHour,
   removeTimeRow,
   sortedTimeValues,
+  stockDailyAccountLabel,
   updateTimeRow,
   type MedicationTimeRow,
 } from '../lib/medications.ts'
+import { MEDICATION_ROUTES } from '../lib/modules.ts'
 
 export function MedicationFormScreen() {
   const { id } = useParams()
   const editing = Boolean(id)
   const { profile } = useAuth()
   const navigate = useNavigate()
+  const [params] = useSearchParams()
   const today = argentinaISO()
+  const backTo =
+    params.get('from') === MEDICATION_ROUTES.stock ? MEDICATION_ROUTES.stock : MEDICATION_ROUTES.tomas
 
   const [loading, setLoading] = useState(editing)
   const [name, setName] = useState('')
@@ -42,6 +50,9 @@ export function MedicationFormScreen() {
   const [startsOn, setStartsOn] = useState(today)
   const [hasEnd, setHasEnd] = useState(false)
   const [endsOn, setEndsOn] = useState('')
+  const [stockRaw, setStockRaw] = useState('')
+  const [initialStock, setInitialStock] = useState<number | null>(null)
+  const [unitsPerDose, setUnitsPerDose] = useState(1)
   const [archived, setArchived] = useState(false)
   const [periodId, setPeriodId] = useState<string | null>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -67,6 +78,9 @@ export function MedicationFormScreen() {
         setName(med.name)
         setDoseNotes(med.doseNotes ?? '')
         setArchived(Boolean(med.archivedAt))
+        setInitialStock(med.stockQty)
+        setStockRaw(med.stockQty == null ? '' : String(med.stockQty))
+        setUnitsPerDose(med.unitsPerDose || 1)
         const open = currentPeriod(periods, med.id) ?? latestPeriod(periods, med.id)
         setPeriodId(open?.id ?? null)
         if (med.archivedAt) {
@@ -97,6 +111,21 @@ export function MedicationFormScreen() {
   }, [profile, id, today])
 
   const sortedTimes = useMemo(() => sortedTimeValues(timeRows), [timeRows])
+  const stockInvalid = stockRaw !== '' && !/^\d+$/.test(stockRaw)
+  const stockParsed = stockRaw === '' || stockInvalid ? null : Number(stockRaw)
+  const stockOver = stockParsed != null && stockParsed > 9999
+  const stockEstimate = useMemo(
+    () =>
+      estimateStock(
+        stockParsed,
+        sortedTimes.length,
+        unitsPerDose,
+        today,
+        startsOn,
+        hasEnd ? endsOn || null : null,
+      ),
+    [stockParsed, sortedTimes.length, unitsPerDose, today, startsOn, hasEnd, endsOn],
+  )
 
   function validate(): boolean {
     const next: Record<string, string> = {}
@@ -104,6 +133,8 @@ export function MedicationFormScreen() {
     if (sortedTimes.length === 0) next.times = 'Sumá al menos una hora.'
     if (new Set(sortedTimes).size !== sortedTimes.length) next.times = 'Elegí horas distintas.'
     if (hasEnd && endsOn && endsOn < startsOn) next.endsOn = 'La fecha no puede ser anterior a Desde.'
+    if (stockInvalid) next.stock = 'Usá números enteros.'
+    if (stockOver) next.stock = 'Hasta 9999 unidades.'
     setErrors(next)
     return Object.keys(next).length === 0
   }
@@ -115,6 +146,7 @@ export function MedicationFormScreen() {
     setSaveError('')
     try {
       const payloadTimes = sortedTimes.map((time) => `${time}:00`)
+      const nextStock = stockRaw === '' ? null : stockParsed
       if (editing && id && periodId) {
         await updateMedication({
           id,
@@ -124,7 +156,11 @@ export function MedicationFormScreen() {
           times: payloadTimes,
           endsOn: hasEnd ? endsOn || null : null,
           periodId,
+          unitsPerDose,
         })
+        if (nextStock !== initialStock) {
+          await adjustMedicationStock({ medicationId: id, units: nextStock })
+        }
         navigate('/medicamentos/tratamientos')
       } else {
         const created = await createMedication({
@@ -134,8 +170,10 @@ export function MedicationFormScreen() {
           startsOn,
           endsOn: hasEnd ? endsOn || null : null,
           times: payloadTimes,
+          stockQty: nextStock,
+          unitsPerDose,
         })
-        navigate('/medicamentos', { state: { toast: `Sumaste ${created.name}.` } })
+        navigate(backTo, { state: { toast: `Sumaste ${created.name}.` } })
       }
     } catch (caught) {
       setSaveError(caught instanceof Error ? caught.message : 'No pude guardar. Revisá la conexión y probá de nuevo.')
@@ -195,7 +233,11 @@ export function MedicationFormScreen() {
   return (
     <>
       <header className="mb-4 flex min-h-11 items-center gap-3">
-        <Link to={editing ? '/medicamentos/tratamientos' : '/medicamentos'} aria-label="Volver" className="grid h-11 w-11 place-items-center rounded-full bg-card shadow-soft">
+        <Link
+          to={editing ? '/medicamentos/tratamientos' : backTo}
+          aria-label="Volver"
+          className="grid h-11 w-11 place-items-center rounded-full bg-card shadow-soft"
+        >
           <AppIcon name="chevron-left" />
         </Link>
         <h1 className="font-display text-[1.8rem] font-semibold">{editing ? 'Editar' : 'Agregar'}</h1>
@@ -310,6 +352,85 @@ export function MedicationFormScreen() {
             ) : null}
             {errors.endsOn ? <p className="mt-1 text-sm font-bold text-tinta">{errors.endsOn}</p> : null}
           </div>
+
+          {!archived ? (
+            <div className="border-t border-dashed border-azul-ink/50 pt-6">
+              <h2 className="font-display text-lg font-semibold">Stock</h2>
+              <p className="mt-1 text-sm font-semibold text-muted">
+                Es opcional. Sirve para saber hasta cuándo te alcanza.
+              </p>
+
+              <label className="mt-3 block">
+                <span className="mb-1 block text-sm font-semibold">Cantidad disponible</span>
+                <div className="relative">
+                  <input
+                    inputMode="numeric"
+                    value={stockRaw}
+                    onChange={(event) => setStockRaw(event.target.value)}
+                    placeholder="Ej: 30"
+                    className="w-full rounded-2xl border-2 border-azul-ink bg-card px-3 py-3 pr-24 font-semibold"
+                  />
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-muted">
+                    unidades
+                  </span>
+                </div>
+                <p className="mt-1 text-sm font-semibold text-muted">
+                  Cuántas tenés ahora, sumando todas las cajas.
+                </p>
+                {errors.stock ? <p className="mt-1 text-sm font-bold text-tinta">{errors.stock}</p> : null}
+              </label>
+
+              <div className="mt-3">
+                <span className="mb-1 block text-sm font-semibold">Unidades por toma</span>
+                <div className="flex h-[52px] w-fit items-center rounded-2xl border-2 border-azul-ink bg-card">
+                  <button
+                    type="button"
+                    aria-label="Menos unidades"
+                    disabled={unitsPerDose <= 1}
+                    className="grid h-11 w-11 place-items-center disabled:opacity-40"
+                    onClick={() => setUnitsPerDose((value) => Math.max(1, value - 1))}
+                  >
+                    <AppIcon name="minus" />
+                  </button>
+                  <span className="min-w-8 text-center font-semibold">{unitsPerDose}</span>
+                  <button
+                    type="button"
+                    aria-label="Más unidades"
+                    disabled={unitsPerDose >= 10}
+                    className="grid h-11 w-11 place-items-center disabled:opacity-40"
+                    onClick={() => setUnitsPerDose((value) => Math.min(10, value + 1))}
+                  >
+                    <AppIcon name="plus" />
+                  </button>
+                </div>
+                <p className="mt-1 text-sm font-semibold text-muted">
+                  Cuántos comprimidos, cápsulas o sobres tomás cada vez.
+                </p>
+              </div>
+
+              {stockRaw === '' ? null : sortedTimes.length === 0 ? (
+                <p className="mt-3 text-sm font-semibold text-muted">
+                  Sumá al menos una hora para calcular hasta cuándo te alcanza.
+                </p>
+              ) : stockParsed === 0 ? (
+                <p className="mt-3 text-sm font-semibold text-muted">Con 0 unidades no te alcanza para hoy.</p>
+              ) : stockParsed != null && !stockInvalid && !stockOver ? (
+                <div className="mt-3 rounded-2xl border-2 border-azul-ink bg-azul-claro p-3">
+                  <p className="inline-flex items-center gap-2 text-base font-semibold">
+                    <AppIcon name="calendar-days" />
+                    {stockEstimate.reachesUntilEnd
+                      ? 'Con este stock te alcanza hasta el final del tratamiento'
+                      : stockEstimate.estimatedOn
+                        ? `Con este stock te alcanza aproximadamente hasta el ${formatStockDate(stockEstimate.estimatedOn)}`
+                        : null}
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-muted">
+                    {stockDailyAccountLabel(sortedTimes.length, unitsPerDose)}
+                  </p>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           {editing && !archived ? (
             <div className="border-t border-dashed border-azul-ink/50 pt-4">

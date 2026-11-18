@@ -74,12 +74,23 @@ describe('menú según la pantalla', () => {
     expect(navFor('/comidas/agregar', ['finanzas', 'comidas']).activeTo).toBe('/comidas')
   })
 
-  it('Medicamentos no entra a la barra y no marca ningún ítem', () => {
+  it('Medicamentos no entra al menú general y usa barra Tomas | Stock', () => {
     const enabled = ['finanzas', 'medicamentos'] as const
     expect(navForModules([...enabled]).map((item) => item.label)).toEqual(['Inicio', 'Finanzas'])
-    const nav = navFor('/medicamentos', [...enabled])
-    expect(nav.items.map((item) => item.label)).toEqual(['Inicio', 'Finanzas'])
-    expect(nav.activeTo).toBe('')
+    const tomas = navFor('/medicamentos', [...enabled])
+    expect(tomas.items.map((item) => item.label)).toEqual(['Tomas', 'Stock'])
+    expect(tomas.activeTo).toBe('/medicamentos')
+    expect(navFor('/medicamentos/stock', [...enabled]).activeTo).toBe('/medicamentos/stock')
+    expect(navFor('/medicamentos/tratamientos', [...enabled]).activeTo).toBe('/medicamentos')
+    expect(navFor('/medicamentos/dia/2026-11-10', [...enabled]).activeTo).toBe('/medicamentos')
+    expect(navFor('/medicamentos/agregar', [...enabled], '/medicamentos/stock').activeTo).toBe(
+      '/medicamentos/stock',
+    )
+    expect(navFor('/notificaciones', [...enabled]).items.map((item) => item.label)).toEqual([
+      'Inicio',
+      'Finanzas',
+    ])
+    expect(navFor('/notificaciones', [...enabled]).activeTo).toBe('/')
   })
 })
 

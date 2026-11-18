@@ -519,6 +519,8 @@ export type Database = {
           name: string
           dose_notes: string | null
           archived_at: string | null
+          stock_qty: number | null
+          units_per_dose: number
           created_at: string
           updated_at: string
         },
@@ -528,6 +530,8 @@ export type Database = {
           name: string
           dose_notes?: string | null
           archived_at?: string | null
+          stock_qty?: number | null
+          units_per_dose?: number
           created_at?: string
           updated_at?: string
         },
@@ -535,6 +539,8 @@ export type Database = {
           name?: string
           dose_notes?: string | null
           archived_at?: string | null
+          stock_qty?: number | null
+          units_per_dose?: number
           updated_at?: string
         }
       >
@@ -589,6 +595,7 @@ export type Database = {
           recorded_at: string
           name_snapshot: string
           dose_snapshot: string | null
+          units_deducted: number
         },
         {
           id?: string
@@ -600,12 +607,45 @@ export type Database = {
           recorded_at?: string
           name_snapshot: string
           dose_snapshot?: string | null
+          units_deducted?: number
         },
         {
           status?: 'taken' | 'skipped'
           recorded_at?: string
           name_snapshot?: string
           dose_snapshot?: string | null
+          units_deducted?: number
+        }
+      >
+      medication_stock_moves: Table<
+        {
+          id: string
+          user_id: string
+          medication_id: string
+          kind: 'sumar' | 'ajustar' | 'dejar_de_registrar' | 'toma' | 'desmarcar'
+          delta: number | null
+          stock_before: number | null
+          stock_after: number | null
+          dose_id: string | null
+          created_at: string
+        },
+        {
+          id?: string
+          user_id: string
+          medication_id: string
+          kind: 'sumar' | 'ajustar' | 'dejar_de_registrar' | 'toma' | 'desmarcar'
+          delta?: number | null
+          stock_before?: number | null
+          stock_after?: number | null
+          dose_id?: string | null
+          created_at?: string
+        },
+        {
+          kind?: 'sumar' | 'ajustar' | 'dejar_de_registrar' | 'toma' | 'desmarcar'
+          delta?: number | null
+          stock_before?: number | null
+          stock_after?: number | null
+          dose_id?: string | null
         }
       >
       module_notification_prefs: Table<
@@ -616,6 +656,21 @@ export type Database = {
       medication_push_sends: Table<
         { user_id: string; dose_on: string; scheduled_time: string; sent_at: string },
         { user_id: string; dose_on: string; scheduled_time: string; sent_at?: string },
+        { sent_at?: string }
+      >
+      medication_stock_push_sends: Table<
+        {
+          user_id: string
+          medication_id: string
+          kind: 'low_stock' | 'out_of_stock'
+          sent_at: string
+        },
+        {
+          user_id: string
+          medication_id: string
+          kind: 'low_stock' | 'out_of_stock'
+          sent_at?: string
+        },
         { sent_at?: string }
       >
       finance_push_sends: Table<
@@ -1030,6 +1085,48 @@ export type Database = {
       claim_due_reminders: {
         Args: { p_at?: string }
         Returns: Database['public']['Tables']['scheduled_reminders']['Row'][]
+      }
+      set_medication_dose_with_stock: {
+        Args: {
+          p_medication_id: string
+          p_dose_on: string
+          p_scheduled_time: string
+          p_status: string | null
+          p_name_snapshot: string
+          p_dose_snapshot?: string | null
+        }
+        Returns: {
+          dose_id: string | null
+          medication_id: string
+          dose_on: string
+          scheduled_time: string
+          status: string | null
+          recorded_at: string | null
+          name_snapshot: string | null
+          dose_snapshot: string | null
+          units_deducted: number
+          stock_qty: number | null
+        }[]
+      }
+      add_medication_stock: {
+        Args: { p_medication_id: string; p_units: number }
+        Returns: { medication_id: string; stock_qty: number; move_id: string }[]
+      }
+      adjust_medication_stock: {
+        Args: { p_medication_id: string; p_units: number | null }
+        Returns: { medication_id: string; stock_qty: number | null; move_id: string | null }[]
+      }
+      claim_medication_stock_pushes: {
+        Args: { p_at?: string; p_lookback?: string }
+        Returns: {
+          user_id: string
+          medication_id: string
+          kind: string
+          name: string
+          stock_qty: number
+          days_left: number | null
+          estimated_on: string | null
+        }[]
       }
     }
   }

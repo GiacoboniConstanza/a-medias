@@ -2,10 +2,14 @@ import { describe, expect, it } from 'vitest'
 import {
   addTimeRow,
   createTimeRows,
+  dailyConsumption,
   dayDoseProgress,
+  daysStockLasts,
   dosesForDay,
+  estimateStock,
   firstEligibleDay,
   formatHourLabel,
+  formatStockDate,
   groupTreatments,
   hubSecondaryLine,
   isSlotInPeriod,
@@ -14,6 +18,9 @@ import {
   nextFreeHourOnTheHour,
   removeTimeRow,
   sortedTimeValues,
+  sortStockCards,
+  stockHeaderSummary,
+  stockHintSlotIndex,
   summarizeDay,
   updateTimeRow,
   weekSummaries,
@@ -21,13 +28,14 @@ import {
   type MedicationDose,
   type MedicationPeriod,
   type MedicationSchedule,
+  type StockCardModel,
 } from './medications.ts'
 
 const day = '2026-11-13'
 const noon = new Date('2026-11-13T15:30:00.000Z') // 12:30 AR (UTC-3)
 
 function med(partial: Partial<Medication> & Pick<Medication, 'id' | 'name'>): Medication {
-  return { doseNotes: null, archivedAt: null, ...partial }
+  return { doseNotes: null, archivedAt: null, stockQty: null, unitsPerDose: 1, ...partial }
 }
 
 function period(
@@ -91,6 +99,7 @@ describe('tomas del día', () => {
       recordedAt: '2026-11-13T11:05:00.000Z',
       nameSnapshot: 'Levotiroxina',
       doseSnapshot: '1 pastilla',
+      unitsDeducted: 1,
     },
   ]
 
@@ -146,6 +155,92 @@ describe('filas de horas del formulario', () => {
     const next = removeTimeRow(rows, removeMiddle)
     expect(next.map((row) => row.id)).toEqual([keepFirst, keepLast])
     expect(next.map((row) => row.time)).toEqual(['08:00', '20:00'])
+  })
+})
+
+describe('stock: consumo, días, fecha y orden', () => {
+  it('consumo diario = horas × unidades por toma', () => {
+    expect(dailyConsumption(2, 1)).toBe(2)
+    expect(dailyConsumption(2, 2)).toBe(4)
+    expect(dailyConsumption(0, 1)).toBe(0)
+  })
+
+  it('días con floor y fecha estimada desde hoy', () => {
+    // Losartán: 5 / 2 = 2 → 20/11/2026 con hoy 18/11/2026
+    expect(daysStockLasts(5, 2)).toBe(2)
+    const est = estimateStock(5, 2, 1, '2026-11-18')
+    expect(est.daysLeft).toBe(2)
+    expect(est.estimatedOn).toBe('2026-11-20')
+    expect(est.lowStock).toBe(true)
+    expect(formatStockDate(est.estimatedOn!)).toBe('20/11/2026')
+  })
+
+  it('stock 0 y sin registrar', () => {
+    expect(estimateStock(0, 2, 1, '2026-11-18').outOfStock).toBe(true)
+    expect(estimateStock(null, 2, 1, '2026-11-18').estimatedOn).toBeNull()
+  })
+
+  it('te alcanza hasta el final del tratamiento (S17)', () => {
+    // 20 unidades, 3 tomas/día, desde 18 hasta 23 → 6 días de stock > 5 días de tratamiento
+    const est = estimateStock(20, 3, 1, '2026-11-18', '2026-11-18', '2026-11-23')
+    expect(est.reachesUntilEnd).toBe(true)
+    expect(est.estimatedOn).toBe('2026-11-23')
+  })
+
+  it('cuenta desde el Desde si empieza más adelante', () => {
+    const est = estimateStock(10, 2, 1, '2026-11-18', '2026-11-23')
+    expect(est.estimatedOn).toBe('2026-11-28')
+  })
+
+  it('orden S22: 0, bajo, por fecha, sin registrar', () => {
+    const cards: StockCardModel[] = [
+      {
+        medication: med({ id: 'm', name: 'Magnesio', stockQty: null }),
+        scheduleCount: 1,
+        startsOn: '2026-11-01',
+        endsOn: null,
+        upcoming: false,
+        estimate: estimateStock(null, 1, 1, '2026-11-18'),
+      },
+      {
+        medication: med({ id: 'l', name: 'Losartán', stockQty: 5 }),
+        scheduleCount: 2,
+        startsOn: '2026-11-01',
+        endsOn: null,
+        upcoming: false,
+        estimate: estimateStock(5, 2, 1, '2026-11-18'),
+      },
+      {
+        medication: med({ id: 'x', name: 'X cero', stockQty: 0 }),
+        scheduleCount: 1,
+        startsOn: '2026-11-01',
+        endsOn: null,
+        upcoming: false,
+        estimate: estimateStock(0, 1, 1, '2026-11-18'),
+      },
+      {
+        medication: med({ id: 't', name: 'Metformina', stockQty: 12 }),
+        scheduleCount: 2,
+        startsOn: '2026-11-01',
+        endsOn: null,
+        upcoming: false,
+        estimate: estimateStock(12, 2, 1, '2026-11-18'),
+      },
+    ]
+    expect(sortStockCards(cards).map((card) => card.medication.id)).toEqual(['x', 'l', 't', 'm'])
+    expect(stockHeaderSummary(cards)).toBe('2 con stock bajo · 1 sin registrar')
+  })
+
+  it('hint de stock bajo en la próxima sin marcar (S26)', () => {
+    const slots = [
+      { medicationId: 'l', name: 'L', doseNotes: null, scheduledTime: '08:00:00', status: 'taken' as const, recordedAt: 'x', endsOn: null },
+      { medicationId: 'l', name: 'L', doseNotes: null, scheduledTime: '20:00:00', status: null, recordedAt: null, endsOn: null },
+    ]
+    expect(stockHintSlotIndex(slots, 'l')).toBe(1)
+    const allMarked = slots.map((slot, index) =>
+      index === 1 ? { ...slot, status: 'taken' as const, recordedAt: 'y' } : slot,
+    )
+    expect(stockHintSlotIndex(allMarked, 'l')).toBe(1)
   })
 })
 

@@ -69,12 +69,22 @@ function usePendingCount(): number | null {
   return pendingCount(now, prefs, { logged, clear }, source.fixed)
 }
 
-export function NotificationBell() {
+export function NotificationBell({
+  to = '/recordatorios',
+  label = null,
+  showCount = true,
+}: {
+  to?: string
+  label?: string | null
+  showCount?: boolean
+} = {}) {
   const count = usePendingCount()
-  const label = count == null ? 'Avisos' : count === 0 ? 'Avisos, sin pendientes' : `Avisos, ${count} pendientes`
-  const badge = count != null && count > 0 ? (count > 9 ? '9+' : String(count)) : null
+  const resolvedLabel =
+    label ??
+    (count == null ? 'Avisos' : count === 0 ? 'Avisos, sin pendientes' : `Avisos, ${count} pendientes`)
+  const badge = showCount && count != null && count > 0 ? (count > 9 ? '9+' : String(count)) : null
   return (
-    <Link to="/recordatorios" aria-label={label} className="relative grid h-11 w-11 place-items-center text-tinta">
+    <Link to={to} aria-label={resolvedLabel} className="relative grid h-11 w-11 place-items-center text-tinta">
       <AppIcon name="bell" className="text-lg" />
       {badge ? (
         <span

@@ -38,6 +38,16 @@ type FinancePush = {
   tag: string
 }
 
+type StockPush = {
+  user_id: string
+  medication_id: string
+  kind: string
+  name: string
+  stock_qty: number
+  days_left: number | null
+  estimated_on: string | null
+}
+
 type PushRow = {
   id: string
   endpoint: string
@@ -66,6 +76,13 @@ function moduleUrl(module: string): string {
 function formatHour(time: string): string {
   const [hh, mm] = time.split(':')
   return `${Number(hh)}:${mm ?? '00'}`
+}
+
+function formatStockDate(iso: string | null): string | null {
+  if (!iso) return null
+  const [y, m, d] = iso.split('-')
+  if (!y || !m || !d) return null
+  return `${d}/${m}/${y}`
 }
 
 function vapidReady() {
@@ -276,16 +293,80 @@ Deno.serve(async (req) => {
     }
   }
 
+  // 4) Medicamentos: poco stock / sin unidades (S27), diario 9:00 AR.
+  // Si el claim falla, no tapa lo ya enviado: se reporta al final como Finanzas.
+  let stockErrorMessage: string | null = null
+  let stockPushes: StockPush[] = []
+  const { data: stockData, error: stockError } = await admin.rpc('claim_medication_stock_pushes', {
+    p_lookback: '5 minutes',
+  })
+  if (stockError) {
+    stockErrorMessage = stockError.message
+    console.error('claim_medication_stock_pushes', stockError.message)
+  } else {
+    stockPushes = (stockData ?? []) as StockPush[]
+  }
+
+  const stockByUser = new Map<string, StockPush[]>()
+  for (const push of stockPushes) {
+    const list = stockByUser.get(push.user_id) ?? []
+    list.push(push)
+    stockByUser.set(push.user_id, list)
+  }
+
+  for (const [userId, pushes] of stockByUser) {
+    pushes.sort((a, b) => a.name.localeCompare(b.name, 'es'))
+    const title =
+      pushes.length === 1
+        ? `${pushes[0]!.name}: te quedan ${pushes[0]!.stock_qty} unidades`
+        : `${pushes.length} medicamentos con stock bajo`
+    const first = pushes[0]!
+    const dateLabel = formatStockDate(first.estimated_on)
+    const body =
+      pushes.length === 1
+        ? first.kind === 'out_of_stock' || first.stock_qty === 0
+          ? 'Se terminó. Tocá para reponer.'
+          : dateLabel
+            ? `Te alcanzan hasta el ${dateLabel}. Tocá para reponer.`
+            : 'Tocá para reponer.'
+        : 'Tocá para reponer.'
+    const tag = `med-stock-${userId}-${first.kind === 'out_of_stock' ? 'out' : 'low'}`
+
+    const { data: subs } = await admin
+      .from('push_subscriptions')
+      .select('id, endpoint, p256dh, auth_key')
+      .eq('user_id', userId)
+
+    const payload = JSON.stringify({
+      title,
+      body,
+      url: '/medicamentos/stock',
+      module: 'medicamentos',
+      tag,
+    })
+
+    for (const sub of (subs ?? []) as PushRow[]) {
+      const result = await sendToSub(sub, payload)
+      if (result === 'sent') sent += 1
+      else if (result === 'gone') {
+        await admin.from('push_subscriptions').delete().eq('id', sub.id)
+        gone += 1
+      } else failed += 1
+    }
+  }
+
   const summary: Record<string, unknown> = {
     claimedReminders: (due ?? []).length,
     claimedMedGroups: groups.size,
     claimedFinancePushes: financePushes.length,
+    claimedStockPushes: stockPushes.length,
     sent,
     gone,
     failed,
   }
-  if (financeErrorMessage) {
-    summary.financeError = financeErrorMessage
+  if (financeErrorMessage) summary.financeError = financeErrorMessage
+  if (stockErrorMessage) summary.stockError = stockErrorMessage
+  if (financeErrorMessage || stockErrorMessage) {
     return json(500, summary)
   }
   return json(200, summary)

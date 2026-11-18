@@ -37,6 +37,9 @@ const MealAddScreen = lazy(() =>
 const MedicationsScreen = lazy(() =>
   import('./screens/MedicationsScreen.tsx').then((module) => ({ default: module.MedicationsScreen })),
 )
+const MedicationStockScreen = lazy(() =>
+  import('./screens/MedicationStockScreen.tsx').then((module) => ({ default: module.MedicationStockScreen })),
+)
 const MedicationFormScreen = lazy(() =>
   import('./screens/MedicationFormScreen.tsx').then((module) => ({ default: module.MedicationFormScreen })),
 )
@@ -123,6 +126,7 @@ export function App() {
                 <Route path="comidas" element={<MealsScreen />} />
                 <Route path="comidas/agregar" element={<MealAddScreen />} />
                 <Route path="medicamentos" element={<MedicationsScreen />} />
+                <Route path="medicamentos/stock" element={<MedicationStockScreen />} />
                 <Route path="medicamentos/agregar" element={<MedicationFormScreen />} />
                 <Route path="medicamentos/tratamientos" element={<MedicationTreatmentsScreen />} />
                 <Route path="medicamentos/dia/:fecha" element={<MedicationDayScreen />} />

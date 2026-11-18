@@ -47,7 +47,22 @@ export const FINANCE_TABS: readonly NavItem[] = [
   { to: FINANCE_ROUTES.ahorros, label: 'Ahorros', icon: 'piggy-bank' },
 ]
 
+export const MEDICATION_ROUTES = {
+  tomas: '/medicamentos',
+  stock: '/medicamentos/stock',
+  tratamientos: '/medicamentos/tratamientos',
+  agregar: '/medicamentos/agregar',
+} as const
+
+/** Pestañas propias de Medicamentos (S1). */
+export const MEDICATION_TABS: readonly NavItem[] = [
+  { to: MEDICATION_ROUTES.tomas, label: 'Tomas', icon: 'circle-check', end: true },
+  { to: MEDICATION_ROUTES.stock, label: 'Stock', icon: 'box-open' },
+]
+
 const RESUMEN_ALIASES = new Set<string>([FINANCE_ROUTES.avisos, FINANCE_ROUTES.anio, FINANCE_ROUTES.sueldo, FINANCE_ROUTES.compartir])
+
+const MEDICATION_TOMAS_ALIASES = new Set<string>([MEDICATION_ROUTES.tratamientos])
 
 export function isComingSoon(module: ModuleId): boolean {
   return COMING_SOON.includes(module)
@@ -108,9 +123,30 @@ export function navFor(pathname: string, enabled: readonly ModuleId[], from?: st
     if (pathname.startsWith('/comidas')) {
       return { items: general, activeTo: '/comidas' }
     }
-    // Medicamentos no tiene lugar en la barra (M3): menú general sin ítem marcado.
-    if (pathname.startsWith('/medicamentos') || pathname === '/notificaciones') {
-      return { items: general, activeTo: pathname === '/notificaciones' ? '/' : '' }
+    // Notificaciones: menú general con Inicio (S5).
+    if (pathname === '/notificaciones') {
+      return { items: general, activeTo: '/' }
+    }
+    // Medicamentos: barra propia Tomas | Stock (S1, S6).
+    if (pathname.startsWith('/medicamentos')) {
+      const tabs = [...MEDICATION_TABS]
+      const isStock = pathname === MEDICATION_ROUTES.stock
+      const isTomasHome = pathname === MEDICATION_ROUTES.tomas
+      const isTratamientos = MEDICATION_TOMAS_ALIASES.has(pathname)
+      const isDia = pathname.startsWith('/medicamentos/dia/')
+      const isAgregar = pathname === MEDICATION_ROUTES.agregar
+      const isEditar =
+        pathname.startsWith('/medicamentos/') && !isStock && !isTratamientos && !isDia && !isAgregar
+      if (isAgregar || isEditar) {
+        const origin =
+          from && tabs.some((item) => item.to === from) ? from : MEDICATION_ROUTES.tomas
+        return { items: tabs, activeTo: origin }
+      }
+      if (isStock) return { items: tabs, activeTo: MEDICATION_ROUTES.stock }
+      if (isTomasHome || isTratamientos || isDia) {
+        return { items: tabs, activeTo: MEDICATION_ROUTES.tomas }
+      }
+      return { items: tabs, activeTo: MEDICATION_ROUTES.tomas }
     }
     const active = general.find((item) => item.to === pathname)?.to ?? '/'
     return { items: general, activeTo: active }

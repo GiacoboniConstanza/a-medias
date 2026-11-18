@@ -1620,6 +1620,8 @@ export type MedicationRow = {
   name: string
   doseNotes: string | null
   archivedAt: string | null
+  stockQty: number | null
+  unitsPerDose: number
 }
 
 export type MedicationPeriodRow = {
@@ -1646,25 +1648,30 @@ export type MedicationDoseRow = {
   recordedAt: string
   nameSnapshot: string
   doseSnapshot: string | null
+  unitsDeducted: number
 }
 
-const MEDICATION_SELECT = 'id, name, dose_notes, archived_at'
+const MEDICATION_SELECT = 'id, name, dose_notes, archived_at, stock_qty, units_per_dose'
 const MEDICATION_PERIOD_SELECT = 'id, medication_id, starts_on, ends_on, started_at, ended_at'
 const MEDICATION_SCHEDULE_SELECT = 'id, medication_id, local_time'
 const MEDICATION_DOSE_SELECT =
-  'id, medication_id, dose_on, scheduled_time, status, recorded_at, name_snapshot, dose_snapshot'
+  'id, medication_id, dose_on, scheduled_time, status, recorded_at, name_snapshot, dose_snapshot, units_deducted'
 
 function medicationFromDb(row: {
   id: string
   name: string
   dose_notes: string | null
   archived_at: string | null
+  stock_qty: number | null
+  units_per_dose: number
 }): MedicationRow {
   return {
     id: row.id,
     name: row.name,
     doseNotes: row.dose_notes,
     archivedAt: row.archived_at,
+    stockQty: row.stock_qty,
+    unitsPerDose: row.units_per_dose,
   }
 }
 
@@ -1707,6 +1714,7 @@ function medicationDoseFromDb(row: {
   recorded_at: string
   name_snapshot: string
   dose_snapshot: string | null
+  units_deducted?: number | null
 }): MedicationDoseRow {
   return {
     id: row.id,
@@ -1717,6 +1725,7 @@ function medicationDoseFromDb(row: {
     recordedAt: row.recorded_at,
     nameSnapshot: row.name_snapshot,
     doseSnapshot: row.dose_snapshot,
+    unitsDeducted: row.units_deducted ?? 0,
   }
 }
 
@@ -1782,6 +1791,8 @@ export async function createMedication(input: {
   startsOn: string
   endsOn?: string | null
   times: string[]
+  stockQty?: number | null
+  unitsPerDose?: number
 }): Promise<MedicationRow> {
   const { data, error } = await supabase
     .from('medications')
@@ -1789,6 +1800,8 @@ export async function createMedication(input: {
       user_id: input.userId,
       name: input.name,
       dose_notes: input.doseNotes ?? null,
+      stock_qty: input.stockQty ?? null,
+      units_per_dose: input.unitsPerDose ?? 1,
     })
     .select(MEDICATION_SELECT)
     .single()
@@ -1825,11 +1838,18 @@ export async function updateMedication(input: {
   times: string[]
   endsOn?: string | null
   periodId: string
+  stockQty?: number | null
+  unitsPerDose?: number
 }): Promise<void> {
-  const { error } = await supabase
-    .from('medications')
-    .update({ name: input.name, dose_notes: input.doseNotes ?? null })
-    .eq('id', input.id)
+  const patch: {
+    name: string
+    dose_notes: string | null
+    stock_qty?: number | null
+    units_per_dose?: number
+  } = { name: input.name, dose_notes: input.doseNotes ?? null }
+  if (input.stockQty !== undefined) patch.stock_qty = input.stockQty
+  if (input.unitsPerDose !== undefined) patch.units_per_dose = input.unitsPerDose
+  const { error } = await supabase.from('medications').update(patch).eq('id', input.id)
   fail(error)
 
   const { error: periodError } = await supabase
@@ -1895,26 +1915,36 @@ export async function setMedicationDose(input: {
   status: 'taken' | 'skipped'
   nameSnapshot: string
   doseSnapshot?: string | null
-}): Promise<MedicationDoseRow> {
-  const { data, error } = await supabase
-    .from('medication_doses')
-    .upsert(
-      {
-        user_id: input.userId,
-        medication_id: input.medicationId,
-        dose_on: input.doseOn,
-        scheduled_time: input.scheduledTime,
-        status: input.status,
-        recorded_at: new Date().toISOString(),
-        name_snapshot: input.nameSnapshot,
-        dose_snapshot: input.doseSnapshot ?? null,
-      },
-      { onConflict: 'medication_id,dose_on,scheduled_time' },
-    )
-    .select(MEDICATION_DOSE_SELECT)
-    .single()
+}): Promise<MedicationDoseRow & { stockQty: number | null }> {
+  void input.userId
+  const { data, error } = await supabase.rpc('set_medication_dose_with_stock', {
+    p_medication_id: input.medicationId,
+    p_dose_on: input.doseOn,
+    p_scheduled_time: input.scheduledTime,
+    p_status: input.status,
+    p_name_snapshot: input.nameSnapshot,
+    p_dose_snapshot: input.doseSnapshot ?? null,
+  })
   fail(error)
-  return medicationDoseFromDb(data)
+  const row = Array.isArray(data) ? data[0] : data
+  if (!row?.dose_id || !row.status || !row.recorded_at || !row.name_snapshot) {
+    throw new Error('No pude guardar la toma.')
+  }
+  if (row.status !== 'taken' && row.status !== 'skipped') {
+    throw new Error('No pude guardar la toma.')
+  }
+  return {
+    id: row.dose_id,
+    medicationId: row.medication_id,
+    doseOn: row.dose_on,
+    scheduledTime: row.scheduled_time,
+    status: row.status,
+    recordedAt: row.recorded_at,
+    nameSnapshot: row.name_snapshot,
+    doseSnapshot: row.dose_snapshot,
+    unitsDeducted: row.units_deducted ?? 0,
+    stockQty: row.stock_qty ?? null,
+  }
 }
 
 export async function clearMedicationDose(input: {
@@ -1923,14 +1953,42 @@ export async function clearMedicationDose(input: {
   doseOn: string
   scheduledTime: string
 }): Promise<void> {
-  const { error } = await supabase
-    .from('medication_doses')
-    .delete()
-    .eq('user_id', input.userId)
-    .eq('medication_id', input.medicationId)
-    .eq('dose_on', input.doseOn)
-    .eq('scheduled_time', input.scheduledTime)
+  void input.userId
+  const { error } = await supabase.rpc('set_medication_dose_with_stock', {
+    p_medication_id: input.medicationId,
+    p_dose_on: input.doseOn,
+    p_scheduled_time: input.scheduledTime,
+    p_status: null,
+    p_name_snapshot: '',
+    p_dose_snapshot: null,
+  })
   fail(error)
+}
+
+export async function addMedicationStock(input: {
+  medicationId: string
+  units: number
+}): Promise<{ medicationId: string; stockQty: number }> {
+  const { data, error } = await supabase.rpc('add_medication_stock', {
+    p_medication_id: input.medicationId,
+    p_units: input.units,
+  })
+  fail(error)
+  const row = Array.isArray(data) ? data[0] : data
+  return { medicationId: row.medication_id, stockQty: row.stock_qty }
+}
+
+export async function adjustMedicationStock(input: {
+  medicationId: string
+  units: number | null
+}): Promise<{ medicationId: string; stockQty: number | null }> {
+  const { data, error } = await supabase.rpc('adjust_medication_stock', {
+    p_medication_id: input.medicationId,
+    p_units: input.units,
+  })
+  fail(error)
+  const row = Array.isArray(data) ? data[0] : data
+  return { medicationId: row.medication_id, stockQty: row.stock_qty }
 }
 
 export async function loadModuleNotificationPrefs(

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { Fab, FabSpace } from '../components/Fab.tsx'
+import { NotificationBell } from '../components/NotificationBell.tsx'
 import { SectionHeader } from '../components/SectionHeader.tsx'
 import { Sheet } from '../components/Sheet.tsx'
 import { Sprout } from '../components/Sprout.tsx'
@@ -26,6 +27,8 @@ import {
   dosesForDay,
   firstEligibleDay,
   formatHourLabel,
+  isStockLow,
+  stockHintSlotIndex,
   summarizeDay,
   weekSummaries,
   type DayDoseSlot,
@@ -151,8 +154,16 @@ export function MedicationsScreen() {
         return [...rest, saved]
       })
       setTakeSlot(null)
+      setMedications((current) =>
+        current.map((row) =>
+          row.id === slot.medicationId ? { ...row, stockQty: saved.stockQty } : row,
+        ),
+      )
+      const ranOut = status === 'taken' && saved.stockQty === 0
       setToast({
-        text: `Marcaste ${slot.name} de las ${formatHourLabel(slot.scheduledTime)} como ${status === 'taken' ? 'tomada' : 'salteada'}.`,
+        text: `Marcaste ${slot.name} de las ${formatHourLabel(slot.scheduledTime)} como ${status === 'taken' ? 'tomada' : 'salteada'}.${
+          ranOut ? ' Te quedaste sin unidades.' : ''
+        }`,
         undo: () => {
           void (async () => {
             if (previous) {
@@ -207,15 +218,22 @@ export function MedicationsScreen() {
         lead="crumb"
         module="medicamentos"
         aside={
-          <span className="inline-flex items-center gap-1 rounded-2xl bg-ciruela-claro px-3 py-1.5 text-sm font-semibold text-tinta">
-            <AppIcon name="lock" /> Solo vos
-          </span>
+          <NotificationBell
+            to="/notificaciones?desde=medicamentos"
+            label="Notificaciones de Medicamentos"
+            showCount={false}
+          />
         }
       />
 
-      <div className="mb-3">
-        <h1 className="font-display text-[2.125rem] font-semibold leading-none">Hoy</h1>
-        <p className="mt-1 text-sm font-semibold capitalize text-muted">{formatLongDate(today)}</p>
+      <div className="mb-3 flex items-start justify-between gap-2">
+        <div>
+          <h1 className="font-display text-[2.125rem] font-semibold leading-none">Hoy</h1>
+          <p className="mt-1 text-sm font-semibold capitalize text-muted">{formatLongDate(today)}</p>
+        </div>
+        <span className="inline-flex items-center gap-1 rounded-2xl bg-ciruela-claro px-3 py-1.5 text-sm font-semibold text-tinta">
+          <AppIcon name="lock" /> Solo vos
+        </span>
       </div>
 
       {pushHint ? (
@@ -325,6 +343,20 @@ export function MedicationsScreen() {
                     summary.overdueUnmarked > 0 &&
                     slot.scheduledTime < (summary.nextTime ?? '99:99:99')
                   const key = `${slot.medicationId}-${slot.scheduledTime}`
+                  const flatIndex = slots.findIndex(
+                    (row) =>
+                      row.medicationId === slot.medicationId && row.scheduledTime === slot.scheduledTime,
+                  )
+                  const med = medications.find((row) => row.id === slot.medicationId)
+                  const scheduleCount = schedules.filter((row) => row.medicationId === slot.medicationId).length
+                  const showStockHint =
+                    med != null &&
+                    isStockLow(med.stockQty, scheduleCount, med.unitsPerDose) &&
+                    stockHintSlotIndex(slots, slot.medicationId) === flatIndex
+                  const stockHintText =
+                    med?.stockQty === 0
+                      ? 'Sin unidades. Reponé en Stock.'
+                      : `Stock bajo: quedan ${med?.stockQty} unidades.`
                   return (
                     <li
                       key={key}
@@ -332,11 +364,24 @@ export function MedicationsScreen() {
                         highlight === key ? 'bg-ciruela-claro/40' : ''
                       }`}
                     >
-                      <button type="button" className="min-w-0 flex-1 text-left" onClick={() => setTakeSlot(slot)}>
+                      <button
+                        type="button"
+                        className="min-w-0 flex-1 text-left"
+                        onClick={() => setTakeSlot(slot)}
+                        aria-label={
+                          showStockHint ? `${slot.name}. ${stockHintText}` : undefined
+                        }
+                      >
                         <p className="text-lg font-semibold">{slot.name}</p>
                         <p className="text-sm font-semibold text-muted">
                           {[slot.doseNotes, slot.endsOn ? `hasta el ${slot.endsOn}` : null].filter(Boolean).join(' · ')}
                         </p>
+                        {showStockHint ? (
+                          <p className="text-sm font-semibold text-tinta">
+                            <AppIcon name="triangle-exclamation" className="mr-1" />
+                            {stockHintText}
+                          </p>
+                        ) : null}
                         {slot.status === 'taken' ? (
                           <p className="text-sm font-semibold text-muted">
                             <AppIcon name="check" className="mr-1" />

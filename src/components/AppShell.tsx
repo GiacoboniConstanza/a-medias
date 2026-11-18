@@ -14,7 +14,14 @@ export type AppChromeContext = {
 export function AppShell() {
   const { pathname } = useLocation()
   const [hideChrome, setHideChrome] = useState(false)
-  const bare = pathname === '/cargar' || pathname === '/comidas/agregar'
+  const bare =
+    pathname === '/cargar' ||
+    pathname === '/comidas/agregar' ||
+    pathname === '/medicamentos/agregar' ||
+    (pathname.startsWith('/medicamentos/') &&
+      pathname !== '/medicamentos/stock' &&
+      pathname !== '/medicamentos/tratamientos' &&
+      !pathname.startsWith('/medicamentos/dia/'))
   const hideNav = bare || hideChrome
   const shellClass = bare
     ? 'mx-auto min-h-dvh max-w-[var(--ancho-columna)] bg-bg'

@@ -1,5 +1,5 @@
 begin;
-select plan(10);
+select plan(14);
 
 insert into auth.users (id, email, raw_user_meta_data)
 values
@@ -22,12 +22,27 @@ select set_config(
 );
 set local role authenticated;
 
-insert into public.medications (id, user_id, name, dose_notes)
+insert into public.medications (id, user_id, name, dose_notes, stock_qty, units_per_dose)
 values (
   'd1111111-1111-4111-8111-111111111111',
   'c1111111-1111-4111-8111-111111111111',
   'Ibuprofeno',
-  '400mg'
+  '400mg',
+  12,
+  1
+);
+
+insert into public.medication_stock_moves (
+  id, user_id, medication_id, kind, delta, stock_before, stock_after
+)
+values (
+  'a3111111-1111-4111-8111-111111111111',
+  'c1111111-1111-4111-8111-111111111111',
+  'd1111111-1111-4111-8111-111111111111',
+  'ajustar',
+  12,
+  null,
+  12
 );
 
 insert into public.medication_periods (
@@ -85,6 +100,18 @@ select is(
   'dueña ve su toma'
 );
 
+select is(
+  (select stock_qty from public.medications where id = 'd1111111-1111-4111-8111-111111111111'),
+  12,
+  'dueña ve su stock'
+);
+
+select is(
+  (select count(*) from public.medication_stock_moves where id = 'a3111111-1111-4111-8111-111111111111'),
+  1::bigint,
+  'dueña ve sus movimientos'
+);
+
 reset role;
 
 select set_config('request.jwt.claim.sub', 'c2222222-2222-4222-8222-222222222222', true);
@@ -99,6 +126,14 @@ select is((select count(*) from public.medications), 0::bigint, 'otra no ve medi
 select is((select count(*) from public.medication_periods), 0::bigint, 'otra no ve períodos');
 select is((select count(*) from public.medication_doses), 0::bigint, 'otra no ve tomas');
 select is((select count(*) from public.module_notification_prefs), 0::bigint, 'otra no ve preferencias');
+select is((select count(*) from public.medication_stock_moves), 0::bigint, 'otra no ve movimientos de stock');
+
+select throws_ok(
+  $$select public.adjust_medication_stock('d1111111-1111-4111-8111-111111111111', 1)$$,
+  'P0001',
+  'Ese medicamento no es tuyo',
+  'otra no cambia stock ajeno'
+);
 
 select throws_ok(
   $$insert into public.medication_doses (
