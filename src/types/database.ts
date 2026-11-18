@@ -326,6 +326,7 @@ export type Database = {
           notify_shared: boolean
           sunday_summary: boolean
           silence_enabled: boolean
+          budget_enabled: boolean
           push_enabled: boolean
           reviewed_on: string | null
           hidden_until: string | null
@@ -341,6 +342,7 @@ export type Database = {
           notify_shared?: boolean
           sunday_summary?: boolean
           silence_enabled?: boolean
+          budget_enabled?: boolean
           push_enabled?: boolean
           reviewed_on?: string | null
           hidden_until?: string | null
@@ -355,11 +357,31 @@ export type Database = {
           notify_shared?: boolean
           sunday_summary?: boolean
           silence_enabled?: boolean
+          budget_enabled?: boolean
           push_enabled?: boolean
           reviewed_on?: string | null
           hidden_until?: string | null
           updated_at?: string
         }
+      >
+      category_budgets: Table<
+        {
+          id: string
+          user_id: string
+          category_id: string
+          amount: number | null
+          effective_from: string
+          created_at: string
+        },
+        {
+          id?: string
+          user_id: string
+          category_id: string
+          amount?: number | null
+          effective_from: string
+          created_at?: string
+        },
+        { amount?: number | null; effective_from?: string }
       >
       daily_statuses: Table<
         {
@@ -674,8 +696,18 @@ export type Database = {
         { sent_at?: string }
       >
       finance_push_sends: Table<
-        { user_id: string; kind: 'daily' | 'dues' | 'silence'; send_key: string; sent_at: string },
-        { user_id: string; kind: 'daily' | 'dues' | 'silence'; send_key: string; sent_at?: string },
+        {
+          user_id: string
+          kind: 'daily' | 'dues' | 'silence' | 'budget_80' | 'budget_100'
+          send_key: string
+          sent_at: string
+        },
+        {
+          user_id: string
+          kind: 'daily' | 'dues' | 'silence' | 'budget_80' | 'budget_100'
+          send_key: string
+          sent_at?: string
+        },
         { sent_at?: string }
       >
       user_modules: Table<

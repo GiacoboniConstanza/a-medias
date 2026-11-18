@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { Plantita } from '../components/Adornos.tsx'
+import { BudgetCard } from '../components/BudgetCard.tsx'
 import { MonthSwitcher } from '../components/MonthSwitcher.tsx'
 import { NotificationBell } from '../components/NotificationBell.tsx'
 import { PartnerMemos } from '../components/PartnerMemos.tsx'
@@ -14,6 +15,8 @@ import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
 import { useModules } from '../context/ModulesProvider.tsx'
 import { useMonth } from '../context/MonthProvider.tsx'
+import { loadBudgets } from '../lib/api.ts'
+import { budgetRowsForMonth, type BudgetRow } from '../lib/budget.ts'
 import { debtCopy, monthPocket, monthSplit, myPrivateSpent, partnerId } from '../lib/derive.ts'
 import { sumPaidBy } from '../lib/period.ts'
 import { homeAccountingCard, type HomeCardLine } from '../lib/home-card.ts'
@@ -46,6 +49,10 @@ export function HomeScreen() {
     loans: [],
     repayments: [],
   })
+  const [budgetRows, setBudgetRows] = useState<BudgetRow[] | null>(null)
+  const [budgetLoading, setBudgetLoading] = useState(false)
+  const [budgetError, setBudgetError] = useState('')
+  const [budgetTick, setBudgetTick] = useState(0)
   const modules = useModules()
   const saldoOpen = params.get('saldo') === '1'
   const hub = modules.ready && isHubHome(modules.enabled)
@@ -74,6 +81,29 @@ export function HomeScreen() {
       active = false
     }
   }, [profile, data])
+
+  useEffect(() => {
+    if (!profile || !data) return
+    let active = true
+    setBudgetLoading(true)
+    setBudgetError('')
+    loadBudgets(profile.id, month)
+      .then((caps) => {
+        if (!active) return
+        setBudgetRows(budgetRowsForMonth(data, profile.id, caps))
+      })
+      .catch((caught) => {
+        if (!active) return
+        setBudgetRows(null)
+        setBudgetError(caught instanceof Error ? caught.message : 'No pudimos traer tu presupuesto.')
+      })
+      .finally(() => {
+        if (active) setBudgetLoading(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [profile, data, month, budgetTick])
 
   useEffect(() => {
     if (!saldoOpen) return
@@ -224,6 +254,14 @@ export function HomeScreen() {
           ))}
         </div>
       </Card>
+
+      <BudgetCard
+        month={month}
+        rows={budgetRows}
+        loading={budgetLoading}
+        error={budgetError}
+        onRetry={() => setBudgetTick((tick) => tick + 1)}
+      />
 
       {hub ? null : <PartnerMemos />}
       {modules.error ? <p className="mb-3 text-center text-sm font-semibold text-tinta">{modules.error}</p> : null}

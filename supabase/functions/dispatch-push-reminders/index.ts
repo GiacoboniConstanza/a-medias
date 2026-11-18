@@ -274,10 +274,11 @@ Deno.serve(async (req) => {
       .select('id, endpoint, p256dh, auth_key')
       .eq('user_id', push.user_id)
 
+    const budgetPush = push.kind === 'budget_80' || push.kind === 'budget_100'
     const payload = JSON.stringify({
       title: push.title,
       body: push.body,
-      url: '/recordatorios',
+      url: budgetPush ? '/finanzas' : '/recordatorios',
       module: 'finanzas',
       tag: push.tag,
       kind: push.kind,

@@ -712,7 +712,7 @@ export async function loadReminderPreferences(userId: string): Promise<ReminderP
   const { data, error } = await supabase
     .from('reminder_preferences')
     .select(
-      'enabled, first_time, second_time, ask_times, due_lead_days, notify_shared, sunday_summary, silence_enabled, push_enabled, reviewed_on, hidden_until',
+      'enabled, first_time, second_time, ask_times, due_lead_days, notify_shared, sunday_summary, silence_enabled, budget_enabled, push_enabled, reviewed_on, hidden_until',
     )
     .eq('user_id', userId)
     .maybeSingle()
@@ -728,6 +728,7 @@ export async function loadReminderPreferences(userId: string): Promise<ReminderP
     notifyShared: data.notify_shared,
     sundaySummary: data.sunday_summary,
     silenceEnabled: data.silence_enabled ?? true,
+    budgetEnabled: data.budget_enabled ?? true,
     pushEnabled: data.push_enabled,
   }
 }
@@ -747,6 +748,7 @@ export async function saveReminderPreferences(userId: string, prefs: ReminderPre
       notify_shared: prefs.notifyShared,
       sunday_summary: prefs.sundaySummary,
       silence_enabled: prefs.silenceEnabled,
+      budget_enabled: prefs.budgetEnabled,
       push_enabled: prefs.pushEnabled,
       reviewed_on: prefs.reviewedOn,
       hidden_until: prefs.hiddenUntil,
@@ -754,6 +756,87 @@ export async function saveReminderPreferences(userId: string, prefs: ReminderPre
     },
     { onConflict: 'user_id' },
   )
+  fail(error)
+}
+
+export type BudgetCap = {
+  categoryId: string
+  amount: number
+}
+
+/** Topes vigentes en el mes (sin filas con amount null). */
+export async function loadBudgets(userId: string, month: string): Promise<BudgetCap[]> {
+  const { data, error } = await supabase
+    .from('category_budgets')
+    .select('category_id, amount, effective_from')
+    .eq('user_id', userId)
+    .lte('effective_from', month)
+    .order('effective_from', { ascending: false })
+  fail(error)
+  const latest = new Map<string, number | null>()
+  for (const row of data ?? []) {
+    if (latest.has(row.category_id)) continue
+    latest.set(row.category_id, row.amount == null ? null : money(row.amount))
+  }
+  return [...latest.entries()]
+    .filter((entry): entry is [string, number] => entry[1] != null && entry[1] > 0)
+    .map(([categoryId, amount]) => ({ categoryId, amount }))
+}
+
+export async function saveBudget(
+  userId: string,
+  input: { categoryId: string; amount: number },
+): Promise<void> {
+  const effectiveFrom = monthKey()
+  const { data: existing, error: readError } = await supabase
+    .from('category_budgets')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('category_id', input.categoryId)
+    .eq('effective_from', effectiveFrom)
+    .maybeSingle()
+  fail(readError)
+  if (existing) {
+    const { error } = await supabase
+      .from('category_budgets')
+      .update({ amount: input.amount })
+      .eq('id', existing.id)
+    fail(error)
+    return
+  }
+  const { error } = await supabase.from('category_budgets').insert({
+    user_id: userId,
+    category_id: input.categoryId,
+    amount: input.amount,
+    effective_from: effectiveFrom,
+  })
+  fail(error)
+}
+
+export async function removeBudget(userId: string, categoryId: string): Promise<void> {
+  const effectiveFrom = monthKey()
+  const { data: existing, error: readError } = await supabase
+    .from('category_budgets')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('category_id', categoryId)
+    .eq('effective_from', effectiveFrom)
+    .maybeSingle()
+  fail(readError)
+  if (existing) {
+    const { error } = await supabase
+      .from('category_budgets')
+      .update({ amount: null })
+      .eq('id', existing.id)
+    fail(error)
+    return
+  }
+  const { error } = await supabase.from('category_budgets').insert({
+    user_id: userId,
+    category_id: categoryId,
+    amount: null,
+    effective_from: effectiveFrom,
+  })
   fail(error)
 }
 

@@ -75,6 +75,9 @@ const ShareScreen = lazy(() =>
 const YearScreen = lazy(() =>
   import('./screens/YearScreen.tsx').then((module) => ({ default: module.YearScreen })),
 )
+const BudgetScreen = lazy(() =>
+  import('./screens/BudgetScreen.tsx').then((module) => ({ default: module.BudgetScreen })),
+)
 const StatementImportScreen = lazy(() =>
   import('./screens/StatementImportScreen.tsx').then((module) => ({ default: module.StatementImportScreen })),
 )
@@ -155,6 +158,7 @@ export function App() {
                 <Route path="recordatorios" element={<RemindersScreen />} />
                 <Route path="sueldo" element={<SalaryScreen />} />
                 <Route path="mi-anio" element={<YearScreen />} />
+                <Route path="presupuesto" element={<BudgetScreen />} />
               </Route>
             </Routes>
           </Suspense>

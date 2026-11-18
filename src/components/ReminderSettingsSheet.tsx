@@ -14,6 +14,7 @@ export function ReminderSettingsSheet({
   onClose,
   onChange,
   onActivatePush,
+  showBudget = false,
 }: {
   open: boolean
   prefs: ReminderPrefs
@@ -21,9 +22,11 @@ export function ReminderSettingsSheet({
   onClose: () => void
   onChange: (next: ReminderPrefs) => void
   onActivatePush: () => void
+  showBudget?: boolean
 }) {
   const dailyId = useId()
   const silenceId = useId()
+  const budgetId = useId()
   const extra = nextTimeSlot(prefs.times)
   const [hint, setHint] = useState('')
 
@@ -135,7 +138,7 @@ export function ReminderSettingsSheet({
         </div>
       </section>
 
-      <section className="mb-2 flex items-center justify-between gap-3">
+      <section className={`${showBudget ? 'mb-4' : 'mb-2'} flex items-center justify-between gap-3`}>
         <p id={silenceId} className="text-base font-bold text-title">
           Si no anoto en 3 días
         </p>
@@ -145,6 +148,21 @@ export function ReminderSettingsSheet({
           onClick={() => onChange({ ...prefs, silenceEnabled: !prefs.silenceEnabled })}
         />
       </section>
+      {showBudget ? (
+        <section className="mb-2 flex items-center justify-between gap-3">
+          <div>
+            <p id={budgetId} className="text-base font-bold text-title">
+              Presupuesto
+            </p>
+            <p className="text-sm font-semibold text-muted">Al llegar al 80 % y al pasarte del tope</p>
+          </div>
+          <Toggle
+            labelledBy={budgetId}
+            checked={prefs.budgetEnabled}
+            onClick={() => onChange({ ...prefs, budgetEnabled: !prefs.budgetEnabled })}
+          />
+        </section>
+      ) : null}
       <p className="mt-4 text-sm font-semibold text-muted">{reminderFootnote(prefs)}</p>
       <ErrorText>{hint || error}</ErrorText>
     </Sheet>

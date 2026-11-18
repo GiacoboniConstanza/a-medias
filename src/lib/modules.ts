@@ -36,6 +36,7 @@ export const FINANCE_ROUTES = {
   anio: '/mi-anio',
   sueldo: '/sueldo',
   compartir: '/compartir',
+  presupuesto: '/presupuesto',
   cargar: '/cargar',
   modulos: '/modulos',
 } as const
@@ -73,7 +74,13 @@ export const MEAL_TABS: readonly NavItem[] = [
   { to: MEAL_ROUTES.recetas, label: 'Recetas', icon: 'book-open' },
 ]
 
-const RESUMEN_ALIASES = new Set<string>([FINANCE_ROUTES.avisos, FINANCE_ROUTES.anio, FINANCE_ROUTES.sueldo, FINANCE_ROUTES.compartir])
+const RESUMEN_ALIASES = new Set<string>([
+  FINANCE_ROUTES.avisos,
+  FINANCE_ROUTES.anio,
+  FINANCE_ROUTES.sueldo,
+  FINANCE_ROUTES.compartir,
+  FINANCE_ROUTES.presupuesto,
+])
 
 const MEDICATION_TOMAS_ALIASES = new Set<string>([MEDICATION_ROUTES.tratamientos])
 

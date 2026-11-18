@@ -20,6 +20,7 @@ export type ReminderPrefs = {
   notifyShared: boolean
   sundaySummary: boolean
   silenceEnabled: boolean
+  budgetEnabled: boolean
   pushEnabled: boolean
 }
 
@@ -32,6 +33,7 @@ export const DEFAULT_REMINDER_PREFS: ReminderPrefs = {
   notifyShared: true,
   sundaySummary: false,
   silenceEnabled: true,
+  budgetEnabled: true,
   pushEnabled: false,
 }
 

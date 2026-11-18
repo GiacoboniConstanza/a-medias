@@ -16,6 +16,7 @@ import { useMonth } from '../context/MonthProvider.tsx'
 import {
   createFixedExpense,
   deleteFixedExpense,
+  loadBudgets,
   loadDailyStatuses,
   loadReminderPreferences,
   markDayClear,
@@ -84,6 +85,7 @@ export function RemindersScreen() {
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
   const [categoryIds, setCategoryIds] = useState<string[]>([])
+  const [hasBudgets, setHasBudgets] = useState(false)
   const saveChain = useRef(Promise.resolve())
   const end = monthEnd(month)
   const span = useMemo(() => expenseSpan(month, preset, customFrom, customTo), [month, preset, customFrom, customTo])
@@ -112,6 +114,21 @@ export function RemindersScreen() {
       active = false
     }
   }, [profile])
+
+  useEffect(() => {
+    if (!profile) return
+    let active = true
+    loadBudgets(profile.id, monthKey())
+      .then((caps) => {
+        if (active) setHasBudgets(caps.length > 0)
+      })
+      .catch(() => {
+        if (active) setHasBudgets(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [profile, data, settingsOpen])
 
   useEffect(() => {
     if (!editing || !data) return
@@ -649,6 +666,7 @@ export function RemindersScreen() {
         open={settingsOpen}
         prefs={shownPrefs}
         error={message}
+        showBudget={hasBudgets}
         onClose={() => setSettingsOpen(false)}
         onChange={(next) => {
           if (prefs) persist(next)
