@@ -648,7 +648,6 @@ export function RemindersScreen() {
       <ReminderSettingsSheet
         open={settingsOpen}
         prefs={shownPrefs}
-        partnerName={partnerName}
         error={message}
         onClose={() => setSettingsOpen(false)}
         onChange={(next) => {

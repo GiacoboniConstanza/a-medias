@@ -10,7 +10,6 @@ const pill =
 export function ReminderSettingsSheet({
   open,
   prefs,
-  partnerName,
   error,
   onClose,
   onChange,
@@ -18,15 +17,12 @@ export function ReminderSettingsSheet({
 }: {
   open: boolean
   prefs: ReminderPrefs
-  partnerName: string
   error: string
   onClose: () => void
   onChange: (next: ReminderPrefs) => void
   onActivatePush: () => void
 }) {
   const dailyId = useId()
-  const sharedId = useId()
-  const sundayId = useId()
   const silenceId = useId()
   const extra = nextTimeSlot(prefs.times)
   const [hint, setHint] = useState('')
@@ -137,31 +133,6 @@ export function ReminderSettingsSheet({
             +
           </button>
         </div>
-      </section>
-
-      <section className="mb-4 flex items-center justify-between gap-3">
-        <div>
-          <p id={sharedId} className="text-base font-bold text-title">
-            Cuando {partnerName} carga un gasto compartido
-          </p>
-          <p className="text-sm font-semibold text-muted">Nunca ves sus gastos privados.</p>
-        </div>
-        <Toggle
-          labelledBy={sharedId}
-          checked={prefs.notifyShared}
-          onClick={() => onChange({ ...prefs, notifyShared: !prefs.notifyShared })}
-        />
-      </section>
-
-      <section className="mb-4 flex items-center justify-between gap-3">
-        <p id={sundayId} className="text-base font-bold text-title">
-          Resumen del domingo
-        </p>
-        <Toggle
-          labelledBy={sundayId}
-          checked={prefs.sundaySummary}
-          onClick={() => onChange({ ...prefs, sundaySummary: !prefs.sundaySummary })}
-        />
       </section>
 
       <section className="mb-2 flex items-center justify-between gap-3">
