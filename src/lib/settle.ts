@@ -60,3 +60,53 @@ export function passPhrase(partnerName: string, meIsCreditor: boolean, amount: n
   if (meIsCreditor) return `${partnerName} te pasa ${money}`
   return `Le pasás ${money} a ${partnerName}`
 }
+
+/** Texto de «Te quedan» en la ConfirmSheet de saldar. */
+export function settleTransferConfirmCopy(registerTransfer: boolean, meIsCreditor: boolean): string {
+  if (!registerTransfer) return 'Eso no cambia lo que te queda.'
+  if (meIsCreditor) return 'Se registra la transferencia y se suma a lo que te queda.'
+  return 'Se registra la transferencia y se descuenta de lo que te queda.'
+}
+
+export type SettlePaidCheck = {
+  ok: boolean
+  paid: number
+  forgiven: number
+  error: string | null
+}
+
+/** Monto a pagar al saldar: > 0 y ≤ saldo total, 2 decimales. */
+export function checkSettlePaidAmount(paidRaw: number, total: number): SettlePaidCheck {
+  const paid = normalizeMoney(paidRaw)
+  const max = normalizeMoney(total)
+  if (!(paid > 0) || paid > max) {
+    return {
+      ok: false,
+      paid,
+      forgiven: 0,
+      error: 'El monto tiene que ser mayor a 0 y como máximo el saldo.',
+    }
+  }
+  return {
+    ok: true,
+    paid,
+    forgiven: normalizeMoney(max - paid),
+    error: null,
+  }
+}
+
+export function settleForgivenCopy(forgiven: number): string | null {
+  const amount = normalizeMoney(forgiven)
+  if (amount <= 0) return null
+  return `Se cierra con ${formatMoney(amount)} de diferencia`
+}
+
+/** Aviso en la hoja cuando el mes ya está saldado. */
+export function settledMonthBanner(amount: number, expectedAmount: number | null | undefined): string {
+  const paid = normalizeMoney(amount)
+  const expected = expectedAmount == null ? null : normalizeMoney(expectedAmount)
+  if (expected != null && paid < expected) {
+    return `Mes saldado por ${formatMoney(paid)}, con ${formatMoney(expected - paid)} de diferencia.`
+  }
+  return 'Mes saldado.'
+}

@@ -104,6 +104,7 @@ describe('qué se puede eliminar', () => {
       notes: null,
       createdBy: partner,
       mpOperationId: null,
+      settlementId: null,
     }
     const result = movementSelectability(row({ id: 't1', kind: 'transferencia', transfer }), ctx())
     expect(result.canDelete).toBe(false)
@@ -121,8 +122,27 @@ describe('qué se puede eliminar', () => {
       notes: null,
       createdBy: meId,
       mpOperationId: null,
+      settlementId: null,
     }
     expect(movementSelectability(row({ id: 't2', kind: 'transferencia', transfer }), ctx()).canDelete).toBe(true)
+  })
+
+  it('bloquea la transferencia del saldo', () => {
+    const transfer: Transfer = {
+      id: 't3',
+      fromId: meId,
+      toId: partner,
+      amount: 4000,
+      transferredOn: '2026-11-18',
+      period: '2026-11-01',
+      notes: 'Saldo 2026-11',
+      createdBy: meId,
+      mpOperationId: null,
+      settlementId: 's1',
+    }
+    const result = movementSelectability(row({ id: 't3', kind: 'transferencia', transfer }), ctx())
+    expect(result.canDelete).toBe(false)
+    expect(result.reason).toBe('Para cambiarla, deshacé el saldo')
   })
 
   it('bloquea aportes de ahorro archivado', () => {

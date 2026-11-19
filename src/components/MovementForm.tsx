@@ -742,6 +742,7 @@ function MovementFormBody({
   const savingArchived = Boolean(
     savingMove && savings.find((item) => item.id === savingMove.savingId)?.archivedAt,
   )
+  const transferFromSettlement = Boolean(transfer?.settlementId)
   const transferOwnedByPartner = Boolean(transfer && transfer.createdBy && transfer.createdBy !== meId)
   const deleteBlockedReason = expenseIsFixedPayment
     ? 'Es el pago de un gasto fijo: se deshace en Avisos.'
@@ -751,9 +752,11 @@ function MovementFormBody({
         ? 'No podés eliminar un gasto privado de otra.'
         : savingArchived
           ? 'El ahorro está archivado.'
-          : transferOwnedByPartner
-            ? `La cargó ${partnerLabel}: solo ella la puede eliminar.`
-            : null
+          : transferFromSettlement
+            ? 'Para cambiarla, deshacé el saldo'
+            : transferOwnedByPartner
+              ? `La cargó ${partnerLabel}: solo ella la puede eliminar.`
+              : null
 
   if (extra) {
     return (
@@ -825,7 +828,7 @@ function MovementFormBody({
               <AppIcon name="circle-exclamation" /> {error}
             </p>
           ) : null}
-          {transferOwnedByPartner ? (
+          {transferFromSettlement || transferOwnedByPartner ? (
             <p className="flex items-start gap-2 text-sm font-semibold text-tinta">
               <AppIcon name="lock" className="mt-0.5 shrink-0" />
               <span>{deleteBlockedReason}</span>

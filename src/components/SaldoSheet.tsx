@@ -3,13 +3,26 @@ import { Link } from 'react-router'
 import { AppIcon } from './AppIcon.tsx'
 import { Plantita } from './Adornos.tsx'
 import { ConfirmSheet } from './ConfirmSheet.tsx'
+import { MoneyField } from './MoneyField.tsx'
 import { Sheet } from './Sheet.tsx'
-import { Button, Toast } from './ui.tsx'
+import { Button, ErrorText, Toast, Toggle } from './ui.tsx'
 import { settleMonth, undoSettlement, type FinanceData } from '../lib/api.ts'
 import { debtCopy, monthSplit, partnerId } from '../lib/derive.ts'
-import { formatMoney, formatPercent } from '../lib/format.ts'
+import {
+  formatMoney,
+  formatPercent,
+  moneyDraftFromAmount,
+  parseMoneyInput,
+  sanitizeMoneyDraft,
+} from '../lib/format.ts'
 import { monthName } from '../lib/month.ts'
-import { planMonthSettlement } from '../lib/settle.ts'
+import {
+  checkSettlePaidAmount,
+  planMonthSettlement,
+  settleForgivenCopy,
+  settleTransferConfirmCopy,
+  settledMonthBanner,
+} from '../lib/settle.ts'
 import type { SplitResult, SplitRow } from '../lib/split.ts'
 
 export function SaldoSheet({
@@ -31,6 +44,8 @@ export function SaldoSheet({
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
   const [settledNote, setSettledNote] = useState(false)
+  const [registerTransfer, setRegisterTransfer] = useState(true)
+  const [paidDraft, setPaidDraft] = useState('')
 
   const otherId = partnerId(data, meId)
   const split = monthSplit(data)
@@ -45,9 +60,25 @@ export function SaldoSheet({
   const partner = people.find((row) => row.id !== meId) ?? null
   const aMano = plan.amount === 0 && !data.settlement
   const settled = Boolean(data.settlement)
+  const meIsCreditor = plan.creditorId === meId
+  const paidParsed = parseMoneyInput(paidDraft)
+  const paidCheck = checkSettlePaidAmount(paidParsed ?? 0, plan.amount)
+  const forgivenCopy = paidCheck.ok ? settleForgivenCopy(paidCheck.forgiven) : null
+
+  function openSettleConfirm() {
+    setPaidDraft(moneyDraftFromAmount(plan.amount))
+    setRegisterTransfer(true)
+    setConfirm('settle')
+  }
+
+  function closeSettleConfirm() {
+    setConfirm(null)
+    setRegisterTransfer(true)
+    setPaidDraft('')
+  }
 
   async function confirmSettle() {
-    if (!plan.canSettle || !plan.debtorId || !plan.creditorId) return
+    if (!plan.canSettle || !plan.debtorId || !plan.creditorId || !paidCheck.ok) return
     setSaving(true)
     setMessage('')
     try {
@@ -55,11 +86,12 @@ export function SaldoSheet({
         month,
         debtorId: plan.debtorId,
         creditorId: plan.creditorId,
-        amount: plan.amount,
+        amount: paidCheck.paid,
         expenseAmount: plan.expenseAmount,
         expenseDebtorId: plan.expenseDebtorId,
+        registerTransfer,
       })
-      setConfirm(null)
+      closeSettleConfirm()
       setSettledNote(true)
       await onRefresh()
     } catch {
@@ -114,13 +146,15 @@ export function SaldoSheet({
             )}
             {settled ? (
               <div className="mt-4 space-y-2">
-                <p className="rounded-2xl border-[1.5px] border-tinta bg-azul-claro px-3 py-2 text-sm font-semibold">Mes saldado.</p>
+                <p className="rounded-2xl border-[1.5px] border-tinta bg-azul-claro px-3 py-2 text-sm font-semibold">
+                  {settledMonthBanner(data.settlement!.amount, data.settlement!.expectedAmount)}
+                </p>
                 <Button type="button" variant="alt" onClick={() => setConfirm('undo')} disabled={saving}>
                   Deshacer saldo
                 </Button>
               </div>
             ) : aMano ? null : (
-              <Button type="button" className="mt-4" tall onClick={() => setConfirm('settle')} disabled={saving || !plan.canSettle}>
+              <Button type="button" className="mt-4" tall onClick={openSettleConfirm} disabled={saving || !plan.canSettle}>
                 Saldar mes
               </Button>
             )}
@@ -161,19 +195,41 @@ export function SaldoSheet({
       <ConfirmSheet
         open={confirm === 'settle'}
         title={`¿Saldar ${monthName(month)}?`}
-        onClose={() => setConfirm(null)}
+        onClose={closeSettleConfirm}
         confirmLabel="Sí, saldar mes"
         onConfirm={() => void confirmSettle()}
-        disabled={saving || !plan.canSettle}
+        disabled={saving || !plan.canSettle || !paidCheck.ok}
         note="Lo podés deshacer desde el aviso de abajo."
       >
         {partner && plan.amount > 0 ? (
           <>
             <p className="font-display text-2xl font-semibold text-tinta">{debtCopy(meId, split)}</p>
-            <p className="mt-2 text-base font-semibold text-gris">Eso no cambia lo que te queda.</p>
+            <div className="mt-3">
+              <MoneyField
+                label="Monto"
+                draft={paidDraft}
+                onDraft={(value) => setPaidDraft(sanitizeMoneyDraft(value))}
+                size="form"
+              />
+            </div>
+            {forgivenCopy ? (
+              <p className="mt-2 text-base font-semibold text-gris">{forgivenCopy}</p>
+            ) : null}
+            <p className="mt-2 text-base font-semibold text-gris">
+              {settleTransferConfirmCopy(registerTransfer, meIsCreditor)}
+            </p>
+            <div className="mt-3">
+              <Toggle
+                label="Registrar la transferencia"
+                checked={registerTransfer}
+                onClick={() => setRegisterTransfer((value) => !value)}
+                disabled={saving}
+              />
+            </div>
             <p className="mt-3 text-base font-semibold text-gris">
               El mes queda marcado como saldado. Si te equivocás, lo podés deshacer.
             </p>
+            <ErrorText>{paidCheck.error}</ErrorText>
           </>
         ) : null}
       </ConfirmSheet>

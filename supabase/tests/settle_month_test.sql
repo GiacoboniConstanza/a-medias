@@ -60,6 +60,7 @@ select set_config(
 set local role authenticated;
 
 -- Con sueldos 60/40, Coty pagó 10000 → Maru debe 4000.
+-- p_register_transfer false: regresión del saldo sin transferencia (issue #6).
 select lives_ok(
   $$select public.settle_shared_month(
       '2026-11-01',
@@ -67,7 +68,8 @@ select lives_ok(
       'a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1',
       4000.00,
       4000.00,
-      'a2a2a2a2-a2a2-42a2-82a2-a2a2a2a2a2a2'
+      'a2a2a2a2-a2a2-42a2-82a2-a2a2a2a2a2a2',
+      false
     )$$,
   'saldar el mes cierra solo el reparto de gastos'
 );
@@ -91,7 +93,8 @@ select throws_ok(
       'a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1',
       4000.00,
       4000.00,
-      'a2a2a2a2-a2a2-42a2-82a2-a2a2a2a2a2a2'
+      'a2a2a2a2-a2a2-42a2-82a2-a2a2a2a2a2a2',
+      false
     )$$,
   'P0001',
   'Ese mes ya está saldado',

@@ -78,6 +78,7 @@ export type FixedItem = {
 export type SettlementItem = {
   id: string
   amount: number
+  expectedAmount: number | null
   settledAt: string
   debtorId: string
   creditorId: string
@@ -198,7 +199,7 @@ export async function loadFinance(householdId: string, userId: string, month: st
     supabase.from('fixed_payments').select('id, fixed_expense_id, paid_on, payer_id, amount, expense_id').eq('month', month),
     supabase
       .from('settlements')
-      .select('id, amount, settled_at, debtor_id, creditor_id')
+      .select('id, amount, expected_amount, settled_at, debtor_id, creditor_id')
       .eq('household_id', householdId)
       .eq('month', month)
       .maybeSingle(),
@@ -327,6 +328,8 @@ export async function loadFinance(householdId: string, userId: string, month: st
       ? {
           id: settlement.data.id,
           amount: money(settlement.data.amount),
+          expectedAmount:
+            settlement.data.expected_amount == null ? null : money(settlement.data.expected_amount),
           settledAt: settlement.data.settled_at,
           debtorId: settlement.data.debtor_id,
           creditorId: settlement.data.creditor_id,
@@ -583,6 +586,7 @@ export async function settleMonth(input: {
   amount: number
   expenseAmount: number
   expenseDebtorId: string | null
+  registerTransfer?: boolean
 }): Promise<void> {
   const { error } = await supabase.rpc('settle_shared_month', {
     p_month: input.month,
@@ -591,6 +595,7 @@ export async function settleMonth(input: {
     p_amount: input.amount,
     p_expense_amount: input.expenseAmount,
     p_expense_debtor: input.expenseDebtorId,
+    p_register_transfer: input.registerTransfer ?? true,
   })
   fail(error)
 }

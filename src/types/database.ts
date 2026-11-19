@@ -430,6 +430,7 @@ export type Database = {
           debtor_id: string
           creditor_id: string
           amount: number
+          expected_amount: number | null
           settled_by: string
           settled_at: string
         },
@@ -440,10 +441,11 @@ export type Database = {
           debtor_id: string
           creditor_id: string
           amount: number
+          expected_amount?: number | null
           settled_by: string
           settled_at?: string
         },
-        { amount?: number }
+        { amount?: number; expected_amount?: number | null }
       >
       push_subscriptions: Table<
         {
@@ -1069,6 +1071,7 @@ export type Database = {
           period: string
           notes: string | null
           mp_operation_id: string | null
+          settlement_id: string | null
           created_by: string
           created_at: string
           updated_at: string
@@ -1082,6 +1085,7 @@ export type Database = {
           period?: string
           notes?: string | null
           mp_operation_id?: string | null
+          settlement_id?: string | null
           created_by?: string
           created_at?: string
           updated_at?: string
@@ -1092,6 +1096,7 @@ export type Database = {
           period?: string
           notes?: string | null
           mp_operation_id?: string | null
+          settlement_id?: string | null
         }
       >
       mp_counterpart_aliases: Table<
@@ -1178,6 +1183,7 @@ export type Database = {
           p_amount: number
           p_expense_amount: number
           p_expense_debtor: string | null
+          p_register_transfer?: boolean
         }
         Returns: string
       }

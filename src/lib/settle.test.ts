@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { monthPocket } from './derive.ts'
+import { formatMoney } from './format.ts'
 import { loanMonthEffect, remainingAfterLoans } from './transfers.ts'
-import { passPhrase, planMonthSettlement } from './settle.ts'
+import {
+  checkSettlePaidAmount,
+  passPhrase,
+  planMonthSettlement,
+  settleForgivenCopy,
+  settleTransferConfirmCopy,
+  settledMonthBanner,
+} from './settle.ts'
 import { splitByPercents, type SplitResult } from './split.ts'
 
 const coty = 'coty'
@@ -115,5 +123,31 @@ describe('saldar el mes', () => {
     expect(remainingAfterLoans(cash.income, cash.spent, after.net)).toBe(600)
     expect(remainingAfterLoans(cash.income, cash.spent, after.net)).not.toBe(900 - plan.expenseAmount)
     expect(remainingAfterLoans(pocket.income, pocket.spent, before.net)).toBe(1_098_000)
+  })
+
+  it('texto de ConfirmSheet según switch y acreedora', () => {
+    expect(settleTransferConfirmCopy(false, false)).toBe('Eso no cambia lo que te queda.')
+    expect(settleTransferConfirmCopy(false, true)).toBe('Eso no cambia lo que te queda.')
+    expect(settleTransferConfirmCopy(true, false)).toBe(
+      'Se registra la transferencia y se descuenta de lo que te queda.',
+    )
+    expect(settleTransferConfirmCopy(true, true)).toBe(
+      'Se registra la transferencia y se suma a lo que te queda.',
+    )
+  })
+
+  it('valida monto pagado y texto de diferencia', () => {
+    expect(checkSettlePaidAmount(0, 4000).ok).toBe(false)
+    expect(checkSettlePaidAmount(-1, 4000).ok).toBe(false)
+    expect(checkSettlePaidAmount(4000.01, 4000).ok).toBe(false)
+    expect(checkSettlePaidAmount(4000, 4000)).toMatchObject({ ok: true, paid: 4000, forgiven: 0 })
+    expect(checkSettlePaidAmount(2500, 4000)).toMatchObject({ ok: true, paid: 2500, forgiven: 1500 })
+    expect(settleForgivenCopy(0)).toBeNull()
+    expect(settleForgivenCopy(1500)).toBe(`Se cierra con ${formatMoney(1500)} de diferencia`)
+    expect(settledMonthBanner(4000, 4000)).toBe('Mes saldado.')
+    expect(settledMonthBanner(2500, 4000)).toBe(
+      `Mes saldado por ${formatMoney(2500)}, con ${formatMoney(1500)} de diferencia.`,
+    )
+    expect(settledMonthBanner(2500, null)).toBe('Mes saldado.')
   })
 })

@@ -53,6 +53,12 @@ export function movementSelectability(row: SelectableInputRow, ctx: SelectableCo
     return { canDelete: false, reason: 'Es el pago de un gasto fijo: se deshace en Avisos.' }
   }
   if (row.transfer) {
+    if (row.transfer.settlementId) {
+      return {
+        canDelete: false,
+        reason: 'Para cambiarla, deshacé el saldo',
+      }
+    }
     if (row.transfer.createdBy && row.transfer.createdBy !== ctx.meId) {
       return {
         canDelete: false,
