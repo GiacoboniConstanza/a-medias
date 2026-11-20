@@ -208,6 +208,191 @@ export function categoryPercents(categories: YearCategory[]): number[] {
   return percents
 }
 
+/** Meses por defecto de la comparación (A = que mirás, B = contra). */
+export function defaultCompareMonths(
+  year: number,
+  today = new Date(),
+): { monthA: number; monthB: number; yearB: number } {
+  const currentYear = today.getFullYear()
+  if (year !== currentYear) {
+    return { monthA: 12, monthB: 11, yearB: year }
+  }
+  const currentMonth = today.getMonth() + 1
+  if (currentMonth === 1) {
+    return { monthA: 1, monthB: 12, yearB: year - 1 }
+  }
+  return { monthA: currentMonth, monthB: currentMonth - 1, yearB: year }
+}
+
+export function monthIncome(month: YearMonth | undefined): number | null {
+  if (!month) return null
+  if (month.base === null && month.extras === null) return null
+  return (month.base ?? 0) + (month.extras ?? 0)
+}
+
+export function monthIsEmpty(month: YearMonth | undefined): boolean {
+  if (!month) return true
+  return month.base === null && month.extras === null && month.expenses === null
+}
+
+export type MonthDeltaKind = 'equal' | 'new' | 'gone' | 'up' | 'down' | 'diff_only' | 'under_one'
+
+export type MonthDelta = {
+  a: number
+  b: number
+  diff: number
+  kind: MonthDeltaKind
+  /** Entero con signo cuando kind es up/down. */
+  percent: number | null
+}
+
+/** Diferencia de B → A. category: etiquetas nueva / sin gastos. */
+export function monthDelta(
+  a: number | null | undefined,
+  b: number | null | undefined,
+  opts?: { category?: boolean },
+): MonthDelta {
+  const av = a ?? 0
+  const bv = b ?? 0
+  const diff = av - bv
+  if (diff === 0) {
+    return { a: av, b: bv, diff: 0, kind: 'equal', percent: null }
+  }
+  if (opts?.category) {
+    if (bv === 0 && av > 0) return { a: av, b: bv, diff, kind: 'new', percent: null }
+    if (av === 0 && bv > 0) return { a: av, b: bv, diff, kind: 'gone', percent: null }
+  } else if (bv === 0) {
+    return { a: av, b: bv, diff, kind: 'diff_only', percent: null }
+  }
+  const rounded = Math.round((Math.abs(diff) / Math.abs(bv)) * 100)
+  if (rounded === 0) {
+    return { a: av, b: bv, diff, kind: 'under_one', percent: null }
+  }
+  const percent = diff > 0 ? rounded : -rounded
+  return { a: av, b: bv, diff, kind: diff > 0 ? 'up' : 'down', percent }
+}
+
+export function formatSignedMoney(diff: number): string {
+  if (diff === 0) return formatMoney(0)
+  const body = formatMoney(Math.abs(diff))
+  return diff > 0 ? `+${body}` : `−${body}`
+}
+
+export function deltaPercentLabel(delta: MonthDelta): string {
+  if (delta.kind === 'equal') return '= igual'
+  if (delta.kind === 'new') return 'nueva'
+  if (delta.kind === 'gone') return 'sin gastos'
+  if (delta.kind === 'under_one') return 'menos de 1 %'
+  if (delta.kind === 'diff_only' || delta.percent == null) return ''
+  const sign = delta.percent > 0 ? '+' : '−'
+  return `${sign}${Math.abs(delta.percent)} %`
+}
+
+export type CompareCategoryRow = {
+  id: string
+  name: string
+  icon: string
+  a: number
+  b: number
+  delta: MonthDelta
+}
+
+export function compareCategories(
+  reportA: YearReport,
+  monthA: number,
+  reportB: YearReport,
+  monthB: number,
+): CompareCategoryRow[] {
+  const byId = new Map<string, { name: string; icon: string; a: number | null; b: number | null }>()
+  for (const category of reportA.categories) {
+    byId.set(category.id, {
+      name: category.name,
+      icon: category.icon,
+      a: category.months[monthA - 1] ?? null,
+      b: null,
+    })
+  }
+  for (const category of reportB.categories) {
+    const prev = byId.get(category.id)
+    if (prev) {
+      prev.b = category.months[monthB - 1] ?? null
+    } else {
+      byId.set(category.id, {
+        name: category.name,
+        icon: category.icon,
+        a: null,
+        b: category.months[monthB - 1] ?? null,
+      })
+    }
+  }
+  const rows: CompareCategoryRow[] = []
+  for (const [id, row] of byId) {
+    const spentA = row.a != null && row.a > 0
+    const spentB = row.b != null && row.b > 0
+    if (!spentA && !spentB) continue
+    const delta = monthDelta(row.a, row.b, { category: true })
+    rows.push({
+      id,
+      name: row.name,
+      icon: row.icon,
+      a: row.a ?? 0,
+      b: row.b ?? 0,
+      delta,
+    })
+  }
+  rows.sort((left, right) => {
+    const leftEqual = left.delta.kind === 'equal'
+    const rightEqual = right.delta.kind === 'equal'
+    if (leftEqual !== rightEqual) return leftEqual ? 1 : -1
+    const abs = Math.abs(right.delta.diff) - Math.abs(left.delta.diff)
+    if (abs !== 0) return abs
+    return left.name.localeCompare(right.name, 'es')
+  })
+  return rows
+}
+
+export type ComparePhrase = {
+  headline: string
+  detail: string | null
+}
+
+export function comparePhrase(
+  row: CompareCategoryRow | null,
+  monthA: number,
+  monthB: number,
+): ComparePhrase {
+  if (!row) {
+    return { headline: 'Tus categorías se mantuvieron bastante parejas.', detail: null }
+  }
+  const aName = monthName(monthA)
+  const bName = monthName(monthB)
+  const money = formatMoney(Math.abs(row.delta.diff))
+  if (row.delta.kind === 'new') {
+    return {
+      headline: `En ${aName} empezaste a gastar en ${row.name}`,
+      detail: `${money} más que en ${bName}`,
+    }
+  }
+  if (row.delta.kind === 'gone') {
+    return {
+      headline: `En ${aName} no gastaste en ${row.name}`,
+      detail: `${money} menos que en ${bName}`,
+    }
+  }
+  if (row.delta.kind === 'equal') {
+    return { headline: 'Tus categorías se mantuvieron bastante parejas.', detail: null }
+  }
+  const percent = Math.abs(row.delta.percent ?? 0)
+  const more = row.delta.diff > 0
+  const word = more ? 'más' : 'menos'
+  const pct =
+    row.delta.kind === 'under_one' ? 'menos de 1' : String(percent)
+  return {
+    headline: `En ${aName} gastaste ${pct} % ${word} en ${row.name} que en ${bName}`,
+    detail: `${money} ${word} que en ${bName}`,
+  }
+}
+
 export function categoryJump(categories: YearCategory[], year: number, today = new Date()): string {
   let best: { name: string; percent: number; fromMonth: number; toMonth: number } | null = null
   for (const category of categories) {

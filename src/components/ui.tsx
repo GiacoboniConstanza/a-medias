@@ -42,11 +42,10 @@ export function Chip({
   children,
   onClick,
   className = '',
-}: {
+  ...props
+}: ButtonHTMLAttributes<HTMLButtonElement> & {
   active?: boolean
   children: ReactNode
-  onClick?: () => void
-  className?: string
 }) {
   return (
     <button
@@ -56,6 +55,7 @@ export function Chip({
       className={`inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-full px-3.5 text-sm ${
         active ? 'border-[1.5px] border-azul-ink bg-azul-claro font-bold text-tinta' : 'border-[1.5px] border-azul bg-card font-semibold text-tinta'
       } ${className}`}
+      {...props}
     >
       {active ? <AppIcon name="check" /> : null}
       {children}

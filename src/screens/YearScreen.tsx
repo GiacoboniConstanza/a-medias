@@ -1,7 +1,8 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { Plantita } from '../components/Adornos.tsx'
+import { FitMoney } from '../components/FitMoney.tsx'
 import { SectionHeader } from '../components/SectionHeader.tsx'
 import { DonutBreakdown } from '../components/DonutBreakdown.tsx'
 import { IncomeChart } from '../components/IncomeChart.tsx'
@@ -12,7 +13,7 @@ import { Button, Card, Toast } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { loadCategoryYearExpenses, loadYearBalance, type ExpenseItem } from '../lib/api.ts'
 import { formatMoney } from '../lib/format.ts'
-import { abbreviateMoney, monthRows, monthSpan } from '../lib/year-rows.ts'
+import { monthRows, monthSpan } from '../lib/year-rows.ts'
 import {
   CATEGORY_COLORS,
   MONTH_NAMES,
@@ -369,6 +370,12 @@ function AccountingView({
       </Card>
       <Card className="mb-0">
         <h2 className="mb-3 font-display text-[17px] font-semibold">Categoría por categoría</h2>
+        <Link
+          to="/mi-anio/comparar"
+          className="mb-3 flex min-h-12 items-center font-bold text-mostaza-ink"
+        >
+          Comparar meses <AppIcon name="chevron-right" className="ml-1" />
+        </Link>
         {report.categories.length === 0 ? (
           <p className="text-sm font-semibold text-muted">Todavía no hay gastos en categorías.</p>
         ) : (
@@ -475,40 +482,12 @@ function MonthFact({ label, value, valueClass = '' }: { label: string; value: nu
   )
 }
 
-function FitMoney({ value, className = '' }: { value: number; className?: string }) {
-  const full = formatMoney(value)
-  const boxRef = useRef<HTMLSpanElement>(null)
-  const probeRef = useRef<HTMLSpanElement>(null)
-  const [tight, setTight] = useState(false)
-
-  useLayoutEffect(() => {
-    const box = boxRef.current
-    const probe = probeRef.current
-    if (!box || !probe) return
-    const measure = () => setTight(probe.offsetWidth > box.clientWidth + 1)
-    measure()
-    const observer = new ResizeObserver(measure)
-    observer.observe(box)
-    return () => observer.disconnect()
-  }, [full])
-
-  return (
-    <span ref={boxRef} className={`relative block min-w-0 truncate tabular-nums ${className}`}>
-      <span ref={probeRef} className="invisible absolute top-0 left-0 whitespace-nowrap" aria-hidden="true">
-        {full}
-      </span>
-      <span aria-hidden="true">{tight ? abbreviateMoney(value) : full}</span>
-      <span className="sr-only">{full}</span>
-    </span>
-  )
-}
-
 function savingTone(value: number | null): string {
   if (value === null) return 'text-muted'
   return value < 0 ? 'text-rosa-texto' : 'text-mostaza-ink'
 }
 
-function CategoryDetail({
+export function CategoryDetail({
   category,
   year,
   today,

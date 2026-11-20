@@ -77,6 +77,7 @@ export const MEAL_TABS: readonly NavItem[] = [
 const RESUMEN_ALIASES = new Set<string>([
   FINANCE_ROUTES.avisos,
   FINANCE_ROUTES.anio,
+  `${FINANCE_ROUTES.anio}/comparar`,
   FINANCE_ROUTES.sueldo,
   FINANCE_ROUTES.compartir,
   FINANCE_ROUTES.presupuesto,
