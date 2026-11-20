@@ -14,6 +14,7 @@ import { useModules } from '../context/ModulesProvider.tsx'
 import { setSavingArchived, type SavingItem, type SavingMove } from '../lib/api.ts'
 import { partnerId } from '../lib/derive.ts'
 import { formatMoney } from '../lib/format.ts'
+import { goalStatusLine } from '../lib/goal.ts'
 import { isHubHome } from '../lib/modules.ts'
 import { savingBalances } from '../lib/saving-balance.ts'
 import { activeSavings, archivedSavings, groupSavings, savingPercent } from '../lib/savings.ts'
@@ -194,6 +195,13 @@ function SavingGroup({
           const bal = savingBalances(item.openings, moves)
           const mine = bal.byUser[meId] ?? 0
           const pct = savingPercent(bal.total, item.target)
+          const status = goalStatusLine({
+            isShared: item.isShared,
+            target: item.target,
+            targetDate: item.targetDate,
+            balance: bal.total,
+            variant: 'list',
+          })
           return (
             <Link
               key={item.id}
@@ -218,6 +226,7 @@ function SavingGroup({
                   <p className="mt-1 text-sm font-semibold text-gris">
                     {pct} % de {formatMoney(item.target)}
                   </p>
+                  {status ? <p className="mt-1 text-sm font-semibold text-gris">{status.text}</p> : null}
                 </div>
               ) : null}
               {item.isShared ? (

@@ -19,7 +19,7 @@ import {
 } from '../lib/api.ts'
 import { partnerId } from '../lib/derive.ts'
 import { amountFromDigits, formatMoney, moneyDraftFromAmount } from '../lib/format.ts'
-import { evenMonthlyShare, goalPaceLine, monthsUntil, shareLabel } from '../lib/goal.ts'
+import { goalStatusLine, shareLabel } from '../lib/goal.ts'
 import { monthKey, monthName, shortDate } from '../lib/month.ts'
 import { movementSavingTitle } from '../lib/movement-row.ts'
 import { savingBalances } from '../lib/saving-balance.ts'
@@ -65,12 +65,13 @@ export function SavingDetailScreen() {
   const partnerLabel = (otherId && data.names[otherId]) || 'tu compañera'
   const bal = savingBalances(saving.openings, moves)
   const pct = savingPercent(bal.total, saving.target)
-  const months = saving.targetDate ? monthsUntil(saving.targetDate) : 0
-  const remainingTarget = Math.max(0, (saving.target ?? 0) - bal.total)
-  const pace =
-    saving.isShared && saving.target != null && saving.targetDate
-      ? goalPaceLine(saving.targetDate, months, evenMonthlyShare(remainingTarget, months))
-      : ''
+  const status = goalStatusLine({
+    isShared: saving.isShared,
+    target: saving.target,
+    targetDate: saving.targetDate,
+    balance: bal.total,
+    variant: 'detail',
+  })
 
   return (
     <>
@@ -109,6 +110,23 @@ export function SavingDetailScreen() {
               {pct} % de {formatMoney(saving.target)}
               {saving.targetDate ? ` · para ${monthName(saving.targetDate)}` : ''}
             </p>
+            {status ? (
+              <p className="mt-1 text-sm font-semibold text-gris">
+                {status.text}
+                {status.editGoal ? (
+                  <>
+                    {' '}
+                    <button
+                      type="button"
+                      className="font-bold text-mostaza-ink"
+                      onClick={() => setEditOpen(true)}
+                    >
+                      Editar meta
+                    </button>
+                  </>
+                ) : null}
+              </p>
+            ) : null}
           </div>
         ) : null}
       </section>
@@ -138,7 +156,6 @@ export function SavingDetailScreen() {
               )
             })}
           </div>
-          {pace ? <p className="mt-3 text-sm font-semibold text-gris">{pace}</p> : null}
         </section>
       ) : null}
 
