@@ -12,28 +12,40 @@ const cats = [
   { id: '8', name: 'Viajes', icon: 'plane' },
 ]
 
-describe('categoryChipsForEdit', () => {
-  it('con Ver todas muestra todas', () => {
-    expect(categoryChipsForEdit(cats, '', true)).toHaveLength(8)
-  })
-
-  it('sin Ver todas muestra sugeridas y agrega la elegida si falta', () => {
-    const list = categoryChipsForEdit(cats, '8', false)
-    expect(list.map((row) => row.name)).toEqual([
-      'Súper',
+describe('categoryChipsForEdit (E13)', () => {
+  it('con Ver todas muestra todas ordenadas', () => {
+    expect(categoryChipsForEdit(cats, '', true).map((row) => row.name)).toEqual([
       'Comida',
+      'Farmacia',
       'Hogar',
       'Luz',
+      'Mascotas',
       'Salidas',
+      'Súper',
+      'Viajes',
+    ])
+  })
+
+  it('sin uso: primeras alfabéticas y agrega la elegida si falta', () => {
+    const list = categoryChipsForEdit(cats, '8', false)
+    expect(list.map((row) => row.name)).toEqual([
+      'Comida',
       'Farmacia',
+      'Hogar',
+      'Luz',
+      'Mascotas',
+      'Salidas',
       'Viajes',
     ])
     expect(list.some((row) => row.id === '8')).toBe(true)
   })
 
-  it('no duplica la elegida si ya está en sugeridas', () => {
-    const list = categoryChipsForEdit(cats, '1', false)
+  it('con uso: las más usadas primero', () => {
+    const list = categoryChipsForEdit(cats, '1', false, [
+      { categoryId: '8', uses: 9, hasLinks: true },
+      { categoryId: '7', uses: 5, hasLinks: true },
+    ])
+    expect(list.map((row) => row.name).slice(0, 2)).toEqual(['Viajes', 'Mascotas'])
     expect(list.filter((row) => row.id === '1')).toHaveLength(1)
-    expect(list).toHaveLength(6)
   })
 })

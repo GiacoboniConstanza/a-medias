@@ -25,7 +25,7 @@ export function Button({
         alt: 'border-[1.5px] border-azul-ink bg-card text-tinta',
         secondary: 'border-[1.5px] border-mostaza-ink bg-card text-mostaza-ink',
         pink: 'border-[1.5px] border-tinta bg-mostaza text-tinta',
-        danger: 'border-[1.5px] border-tinta bg-card text-tinta',
+        danger: 'border-[1.5px] border-rosa-texto bg-card text-rosa-texto',
       }[variant]
   const main = variant === 'primary' || variant === 'pink'
   const height = main || tall ? 'min-h-[52px]' : 'min-h-11'
@@ -252,7 +252,7 @@ export function ErrorText({ children }: { children: ReactNode }) {
 export function FieldError({ children, id }: { children: ReactNode; id?: string }) {
   if (!children) return null
   return (
-    <p id={id} role="alert" className="mt-1 flex items-start gap-1.5 text-sm font-bold text-tinta">
+    <p id={id} role="alert" className="mt-1 flex items-start gap-1.5 text-sm font-bold text-rosa-texto">
       <AppIcon name="triangle-exclamation" className="mt-0.5 shrink-0" />
       <span>{children}</span>
     </p>

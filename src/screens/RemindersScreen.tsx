@@ -19,16 +19,19 @@ import {
   createFixedExpense,
   deleteFixedExpense,
   loadBudgets,
+  loadCategoryUsage,
   loadDailyStatuses,
   loadReminderPreferences,
   markDayClear,
   markFixedPaid,
+  type CategoryUsageRow,
   saveReminderPreferences,
   setFixedExpensePaused,
   undoFixedPayment,
   updateFixedExpense,
   type FixedItem,
 } from '../lib/api.ts'
+import { categoryIdForFixedPayment } from '../lib/categories.ts'
 import { partnerId } from '../lib/derive.ts'
 import { expenseSpan } from '../lib/expense-range.ts'
 import { filterReminders, matchesCategories, matchesScope, type PaidFilter, type ScopeFilter } from '../lib/finance-filters.ts'
@@ -90,6 +93,7 @@ export function RemindersScreen() {
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
   const [categoryIds, setCategoryIds] = useState<string[]>([])
+  const [categoryUsage, setCategoryUsage] = useState<CategoryUsageRow[]>([])
   const [hasBudgets, setHasBudgets] = useState(false)
   const saveChain = useRef(Promise.resolve())
   const end = monthEnd(month)
@@ -134,6 +138,20 @@ export function RemindersScreen() {
       active = false
     }
   }, [profile, data, settingsOpen])
+
+  useEffect(() => {
+    let active = true
+    loadCategoryUsage()
+      .then((rows) => {
+        if (active) setCategoryUsage(rows)
+      })
+      .catch(() => {
+        if (active) setCategoryUsage([])
+      })
+    return () => {
+      active = false
+    }
+  }, [data?.categories])
 
   useEffect(() => {
     if (!editing || !data) return
@@ -212,14 +230,6 @@ export function RemindersScreen() {
   async function pay(id: string) {
     const fixed = data?.fixed.find((item) => item.id === id)
     if (!fixed || !profile?.householdId || !data || !fixed.hasAmount) return
-    const category =
-      data.categories.find((item) => item.id === fixed.categoryId) ?? data.categories[0] ?? null
-    if (!category) {
-      const text = 'Falta una categoría del hogar.'
-      if (liveEditing) setSheetError(text)
-      else setMessage(text)
-      return
-    }
     setSaving(true)
     setMessage('')
     setSheetError('')
@@ -231,7 +241,7 @@ export function RemindersScreen() {
         payerId: profile.id,
         month,
         paidOn: isCurrentMonth(month, now) ? todayISO(now) : `${month.slice(0, 8)}${String(fixed.dueDay).padStart(2, '0')}`,
-        categoryId: category.id,
+        categoryId: categoryIdForFixedPayment(fixed.categoryId),
       })
       await refresh()
       await reloadDays()
@@ -277,7 +287,7 @@ export function RemindersScreen() {
         await createFixedExpense({
           householdId: profile.householdId,
           ownerId: draft.shared ? null : profile.id,
-          categoryId: null,
+          categoryId: draft.categoryId,
           title: draft.title,
           icon: draft.icon,
           amount: draft.amount,
@@ -302,7 +312,7 @@ export function RemindersScreen() {
         await updateFixedExpense({
           id: liveEditing.id,
           ownerId: draft.shared ? null : profile.id,
-          categoryId: liveEditing.isShared === draft.shared ? liveEditing.categoryId : null,
+          categoryId: draft.categoryId,
           title: draft.title,
           icon: draft.icon,
           dueDay: draft.dueDay,
@@ -715,6 +725,8 @@ export function RemindersScreen() {
         splitEven={data.splitEven}
         editorName={liveEditing?.updatedBy ? (data.names[liveEditing.updatedBy] ?? myName) : myName}
         paid={Boolean(liveEditing?.payment)}
+        categories={data.categories}
+        categoryUsage={categoryUsage}
         onClose={() => {
           setCreating(false)
           setEditing(null)

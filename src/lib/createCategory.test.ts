@@ -46,7 +46,7 @@ describe('createCategory', () => {
     state.error = { code: '23505', message: 'duplicate key value violates unique constraint' }
     await expect(
       createCategory({ householdId: 'hogar', name: 'Comida', icon: 'pizza-slice' }),
-    ).rejects.toThrow('Esa categoría ya está en el hogar.')
+    ).rejects.toThrow('Ya hay una con ese nombre.')
   })
 
   it('otros errores de la base se muestran tal cual', async () => {

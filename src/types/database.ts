@@ -1343,6 +1343,14 @@ export type Database = {
         Args: Record<string, never>
         Returns: string | null
       }
+      category_usage: {
+        Args: Record<string, never>
+        Returns: { category_id: string; uses: number; has_links: boolean }[]
+      }
+      delete_category: {
+        Args: { p_id: string; p_move_to: string | null }
+        Returns: undefined
+      }
     }
   }
 }

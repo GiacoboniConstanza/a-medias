@@ -17,17 +17,20 @@ import {
   deleteExtra,
   deleteSavingMove,
   linkPlanItemExpense,
+  loadCategoryUsage,
   loadFinance,
   loadSettledMonths,
   saveSalaryRevision,
   updateExpense,
   updateSavingMove,
   type Category,
+  type CategoryUsageRow,
   type ExpenseItem,
   type ExtraItem,
   type SavingItem,
   type SavingMove,
 } from '../lib/api.ts'
+import { categoryChipsForPicker } from '../lib/categories.ts'
 import { NewSavingSheet } from './NewSavingSheet.tsx'
 import { savingBalances, withdrawableByUser } from '../lib/saving-balance.ts'
 import { activeSavings, groupSavings } from '../lib/savings.ts'
@@ -63,8 +66,6 @@ export type MovementPrefill = {
 type IncomeKind = 'puntual' | 'sueldo'
 type TransferDir = 'sent' | 'received'
 
-const SUGGESTED = ['Súper', 'Comida', 'Hogar', 'Luz', 'Salidas', 'Farmacia']
-
 type SavedView = {
   kind: MovementType | 'edit' | 'aporte' | 'retiro'
   amount: number
@@ -99,6 +100,7 @@ export function MovementForm({
   const [saved, setSaved] = useState<SavedView | null>(null)
   const [savedPocket, setSavedPocket] = useState<ReturnType<typeof homeAccountingCard> | null>(null)
   const [savedDebt, setSavedDebt] = useState<string | null>(null)
+  const [categoryUsage, setCategoryUsage] = useState<CategoryUsageRow[]>([])
   const headingRef = useRef<HTMLHeadingElement>(null)
 
   const locationState = location.state as {
@@ -139,6 +141,20 @@ export function MovementForm({
       cancelled = true
     }
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    loadCategoryUsage()
+      .then((rows) => {
+        if (!cancelled) setCategoryUsage(rows)
+      })
+      .catch(() => {
+        if (!cancelled) setCategoryUsage([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [data?.categories])
 
   if (!profile?.householdId) {
     return <p className="py-16 text-center font-bold text-muted">Cargando…</p>
@@ -276,6 +292,7 @@ export function MovementForm({
       meId={profile.id}
       names={data.names}
       categories={data.categories}
+      categoryUsage={categoryUsage}
       expense={expense}
       transfer={transfer}
       savingMove={savingMove}
@@ -353,6 +370,7 @@ function MovementFormBody({
   meId,
   names,
   categories,
+  categoryUsage,
   expense,
   transfer,
   savingMove,
@@ -372,6 +390,7 @@ function MovementFormBody({
   meId: string
   names: Record<string, string>
   categories: Category[]
+  categoryUsage: CategoryUsageRow[]
   expense: ExpenseItem | null
   transfer: Transfer | null
   savingMove: SavingMove | null
@@ -466,11 +485,11 @@ function MovementFormBody({
   const gastoBlocked = tipo === 'gasto' && periodSettled
   const settledHelp = settledSharedHelp(nextPeriodPreview)
 
-  const suggested = useMemo(() => {
-    const byName = new Map(categories.map((category) => [category.name.toLowerCase(), category]))
-    return SUGGESTED.map((name) => byName.get(name.toLowerCase())).filter(Boolean) as Category[]
-  }, [categories])
-  const categoryList = showAllCategories ? categories : suggested.slice(0, 6)
+  const categoryList = useMemo(
+    () => categoryChipsForPicker(categories, categoryUsage, categoryId, showAllCategories),
+    [categories, categoryUsage, categoryId, showAllCategories],
+  )
+  const suggested = categoryList
 
   useEffect(() => {
     const viewport = window.visualViewport

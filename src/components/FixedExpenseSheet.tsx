@@ -1,10 +1,12 @@
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
+import { AppIcon } from './AppIcon.tsx'
 import { IconPicker } from './IconPicker.tsx'
 import { amountFromDigits } from '../lib/format.ts'
 import { MoneyField } from './MoneyField.tsx'
 import { Sheet } from './Sheet.tsx'
 import { Button, Chip, ErrorText, NotesField, inputClass, Toggle } from './ui.tsx'
-import type { FixedItem } from '../lib/api.ts'
+import type { Category, CategoryUsageRow, FixedItem } from '../lib/api.ts'
+import { categoryChipsForPicker } from '../lib/categories.ts'
 import { editedCaption, remindSwitchLabel, shareSentence } from '../lib/fixed.ts'
 import { clampNotes, formatMoney, moneyDraftFromAmount, normalizeMoney } from '../lib/format.ts'
 
@@ -18,6 +20,7 @@ export type FixedDraft = {
   amountChanged: boolean
   applies: 'this' | 'next' | null
   notes: string | null
+  categoryId: string | null
 }
 
 export function FixedExpenseSheet({
@@ -32,6 +35,8 @@ export function FixedExpenseSheet({
   splitEven,
   editorName,
   paid,
+  categories = [],
+  categoryUsage = [],
   onClose,
   onSubmit,
   onPause,
@@ -50,6 +55,8 @@ export function FixedExpenseSheet({
   splitEven: boolean
   editorName: string
   paid: boolean
+  categories?: Category[]
+  categoryUsage?: CategoryUsageRow[]
   onClose: () => void
   onSubmit: (draft: FixedDraft) => void
   onPause: (paused: boolean) => void
@@ -67,6 +74,13 @@ export function FixedExpenseSheet({
       open={open}
       title={confirming ? 'Eliminar gasto fijo' : expense ? 'Editar gasto fijo' : 'Nuevo gasto fijo'}
       onClose={onClose}
+      footer={
+        confirming ? undefined : (
+          <Button type="button" form="fixed-expense-form" disabled={saving}>
+            Guardar
+          </Button>
+        )
+      }
     >
       {open ? (
         <FixedExpenseForm
@@ -81,6 +95,8 @@ export function FixedExpenseSheet({
           splitEven={splitEven}
           editorName={editorName}
           paid={paid}
+          categories={categories}
+          categoryUsage={categoryUsage}
           confirming={confirming}
           onConfirming={setConfirming}
           onClose={onClose}
@@ -106,6 +122,8 @@ function FixedExpenseForm({
   splitEven,
   editorName,
   paid,
+  categories,
+  categoryUsage,
   confirming,
   onConfirming,
   onClose,
@@ -125,6 +143,8 @@ function FixedExpenseForm({
   splitEven: boolean
   editorName: string
   paid: boolean
+  categories: Category[]
+  categoryUsage: CategoryUsageRow[]
   confirming: boolean
   onConfirming: (value: boolean) => void
   onClose: () => void
@@ -146,14 +166,21 @@ function FixedExpenseForm({
   const [shared, setShared] = useState(expense?.isShared ?? true)
   const [remind, setRemind] = useState(expense?.remind ?? true)
   const [applies, setApplies] = useState<'this' | 'next' | null>(null)
+  const [categoryId, setCategoryId] = useState<string | null>(expense?.categoryId ?? null)
+  const [showAllCategories, setShowAllCategories] = useState(false)
   const [localError, setLocalError] = useState('')
   const amount = normalizeMoney(amountFromDigits(digits))
   const day = Number(dueDay)
   const amountChanged = Boolean(expense) && amount !== original
   const shownError = localError || error
   const caption = expense?.updatedAt ? editedCaption(expense.updatedAt, editorName) : null
+  const categoryChips = useMemo(
+    () => categoryChipsForPicker(categories, categoryUsage, categoryId, showAllCategories),
+    [categories, categoryUsage, categoryId, showAllCategories],
+  )
 
-  function submit() {
+  function submit(event?: { preventDefault(): void }) {
+    event?.preventDefault()
     if (!title.trim() || amount <= 0 || day < 1 || day > 28) {
       setLocalError('Completá nombre, monto y un día del 1 al 28.')
       return
@@ -173,6 +200,7 @@ function FixedExpenseForm({
       amountChanged,
       applies,
       notes: clampNotes(notes),
+      categoryId,
     })
   }
 
@@ -192,7 +220,7 @@ function FixedExpenseForm({
   }
 
   return (
-    <div>
+    <form id="fixed-expense-form" onSubmit={submit}>
       <label className="mb-3 block text-sm font-bold text-muted">
         Nombre
         <input value={title} onChange={(event) => setTitle(event.target.value)} className={`mt-1 ${inputClass}`} placeholder="Alquiler, luz, obra social…" />
@@ -200,10 +228,29 @@ function FixedExpenseForm({
       <p className="mb-2 text-sm font-bold text-muted">Ícono</p>
       <IconPicker layout="grid" value={icon} onChange={setIcon} />
       <MoneyField
+        size="form"
         draft={digits}
         onDraft={setDigits}
         label={amountChanged ? `Antes: ${formatMoney(original)}` : 'Monto'}
       />
+      <div className="mb-3 mt-4">
+        <p className="mb-2 text-sm font-semibold text-gris">Categoría (opcional)</p>
+        <div className="flex flex-wrap gap-2">
+          {categoryChips.map((category) => (
+            <Chip
+              key={category.id}
+              active={categoryId === category.id}
+              onClick={() => setCategoryId((current) => (current === category.id ? null : category.id))}
+            >
+              <AppIcon name={category.icon} className="text-sm" />
+              {category.name}
+            </Chip>
+          ))}
+          {!showAllCategories && categories.length > categoryChips.length ? (
+            <Chip onClick={() => setShowAllCategories(true)}>Ver todas ({categories.length})</Chip>
+          ) : null}
+        </div>
+      </div>
       <label className="mb-3 mt-4 block text-sm font-bold text-muted">
         Día de vencimiento
         <input
@@ -270,9 +317,6 @@ function FixedExpenseForm({
           Deshacer
         </Button>
       ) : null}
-      <Button type="button" className="mt-3" onClick={submit} disabled={saving}>
-        Guardar
-      </Button>
       <Button type="button" variant="alt" className="mt-2" onClick={onClose} disabled={saving}>
         Cancelar
       </Button>
@@ -288,6 +332,6 @@ function FixedExpenseForm({
       ) : null}
       {caption ? <p className="mt-3 text-center text-sm font-semibold text-muted">{caption}</p> : null}
       <ErrorText>{shownError}</ErrorText>
-    </div>
+    </form>
   )
 }

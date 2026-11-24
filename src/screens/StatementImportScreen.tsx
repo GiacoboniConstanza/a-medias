@@ -9,12 +9,14 @@ import { useFinance } from '../context/FinanceProvider.tsx'
 import { useMonth } from '../context/MonthProvider.tsx'
 import {
   importMpMovements,
+  loadCategoryUsage,
   loadMpCounterpartAliases,
   loadMpCreditoFixedExists,
   loadMpImportedIds,
   loadMpMerchantPrefs,
   loadSettledMonths,
   type Category,
+  type CategoryUsageRow,
   type MpCounterpartAlias,
   type MpImportRow,
   type MpMerchantPrefRow,
@@ -33,7 +35,6 @@ import {
   rowIsDimmed,
   rowIsToggleable,
   rowSubtitle,
-  SUGGESTED_CATEGORY_NAMES,
   summaryCountsLine,
   type MpReviewRow,
 } from '../lib/mpImportReview.ts'
@@ -63,6 +64,7 @@ export function StatementImportScreen() {
   const otherId = data ? partnerId(data, meId) : null
   const partnerNick = (otherId && data?.names[otherId]) || 'tu compañera'
   const categories = data?.categories ?? []
+  const [categoryUsage, setCategoryUsage] = useState<CategoryUsageRow[]>([])
 
   const [step, setStep] = useState<Step>('pick')
   const [fileName, setFileName] = useState('')
@@ -124,6 +126,20 @@ export function StatementImportScreen() {
       active = false
     }
   }, [])
+
+  useEffect(() => {
+    let active = true
+    loadCategoryUsage()
+      .then((rows) => {
+        if (active) setCategoryUsage(rows)
+      })
+      .catch(() => {
+        if (active) setCategoryUsage([])
+      })
+    return () => {
+      active = false
+    }
+  }, [categories])
 
   async function readFile(file: File) {
     setFileName(file.name)
@@ -791,6 +807,7 @@ export function StatementImportScreen() {
             row={editRow}
             draft={editDraft}
             categories={categories}
+            categoryUsage={categoryUsage}
             partnerNick={partnerNick}
             onChange={setEditDraft}
           />
@@ -869,22 +886,21 @@ function EditBody({
   row,
   draft,
   categories,
+  categoryUsage,
   partnerNick,
   onChange,
 }: {
   row: MpReviewRow
   draft: EditDraft
   categories: Category[]
+  categoryUsage: CategoryUsageRow[]
   partnerNick: string
   onChange: (next: EditDraft) => void
 }) {
   const isExpense = row.kind === 'expense' && !row.creditoMp
   const [showAllCategories, setShowAllCategories] = useState(false)
-  const suggested = useMemo(() => {
-    const byName = new Map(categories.map((category) => [category.name.toLowerCase(), category]))
-    return SUGGESTED_CATEGORY_NAMES.map((name) => byName.get(name.toLowerCase())).filter(Boolean) as Category[]
-  }, [categories])
-  const categoryList = categoryChipsForEdit(categories, draft.categoryId, showAllCategories)
+  const categoryList = categoryChipsForEdit(categories, draft.categoryId, showAllCategories, categoryUsage)
+  const suggested = categoryList
   return (
     <div className="space-y-4">
       <div className="rounded-2xl border-[1.5px] border-azul bg-crema p-3">

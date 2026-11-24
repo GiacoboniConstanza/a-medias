@@ -187,9 +187,13 @@ export function HomeScreen() {
         <SectionHeader
           lead={hub ? 'crumb' : 'greeting'}
           name={profile.displayName}
+          asideGap="4"
           aside={
             <>
               <NotificationBell />
+              <Link to="/ajustes" aria-label="Ajustes" className="grid h-11 w-11 place-items-center text-tinta">
+                <AppIcon name="gear" />
+              </Link>
               {hub ? null : (
                 <Link to="/modulos" aria-label="Mis módulos" className="grid h-11 w-11 place-items-center text-tinta">
                   <AppIcon name="sliders" />
@@ -241,7 +245,7 @@ export function HomeScreen() {
         {otherId ? (
           <Link
             to="/reparto"
-            className="mt-2 inline-flex min-h-11 w-full items-center justify-center gap-1 text-sm font-bold text-mostaza-ink"
+            className="mt-2 inline-flex min-h-11 w-full items-center justify-center gap-1 text-sm font-bold text-tinta"
           >
             Cambiar el reparto
             <AppIcon name="chevron-right" />

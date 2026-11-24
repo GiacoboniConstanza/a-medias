@@ -180,7 +180,7 @@ export async function loadFinance(householdId: string, userId: string, month: st
     supabase.rpc('household_split_is_even', { target_month: month }),
     supabase.from('split_notices').select('effective_from, recipient_percent, partner_percent, created_at'),
     supabase.from('income_extras').select('id, amount, label, received_on, notes, mp_operation_id').eq('user_id', userId),
-    supabase.from('categories').select('id, name, icon').eq('household_id', householdId),
+    supabase.from('categories').select('id, name, icon').eq('household_id', householdId).order('name', { ascending: true }),
     supabase
       .from('expenses')
       .select('id, title, amount, spent_on, period, is_shared, paid_from_bag, payer_id, owner_id, category_id, notes, mp_operation_id')
@@ -535,21 +535,57 @@ export async function createCategory(input: {
   name: string
   icon: string
 }): Promise<string> {
+  const name = input.name.trim().slice(0, 24)
+  if (!name) throw new Error('Escribí un nombre.')
   const { data, error } = await supabase
     .from('categories')
     .insert({
       household_id: input.householdId,
-      name: input.name.trim(),
+      name,
       icon: input.icon,
       emoji: input.icon,
     })
     .select('id')
     .single()
   if (error) {
-    if (error.code === '23505') throw new Error('Esa categoría ya está en el hogar.')
+    if (error.code === '23505') throw new Error('Ya hay una con ese nombre.')
     throw new Error(error.message)
   }
   return data.id
+}
+
+export async function updateCategory(input: {
+  id: string
+  name: string
+  icon: string
+}): Promise<void> {
+  const name = input.name.trim().slice(0, 24)
+  if (!name) throw new Error('Escribí un nombre.')
+  const { error } = await supabase
+    .from('categories')
+    .update({ name, icon: input.icon, emoji: input.icon })
+    .eq('id', input.id)
+  if (error) {
+    if (error.code === '23505') throw new Error('Ya hay una con ese nombre.')
+    throw new Error(error.message)
+  }
+}
+
+export async function deleteCategory(id: string, moveTo: string | null): Promise<void> {
+  const { error } = await supabase.rpc('delete_category', { p_id: id, p_move_to: moveTo })
+  fail(error)
+}
+
+export type CategoryUsageRow = { categoryId: string; uses: number; hasLinks: boolean }
+
+export async function loadCategoryUsage(): Promise<CategoryUsageRow[]> {
+  const { data, error } = await supabase.rpc('category_usage')
+  fail(error)
+  return (data ?? []).map((row) => ({
+    categoryId: row.category_id,
+    uses: Number(row.uses),
+    hasLinks: Boolean(row.has_links),
+  }))
 }
 
 function optionalTitle(value: string | null | undefined): string | null {
@@ -967,7 +1003,7 @@ export async function markFixedPaid(input: {
   payerId: string
   month: string
   paidOn: string
-  categoryId: string
+  categoryId: string | null
 }): Promise<void> {
   const expenseId = await createExpense({
     householdId: input.householdId,

@@ -1,29 +1,22 @@
+import {
+  categoryChipsForPicker,
+  type CategoryChip,
+  type CategoryUsage,
+} from './categories.ts'
 import { settledSharedHelp, sharedMonthSettled } from './period.ts'
 import type { MpClassifiedRow } from './mpStatement.ts'
 import { creditoMpDueDay } from './mpStatement.ts'
 
 export { settledSharedHelp as settledMonthHelp }
 
-/** Mismas sugeridas que Cargar (`MovementForm.tsx`). */
-export const SUGGESTED_CATEGORY_NAMES = ['Súper', 'Comida', 'Hogar', 'Luz', 'Salidas', 'Farmacia']
-
-type CategoryChip = { id: string; name: string; icon: string }
-
-/** Lista de chips: sugeridas (+ elegida si falta) o todas, como en Cargar. */
+/** Lista de chips: sugeridas por uso (+ elegida si falta) o todas, como en Cargar (E13). */
 export function categoryChipsForEdit<T extends CategoryChip>(
   categories: readonly T[],
   selectedId: string,
   showAll: boolean,
+  usage: readonly CategoryUsage[] = [],
 ): T[] {
-  if (showAll) return [...categories]
-  const byName = new Map(categories.map((category) => [category.name.toLowerCase(), category]))
-  const suggested = SUGGESTED_CATEGORY_NAMES.map((name) => byName.get(name.toLowerCase())).filter(
-    Boolean,
-  ) as T[]
-  const base = suggested.slice(0, 6)
-  const selected = categories.find((category) => category.id === selectedId)
-  if (selected && !base.some((category) => category.id === selected.id)) return [...base, selected]
-  return base
+  return categoryChipsForPicker(categories, usage, selectedId || null, showAll)
 }
 
 export type MpReviewRow = MpClassifiedRow & {

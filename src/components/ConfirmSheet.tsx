@@ -15,6 +15,7 @@ export function ConfirmSheet({
   disabled = false,
   busy = false,
   variant = 'primary',
+  tallCancel = false,
   error,
   describedById,
 }: {
@@ -29,6 +30,8 @@ export function ConfirmSheet({
   disabled?: boolean
   busy?: boolean
   variant?: 'primary' | 'danger'
+  /** D12: Cancelar de 52 en confirmaciones de categorías. */
+  tallCancel?: boolean
   error?: string | null
   describedById?: string
 }) {
@@ -39,9 +42,9 @@ export function ConfirmSheet({
       title={title}
       onClose={busy ? () => undefined : onClose}
       footer={
-        <div className="space-y-2">
+        <div className="space-y-3">
           {error ? (
-            <p className="text-sm font-bold text-tinta" role="alert">
+            <p className="text-sm font-bold text-rosa-texto" role="alert">
               {error}
             </p>
           ) : null}
@@ -55,7 +58,7 @@ export function ConfirmSheet({
           >
             {confirmLabel}
           </Button>
-          <Button type="button" variant="alt" onClick={onClose} disabled={busy}>
+          <Button type="button" variant="alt" tall={tallCancel} onClick={onClose} disabled={busy}>
             {cancelLabel}
           </Button>
         </div>
