@@ -33,6 +33,7 @@ import { partnerId } from '../lib/derive.ts'
 import { expenseSpan } from '../lib/expense-range.ts'
 import { filterReminders, matchesCategories, matchesScope, type PaidFilter, type ScopeFilter } from '../lib/finance-filters.ts'
 import { dayDiff, dueBucket, dueLabel, dueTone, scheduleAmount, type DueBucket } from '../lib/fixed.ts'
+import { fixedExpensesTotal } from '../lib/fixed-total.ts'
 import { formatMoney } from '../lib/format.ts'
 import { isHubHome } from '../lib/modules.ts'
 import { iconSurface } from '../lib/icons.ts'
@@ -418,6 +419,15 @@ export function RemindersScreen() {
       .filter((item) => dueBucket(item.dueDay, month, now) === group.id)
       .sort((left, right) => compareDue(left, right, group.id, month, now)),
   })).filter((group) => group.items.length > 0)
+  const totalCard = fixedExpensesTotal({
+    items: dues,
+    meId: profile.id,
+    partnerId: otherId,
+    partnerName,
+    splitPercents: data.splitPercents,
+    filtersActive: activeCount > 0,
+  })
+  const totalLabelId = 'gastos-fijos-total-label'
 
   return (
     <>
@@ -526,6 +536,51 @@ export function RemindersScreen() {
       >
         Vaciar montos de {monthLabelShort}
       </button>
+
+      {totalCard ? (
+        <section
+          className="mt-5 rounded-2xl border-2 border-azul-ink bg-card px-4 py-3"
+          aria-labelledby={totalLabelId}
+          aria-live="polite"
+          aria-atomic="false"
+        >
+          <h2 id={totalLabelId} className="text-sm font-semibold text-gris">
+            {totalCard.label}
+          </h2>
+          <p className="whitespace-nowrap font-display text-[26px] font-semibold text-tinta">
+            {formatMoney(totalCard.total)}
+          </p>
+          {totalCard.note ? (
+            <p className="mt-0.5 truncate text-sm font-medium text-gris" aria-label={totalCard.note.ariaLabel}>
+              {totalCard.note.paidLabel ? <span>{totalCard.note.paidLabel}</span> : null}
+              {totalCard.note.paidLabel && totalCard.note.missingLabel ? (
+                <span aria-hidden="true"> · </span>
+              ) : null}
+              {totalCard.note.missingLabel ? <span>{totalCard.note.missingLabel}</span> : null}
+            </p>
+          ) : null}
+          {totalCard.showParts || totalCard.showPrivate ? (
+            <div className="mt-2 border-t border-dashed border-linea-punteada pt-2">
+              {totalCard.showParts ? (
+                <p
+                  className="text-sm font-semibold text-tinta"
+                  aria-label={totalCard.partsAriaLabel}
+                >
+                  Vos <span className="font-bold">{formatMoney(totalCard.myShare)}</span>
+                  {' · '}
+                  {totalCard.partnerName}{' '}
+                  <span className="font-bold">{formatMoney(totalCard.partnerShare)}</span>
+                </p>
+              ) : null}
+              {totalCard.showPrivate ? (
+                <p className={`text-sm font-semibold text-tinta ${totalCard.showParts ? 'mt-1.5' : ''}`}>
+                  Tus privados <span className="font-bold">{formatMoney(totalCard.privateTotal)}</span>
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+        </section>
+      ) : null}
 
       {grouped.length === 0 && paidItems.length === 0 && paused.length === 0 ? (
         <p className="px-1 text-sm font-semibold text-muted">No hay vencimientos este mes.</p>
