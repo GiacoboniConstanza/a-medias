@@ -5,8 +5,8 @@ export type AmountRevision = {
   amount: number
 }
 
-/** Monto que rige en ese mes. Los meses anteriores conservan la revisión previa. */
-export function amountForMonth(revisions: AmountRevision[], month: string): number | null {
+/** Última revisión con monto que rige ese mes (ignora marcas de vaciado). */
+export function draggedAmountForMonth(revisions: AmountRevision[], month: string): number | null {
   let best: AmountRevision | null = null
   for (const revision of revisions) {
     if (revision.effectiveFrom <= month && (best === null || revision.effectiveFrom > best.effectiveFrom)) {
@@ -14,6 +14,27 @@ export function amountForMonth(revisions: AmountRevision[], month: string): numb
     }
   }
   return best?.amount ?? null
+}
+
+/** Monto del mes. Si el mes está marcado como vaciado, null aunque haya arrastre. */
+export function amountForMonth(
+  revisions: AmountRevision[],
+  month: string,
+  clearedMonths: ReadonlySet<string> | readonly string[] = [],
+): number | null {
+  const cleared = clearedMonths instanceof Set ? clearedMonths : new Set(clearedMonths)
+  if (cleared.has(month)) return null
+  return draggedAmountForMonth(revisions, month)
+}
+
+/** Visible en la lista del mes (con o sin monto). */
+export function appliesForMonth(
+  revisions: AmountRevision[],
+  month: string,
+  clearedMonths: ReadonlySet<string> | readonly string[] = [],
+): boolean {
+  const cleared = clearedMonths instanceof Set ? clearedMonths : new Set(clearedMonths)
+  return draggedAmountForMonth(revisions, month) !== null || cleared.has(month)
 }
 
 export function withRevision(revisions: AmountRevision[], revision: AmountRevision): AmountRevision[] {

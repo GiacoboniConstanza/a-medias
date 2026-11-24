@@ -135,10 +135,12 @@ function FixedExpenseForm({
   onUndo: () => void
 }) {
   const remindId = useId()
-  const original = expense ? normalizeMoney(expense.amount) : 0
+  const original = expense?.hasAmount ? normalizeMoney(expense.amount) : 0
   const [title, setTitle] = useState(expense?.title ?? '')
   const [icon, setIcon] = useState(expense?.icon ?? 'house')
-  const [digits, setDigits] = useState(expense ? moneyDraftFromAmount(original) : '')
+  const [digits, setDigits] = useState(
+    expense?.hasAmount ? moneyDraftFromAmount(original) : '',
+  )
   const [notes, setNotes] = useState(expense?.notes ?? '')
   const [dueDay, setDueDay] = useState(String(expense?.dueDay ?? 10))
   const [shared, setShared] = useState(expense?.isShared ?? true)
@@ -258,7 +260,7 @@ function FixedExpenseForm({
         </div>
       ) : null}
       <NotesField value={notes} onChange={setNotes} />
-      {expense && !paid ? (
+      {expense && !paid && expense.hasAmount ? (
         <Button type="button" variant="alt" onClick={onPay} disabled={saving}>
           Marcar como pagado
         </Button>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { AppIcon } from '../components/AppIcon.tsx'
+import { ConfirmSheet } from '../components/ConfirmSheet.tsx'
 import { Fab, FabSpace } from '../components/Fab.tsx'
 import { FilterSheet, PERIODS, type ExpenseFilters } from '../components/FilterSheet.tsx'
 import { FixedExpenseSheet, type FixedDraft } from '../components/FixedExpenseSheet.tsx'
@@ -14,6 +15,7 @@ import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
 import { useMonth } from '../context/MonthProvider.tsx'
 import {
+  clearFixedAmountsForMonth,
   createFixedExpense,
   deleteFixedExpense,
   loadBudgets,
@@ -34,7 +36,7 @@ import { dayDiff, dueBucket, dueLabel, dueTone, scheduleAmount, type DueBucket }
 import { formatMoney } from '../lib/format.ts'
 import { isHubHome } from '../lib/modules.ts'
 import { iconSurface } from '../lib/icons.ts'
-import { isCurrentMonth, monthEnd, monthKey, shiftMonth, shortDate, todayISO } from '../lib/month.ts'
+import { isCurrentMonth, monthEnd, monthKey, monthName, shiftMonth, shortDate, todayISO } from '../lib/month.ts'
 import { pushIsConfigured, subscribeToPush } from '../lib/push/permissions.ts'
 import {
   DEFAULT_REMINDER_PREFS,
@@ -42,7 +44,6 @@ import {
   loggingStreak,
   nextAskAt,
   shiftDay,
-  isOpenFixed,
   shouldAskToday,
   streakCopy,
   type DailyKind,
@@ -74,6 +75,9 @@ export function RemindersScreen() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [paidOpen, setPaidOpen] = useState(false)
   const [pausedOpen, setPausedOpen] = useState(false)
+  const [clearOpen, setClearOpen] = useState(false)
+  const [clearBusy, setClearBusy] = useState(false)
+  const [clearError, setClearError] = useState('')
   const [message, setMessage] = useState('')
   const [sheetError, setSheetError] = useState('')
   const [toast, setToast] = useState('')
@@ -206,7 +210,7 @@ export function RemindersScreen() {
 
   async function pay(id: string) {
     const fixed = data?.fixed.find((item) => item.id === id)
-    if (!fixed || !profile?.householdId || !data) return
+    if (!fixed || !profile?.householdId || !data || !fixed.hasAmount) return
     const category =
       data.categories.find((item) => item.id === fixed.categoryId) ?? data.categories[0] ?? null
     if (!category) {
@@ -387,8 +391,17 @@ export function RemindersScreen() {
       matchesScope(item.isShared, scope) &&
       matchesCategories(item.categoryId, categoryIds),
   )
-  const openItems = dues.filter((item) => isOpenFixed(item))
+  const openItems = dues.filter((item) => item.applies && !item.pausedAt && !item.payment)
   const paidItems = dues.filter((item) => item.payment)
+  const clearableCount = data.fixed.filter(
+    (item) =>
+      item.applies &&
+      !item.pausedAt &&
+      !item.payment &&
+      item.hasAmount &&
+      (item.isShared || item.ownerId === profile.id),
+  ).length
+  const monthLabelShort = monthName(month)
   const reminderFilters: ExpenseFilters = { preset, customFrom, customTo, categoryIds, paid: paidFilter }
   const activeCount = (preset === 'month' ? 0 : 1) + categoryIds.length + (paidFilter === 'all' ? 0 : 1) + (scope === 'all' ? 0 : 1)
   const summaryParts: string[] = []
@@ -412,7 +425,7 @@ export function RemindersScreen() {
         lead="back"
         backTo={isHubHome(enabled) ? '/finanzas' : '/'}
         icon="bell"
-        title="Avisos"
+        title="Gastos fijos"
         aside={
           <button
             type="button"
@@ -494,6 +507,25 @@ export function RemindersScreen() {
           <p className="mt-3 text-sm font-semibold text-muted">{streakCopy(streak)}</p>
         </section>
       ) : null}
+
+      <button
+        type="button"
+        aria-haspopup="dialog"
+        aria-label={`Vaciar montos de ${monthLabelShort}`}
+        disabled={clearableCount === 0}
+        onClick={() => {
+          if (clearableCount === 0) return
+          setClearError('')
+          setClearOpen(true)
+        }}
+        className={`mb-3 flex min-h-11 w-full items-center justify-center rounded-full border-[1.5px] px-4 text-sm font-bold ${
+          clearableCount === 0
+            ? 'border-dashed border-gris-claro bg-fondo-desactivado text-gris'
+            : 'border-mostaza-ink bg-tarjeta text-mostaza-ink'
+        }`}
+      >
+        Vaciar montos de {monthLabelShort}
+      </button>
 
       {grouped.length === 0 && paidItems.length === 0 && paused.length === 0 ? (
         <p className="px-1 text-sm font-semibold text-muted">No hay vencimientos este mes.</p>
@@ -649,8 +681,8 @@ export function RemindersScreen() {
         end={end}
         categories={categories}
         initial={reminderFilters}
-        title="Filtrar avisos"
-        applyLabel="Ver avisos"
+        title="Filtrar gastos fijos"
+        applyLabel="Ver gastos fijos"
         onClose={() => setSheetOpen(false)}
         showPaid
         onApply={(next) => {
@@ -673,6 +705,44 @@ export function RemindersScreen() {
         }}
         onActivatePush={() => void activatePush()}
       />
+      <ConfirmSheet
+        open={clearOpen}
+        title={`¿Vaciar los montos de ${monthLabelShort}?`}
+        confirmLabel="Vaciar montos"
+        variant="danger"
+        busy={clearBusy}
+        error={clearError}
+        onClose={() => {
+          if (!clearBusy) setClearOpen(false)
+        }}
+        onConfirm={() => {
+          void (async () => {
+            setClearBusy(true)
+            setClearError('')
+            try {
+              const cleared = await clearFixedAmountsForMonth(month)
+              await refresh()
+              setClearOpen(false)
+              setToast(
+                cleared === 1
+                  ? 'Se sacó el monto de 1 gasto fijo.'
+                  : `Se sacaron los montos de ${cleared} gastos fijos.`,
+              )
+            } catch (caught) {
+              setClearError(caught instanceof Error ? caught.message : 'No pude vaciar los montos.')
+            } finally {
+              setClearBusy(false)
+            }
+          })()
+        }}
+      >
+        <p className="text-base font-semibold text-tinta">
+          Se sacan los montos de {monthLabelShort} de {clearableCount} gasto
+          {clearableCount === 1 ? '' : 's'} fijo{clearableCount === 1 ? '' : 's'}. Los gastos siguen, para que los
+          vuelvas a completar. El que ya está pagado no se toca. Los meses anteriores y los que vienen no se tocan: el
+          monto se sigue repitiendo.
+        </p>
+      </ConfirmSheet>
     </>
   )
 }
@@ -711,9 +781,19 @@ function SwipeDue({
 }) {
   const tone = dueTone(item.dueDay, month, now)
   const when = dueLabel(item.dueDay, month, now)
+  const missing = !item.hasAmount
   return (
     <div className={grouped ? 'border-b border-line last:border-0' : 'rounded-2xl border-2 border-azul-ink'}>
-      <button type="button" onClick={onEdit} className="flex min-h-[var(--alto-fila-aviso)] w-full items-center gap-3 px-3.5 py-2.5 text-left" aria-label={`Editar ${item.title}, ${when}`}>
+      <button
+        type="button"
+        onClick={onEdit}
+        className="flex min-h-[var(--alto-fila-aviso)] w-full items-center gap-3 px-3.5 py-2.5 text-left"
+        aria-label={
+          missing
+            ? `Editar ${item.title}, ${when}, falta el monto`
+            : `Editar ${item.title}, ${when}`
+        }
+      >
         <IconBubble icon={item.icon} />
         <span className="min-w-0 flex-1">
           <span className="flex min-w-0 items-baseline gap-1.5">
@@ -729,7 +809,11 @@ function SwipeDue({
           </span>
           <span className={`mt-0.5 block text-sm font-medium ${toneClass[tone]}`}>{when}</span>
         </span>
-        <span className="whitespace-nowrap font-display text-lg font-semibold text-tinta">{formatMoney(item.amount)}</span>
+        {missing ? (
+          <span className="whitespace-nowrap text-sm font-bold text-mostaza-ink">Falta el monto</span>
+        ) : (
+          <span className="whitespace-nowrap font-display text-lg font-semibold text-tinta">{formatMoney(item.amount)}</span>
+        )}
       </button>
     </div>
   )

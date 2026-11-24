@@ -105,13 +105,21 @@ export function nextAskAt(now: Date, times: string[]): Date {
   return atClock(tomorrow, first)
 }
 
-type OpenFixed = { applies: boolean; pausedAt: string | null; payment: unknown }
-
-export function isOpenFixed(item: OpenFixed): boolean {
-  return item.applies && item.pausedAt == null && item.payment == null
+type OpenFixed = {
+  applies: boolean
+  pausedAt: string | null
+  payment: unknown
+  /** Sin monto no cuenta ni se puede pagar (RS12). */
+  hasAmount?: boolean
 }
 
-/** Fijos del mes sin pagar, más 1 si el recordatorio de hoy sigue pendiente para la campana. */
+export function isOpenFixed(item: OpenFixed): boolean {
+  if (!item.applies || item.pausedAt != null || item.payment != null) return false
+  if (item.hasAmount === false) return false
+  return true
+}
+
+/** Fijos del mes sin pagar (con monto), más 1 si el recordatorio de hoy sigue pendiente para la campana. */
 export function pendingCount(now: Date, prefs: ReminderPrefs, day: DayAsk | undefined, fixed: readonly OpenFixed[]): number {
   const open = fixed.reduce((sum, item) => sum + (isOpenFixed(item) ? 1 : 0), 0)
   return open + (dailyStillPending(now, prefs, day) ? 1 : 0)

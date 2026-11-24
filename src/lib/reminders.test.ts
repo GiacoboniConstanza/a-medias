@@ -28,6 +28,7 @@ describe('pendientes de la campana', () => {
         { applies: false, pausedAt: null, payment: null },
         { applies: true, pausedAt: '2026-10-01', payment: null },
         { applies: true, pausedAt: null, payment: { id: 'pago' } },
+        { applies: true, pausedAt: null, payment: null, hasAmount: false },
       ]),
     ).toBe(0)
   })

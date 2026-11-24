@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   amountForMonth,
+  appliesForMonth,
   dueBucket,
   dueLabel,
   dueTone,
@@ -32,6 +33,13 @@ describe('historial de montos', () => {
     const next = withRevision(rent, { effectiveFrom: '2026-11-01', amount: 320000 })
     expect(amountForMonth(next, '2026-10-01')).toBe(250000)
     expect(amountForMonth(next, '2026-11-01')).toBe(320000)
+  })
+
+  it('un mes vaciado queda sin monto y el siguiente arrastra', () => {
+    const cleared = new Set(['2026-11-01'])
+    expect(amountForMonth(rent, '2026-11-01', cleared)).toBeNull()
+    expect(amountForMonth(rent, '2026-12-01', cleared)).toBe(300000)
+    expect(appliesForMonth(rent, '2026-11-01', cleared)).toBe(true)
   })
 
   it('el monto guardado en la ficha es el del mes calendario', () => {

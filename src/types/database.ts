@@ -338,6 +338,21 @@ export type Database = {
         },
         { amount?: number; created_by?: string }
       >
+      fixed_expense_month_clears: Table<
+        {
+          fixed_expense_id: string
+          month: string
+          cleared_by: string
+          cleared_at: string
+        },
+        {
+          fixed_expense_id: string
+          month: string
+          cleared_by: string
+          cleared_at?: string
+        },
+        never
+      >
       reminder_preferences: Table<
         {
           user_id: string
@@ -1276,6 +1291,10 @@ export type Database = {
           days_left: number | null
           estimated_on: string | null
         }[]
+      }
+      clear_fixed_amounts_for_month: {
+        Args: { p_month: string }
+        Returns: number
       }
     }
   }

@@ -1,6 +1,6 @@
 import { money } from './format.ts'
 import { DEFAULT_ICON } from './icons.ts'
-import { amountForMonth, type AmountRevision } from './fixed.ts'
+import { amountForMonth, appliesForMonth, type AmountRevision } from './fixed.ts'
 import {
   asNumber,
   isFoodSource,
@@ -60,6 +60,8 @@ export type FixedItem = {
   title: string
   icon: string
   amount: number
+  /** false = «Falta el monto» en el mes visible. */
+  hasAmount: boolean
   applies: boolean
   revisions: AmountRevision[]
   dueDay: number
@@ -160,6 +162,7 @@ export async function loadFinance(householdId: string, userId: string, month: st
     lastExpense,
     fixedExpenses,
     fixedAmounts,
+    fixedClears,
     fixedPayments,
     settlement,
     savings,
@@ -196,6 +199,10 @@ export async function loadFinance(householdId: string, userId: string, month: st
       .eq('household_id', householdId)
       .order('due_day', { ascending: true }),
     supabase.from('fixed_expense_amounts').select('fixed_expense_id, amount, effective_from'),
+    supabase
+      .from('fixed_expense_month_clears')
+      .select('fixed_expense_id, month')
+      .eq('month', month),
     supabase.from('fixed_payments').select('id, fixed_expense_id, paid_on, payer_id, amount, expense_id').eq('month', month),
     supabase
       .from('settlements')
@@ -219,6 +226,7 @@ export async function loadFinance(householdId: string, userId: string, month: st
   fail(lastExpense.error)
   fail(fixedExpenses.error)
   fail(fixedAmounts.error)
+  fail(fixedClears.error)
   fail(fixedPayments.error)
   fail(settlement.error)
 
@@ -274,6 +282,12 @@ export async function loadFinance(householdId: string, userId: string, month: st
     list.push({ effectiveFrom: revision.effective_from.slice(0, 10), amount: money(revision.amount) })
     revisionsByFixed.set(revision.fixed_expense_id, list)
   }
+  const clearedByFixed = new Map<string, Set<string>>()
+  for (const row of fixedClears.data ?? []) {
+    const set = clearedByFixed.get(row.fixed_expense_id) ?? new Set<string>()
+    set.add(row.month.slice(0, 10))
+    clearedByFixed.set(row.fixed_expense_id, set)
+  }
 
   return {
     inviteCode: household.data.invite_code,
@@ -296,13 +310,16 @@ export async function loadFinance(householdId: string, userId: string, month: st
     fixed: (fixedExpenses.data ?? []).map((expense) => {
       const payment = paymentByFixed.get(expense.id)
       const revisions = revisionsByFixed.get(expense.id) ?? []
-      const resolved = amountForMonth(revisions, month)
+      const cleared = clearedByFixed.get(expense.id) ?? new Set<string>()
+      const resolved = amountForMonth(revisions, month, cleared)
+      const hasAmount = resolved !== null
       return {
         id: expense.id,
         title: expense.title,
         icon: expense.icon || DEFAULT_ICON,
-        amount: resolved ?? money(expense.expected_amount),
-        applies: resolved !== null,
+        amount: resolved ?? 0,
+        hasAmount,
+        applies: appliesForMonth(revisions, month, cleared),
         revisions,
         dueDay: expense.due_day,
         isShared: expense.is_shared,
@@ -1188,6 +1205,12 @@ export async function updateSavingMove(input: {
 export async function deleteSavingMove(id: string): Promise<void> {
   const { error } = await supabase.from('saving_moves').delete().eq('id', id)
   fail(error)
+}
+
+export async function clearFixedAmountsForMonth(month: string): Promise<number> {
+  const { data, error } = await supabase.rpc('clear_fixed_amounts_for_month', { p_month: month })
+  fail(error)
+  return typeof data === 'number' ? data : Number(data ?? 0)
 }
 
 export async function undoFixedPayment(payment: FixedPayment): Promise<void> {
