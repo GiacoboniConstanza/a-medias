@@ -87,6 +87,9 @@ const CompareMonthsScreen = lazy(() =>
 const BudgetScreen = lazy(() =>
   import('./screens/BudgetScreen.tsx').then((module) => ({ default: module.BudgetScreen })),
 )
+const PlansScreen = lazy(() =>
+  import('./screens/PlansScreen.tsx').then((module) => ({ default: module.PlansScreen })),
+)
 const StatementImportScreen = lazy(() =>
   import('./screens/StatementImportScreen.tsx').then((module) => ({ default: module.StatementImportScreen })),
 )
@@ -171,6 +174,7 @@ export function App() {
                 <Route path="mi-anio" element={<YearScreen />} />
                 <Route path="mi-anio/comparar" element={<CompareMonthsScreen />} />
                 <Route path="presupuesto" element={<BudgetScreen />} />
+                <Route path="planes" element={<PlansScreen />} />
               </Route>
             </Routes>
           </Suspense>

@@ -16,6 +16,7 @@ import {
   deleteExpense,
   deleteExtra,
   deleteSavingMove,
+  linkPlanItemExpense,
   loadFinance,
   loadSettledMonths,
   saveSalaryRevision,
@@ -53,6 +54,10 @@ export type MovementPrefill = {
   missingAmount?: boolean
   missingTitle?: boolean
   missingDate?: boolean
+  isShared?: boolean
+  notes?: string | null
+  categoryId?: string | null
+  planItemId?: string | null
 }
 
 type IncomeKind = 'puntual' | 'sueldo'
@@ -96,9 +101,30 @@ export function MovementForm({
   const [savedDebt, setSavedDebt] = useState<string | null>(null)
   const headingRef = useRef<HTMLHeadingElement>(null)
 
-  const locationState = (location.state as { tipo?: MovementType; from?: string; savingId?: string } | null)
+  const locationState = location.state as {
+    tipo?: MovementType
+    from?: string
+    savingId?: string
+    planItemId?: string
+    amount?: number
+    title?: string
+    notes?: string | null
+    isShared?: boolean
+    categoryId?: string | null
+  } | null
   const stateTipo = locationState?.tipo
-  const fromPath = (location.state as { from?: string } | null)?.from
+  const fromPath = locationState?.from
+  const statePrefill: MovementPrefill | undefined = locationState?.planItemId
+    ? {
+        tipo: 'gasto',
+        planItemId: locationState.planItemId,
+        amount: locationState.amount,
+        title: locationState.title,
+        notes: locationState.notes,
+        isShared: locationState.isShared,
+        categoryId: locationState.categoryId,
+      }
+    : undefined
 
   useEffect(() => {
     let cancelled = false
@@ -261,7 +287,7 @@ export function MovementForm({
             .filter((id): id is string => Boolean(id)),
         )
       }
-      prefill={prefill}
+      prefill={prefill ?? statePrefill}
       initialTipo={
         expense
           ? 'gasto'
@@ -271,7 +297,7 @@ export function MovementForm({
               ? 'ahorro'
               : extra
                 ? 'ingreso'
-                : prefill?.tipo ?? stateTipo ?? null
+                : prefill?.tipo ?? statePrefill?.tipo ?? stateTipo ?? null
       }
       initialSavingId={savingMove?.savingId ?? prefill?.savingId ?? locationState?.savingId ?? null}
       savings={data.savings}
@@ -369,10 +395,10 @@ function MovementFormBody({
 
   const [tipo, setTipo] = useState<MovementType | null>(initialTipo)
   const [digits, setDigits] = useState(() => moneyDraftFromAmount(expense?.amount ?? transfer?.amount ?? savingMove?.amount ?? prefill?.amount ?? null))
-  const [shared, setShared] = useState(expense ? expense.isShared : true)
+  const [shared, setShared] = useState(expense ? expense.isShared : prefill?.isShared ?? true)
   const [payerId, setPayerId] = useState(expense?.payerId ?? meId)
   const [rememberedPayer, setRememberedPayer] = useState(expense?.payerId ?? meId)
-  const [categoryId, setCategoryId] = useState(expense?.categoryId ?? '')
+  const [categoryId, setCategoryId] = useState(expense?.categoryId ?? prefill?.categoryId ?? '')
   const [showAllCategories, setShowAllCategories] = useState(false)
   const [drafting, setDrafting] = useState(false)
   const [draftName, setDraftName] = useState('')
@@ -415,7 +441,7 @@ function MovementFormBody({
   const [title, setTitle] = useState(
     expense?.title ?? savingMove?.title ?? (transfer?.notes ?? prefill?.title ?? ''),
   )
-  const [notes, setNotes] = useState(expense?.notes ?? savingMove?.notes ?? '')
+  const [notes, setNotes] = useState(expense?.notes ?? savingMove?.notes ?? prefill?.notes ?? '')
   const [showErrors, setShowErrors] = useState(false)
   const [fieldError, setFieldError] = useState<'tipo' | 'monto' | null>(null)
   const [error, setError] = useState('')
@@ -573,7 +599,10 @@ function MovementFormBody({
             summary: summaryLine('gasto', amount, text.title, categoryId, categories, shared, payerId, meId, names),
           })
         } else {
-          await createExpense({ householdId, ownerId: meId, ...payload })
+          const expenseId = await createExpense({ householdId, ownerId: meId, ...payload })
+          if (prefill?.planItemId) {
+            await linkPlanItemExpense(prefill.planItemId, expenseId, meId)
+          }
           await onSaved({
             kind: 'gasto',
             amount,

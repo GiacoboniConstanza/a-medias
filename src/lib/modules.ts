@@ -37,6 +37,7 @@ export const FINANCE_ROUTES = {
   sueldo: '/sueldo',
   compartir: '/compartir',
   presupuesto: '/presupuesto',
+  planes: '/planes',
   cargar: '/cargar',
   modulos: '/modulos',
 } as const
@@ -81,6 +82,7 @@ const RESUMEN_ALIASES = new Set<string>([
   FINANCE_ROUTES.sueldo,
   FINANCE_ROUTES.compartir,
   FINANCE_ROUTES.presupuesto,
+  FINANCE_ROUTES.planes,
   '/reparto',
   '/reparto/ayuda',
 ])

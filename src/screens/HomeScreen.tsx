@@ -15,14 +15,17 @@ import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
 import { useModules } from '../context/ModulesProvider.tsx'
 import { useMonth } from '../context/MonthProvider.tsx'
-import { loadBudgets } from '../lib/api.ts'
+import { loadBudgets, loadPlanItems } from '../lib/api.ts'
 import { budgetRowsForMonth, type BudgetRow } from '../lib/budget.ts'
 import { debtCopy, monthPocket, monthSplit, myPrivateSpent, partnerId } from '../lib/derive.ts'
+import { fixedExpensesTotal } from '../lib/fixed-total.ts'
 import { sumPaidBy } from '../lib/period.ts'
 import { homeAccountingCard, type HomeCardLine } from '../lib/home-card.ts'
 import { formatMoney } from '../lib/format.ts'
+import { iconSurface } from '../lib/icons.ts'
 import { loanMonthEffect, loadLoanMovements, type PeriodLoan, type PeriodRepayment } from '../lib/transfers.ts'
 import { isHubHome } from '../lib/modules.ts'
+import { planCommitted, planMargin, planRemaining, planSalaryForMonth } from '../lib/plans.ts'
 import { effectiveSalary } from '../lib/salary.ts'
 
 function yearBannerKey(userId: string, year: number) {
@@ -274,6 +277,8 @@ export function HomeScreen() {
         onRetry={() => setBudgetTick((tick) => tick + 1)}
       />
 
+      <PlansHomeCard />
+
       {hub ? null : <PartnerMemos />}
       {modules.error ? <p className="mb-3 text-center text-sm font-semibold text-tinta">{modules.error}</p> : null}
 
@@ -319,6 +324,73 @@ export function HomeScreen() {
         <SaldoSheet open={saldoOpen} onClose={closeSaldo} data={data} meId={meId} month={month} onRefresh={refresh} />
       ) : null}
     </>
+  )
+}
+
+function PlansHomeCard() {
+  const { profile } = useAuth()
+  const { month } = useMonth()
+  const { data } = useFinance()
+  const [count, setCount] = useState(0)
+  const [remaining, setRemaining] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (!profile?.householdId || !data) return
+    let active = true
+    void loadPlanItems(profile.householdId)
+      .then((items) => {
+        if (!active) return
+        setCount(items.length)
+        const meId = profile.id
+        const otherId = partnerId(data, meId)
+        const fixedCard = fixedExpensesTotal({
+          items: data.fixed.filter((item) => item.applies && !item.pausedAt),
+          meId,
+          partnerId: otherId,
+          partnerName: '',
+          splitPercents: data.splitPercents,
+          filtersActive: false,
+        })
+        const salary = planSalaryForMonth(data.salaryHistory, month)
+        const margin = planMargin(salary, fixedCard?.myShare ?? 0, fixedCard?.privateTotal ?? 0)
+        if (margin == null || items.length === 0) {
+          setRemaining(null)
+          return
+        }
+        setRemaining(planRemaining(margin, planCommitted(items, meId, otherId, data.splitPercents, month)))
+      })
+      .catch(() => {
+        if (active) setCount(0)
+      })
+    return () => {
+      active = false
+    }
+  }, [profile, data, month])
+
+  const surface = iconSurface('couch')
+  return (
+    <Link
+      to="/planes"
+      className="mt-3 grid min-h-[72px] w-full grid-cols-[40px_1fr_24px] items-center gap-3 rounded-2xl border-2 border-azul-ink bg-tarjeta px-4 py-3 text-left"
+    >
+      <span
+        className="grid h-10 w-10 place-items-center rounded-full border-2 text-base"
+        style={{ background: surface.background, color: surface.color, borderColor: surface.border }}
+      >
+        <AppIcon name="couch" />
+      </span>
+      <span className="min-w-0">
+        <span className="block font-display text-lg font-semibold text-tinta">Planes</span>
+        {count === 0 || remaining == null ? (
+          <span className="text-sm font-bold text-azul-ink">Armar un plan</span>
+        ) : (
+          <span className="text-sm font-semibold text-gris">
+            Te queda <span className="font-display text-[22px] font-semibold text-tinta">{formatMoney(remaining)}</span>
+          </span>
+        )}
+      </span>
+      <AppIcon name="chevron-right" className="justify-self-end text-tinta" />
+    </Link>
   )
 }
 

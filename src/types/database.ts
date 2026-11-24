@@ -353,6 +353,49 @@ export type Database = {
         },
         never
       >
+      plan_items: Table<
+        {
+          id: string
+          household_id: string
+          title: string
+          amount: number
+          note: string | null
+          tag: string | null
+          is_private: boolean
+          owner_id: string | null
+          chosen: boolean
+          expense_id: string | null
+          created_by: string
+          created_at: string
+          updated_at: string
+          updated_by: string | null
+        },
+        {
+          id?: string
+          household_id: string
+          title: string
+          amount: number
+          note?: string | null
+          tag?: string | null
+          is_private?: boolean
+          owner_id?: string | null
+          chosen?: boolean
+          expense_id?: string | null
+          created_by: string
+          created_at?: string
+          updated_at?: string
+          updated_by?: string | null
+        },
+        {
+          title?: string
+          amount?: number
+          note?: string | null
+          tag?: string | null
+          chosen?: boolean
+          expense_id?: string | null
+          updated_by?: string | null
+        }
+      >
       reminder_preferences: Table<
         {
           user_id: string
@@ -1295,6 +1338,10 @@ export type Database = {
       clear_fixed_amounts_for_month: {
         Args: { p_month: string }
         Returns: number
+      }
+      plan_partner_status: {
+        Args: Record<string, never>
+        Returns: string | null
       }
     }
   }

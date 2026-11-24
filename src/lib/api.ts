@@ -15,6 +15,7 @@ import { periodFromDate } from './period.ts'
 import { effectiveSalary, visibleSplitNotice, type SalaryPoint } from './salary.ts'
 import { sortedTimes, type DailyKind, type ReminderPrefs, DEFAULT_REMINDER_PREFS } from './reminders.ts'
 import { supabase } from './supabase.ts'
+import { normalizePlanNote, normalizePlanTag, type PartnerPlanStatus, type PlanItem } from './plans.ts'
 import { parseYearBalance, type YearReport } from './year.ts'
 
 export type Category = {
@@ -2504,4 +2505,111 @@ export async function setModuleNotificationPref(input: {
     { onConflict: 'user_id,module' },
   )
   fail(error)
+}
+
+export async function loadPlanItems(householdId: string): Promise<PlanItem[]> {
+  const { data, error } = await supabase
+    .from('plan_items')
+    .select('id, title, amount, note, tag, is_private, owner_id, chosen, expense_id')
+    .eq('household_id', householdId)
+    .order('amount', { ascending: true })
+  fail(error)
+  const rows = data ?? []
+  const expenseIds = rows.map((row) => row.expense_id).filter((id): id is string => Boolean(id))
+  const expenseById = new Map<string, { amount: number; period: string }>()
+  if (expenseIds.length > 0) {
+    const expenses = await supabase.from('expenses').select('id, amount, period').in('id', expenseIds)
+    fail(expenses.error)
+    for (const expense of expenses.data ?? []) {
+      expenseById.set(expense.id, { amount: money(expense.amount), period: expense.period.slice(0, 10) })
+    }
+  }
+  return rows.map((row) => {
+    const expense = row.expense_id ? expenseById.get(row.expense_id) : undefined
+    return {
+      id: row.id,
+      title: row.title,
+      amount: money(row.amount),
+      note: row.note,
+      tag: row.tag,
+      isPrivate: row.is_private,
+      ownerId: row.owner_id,
+      chosen: row.chosen,
+      expenseId: row.expense_id,
+      expenseAmount: expense?.amount ?? null,
+      expensePeriod: expense?.period ?? null,
+    }
+  })
+}
+
+export async function createPlanItem(input: {
+  householdId: string
+  createdBy: string
+  title: string
+  amount: number
+  note: string | null
+  tag: string | null
+  isPrivate: boolean
+}): Promise<void> {
+  const { error } = await supabase.from('plan_items').insert({
+    household_id: input.householdId,
+    title: input.title.trim(),
+    amount: input.amount,
+    note: normalizePlanNote(input.note ?? ''),
+    tag: normalizePlanTag(input.tag ?? ''),
+    is_private: input.isPrivate,
+    owner_id: input.isPrivate ? input.createdBy : null,
+    created_by: input.createdBy,
+    updated_by: input.createdBy,
+  })
+  fail(error)
+}
+
+export async function updatePlanItem(input: {
+  id: string
+  updatedBy: string
+  title: string
+  amount: number
+  note: string | null
+  tag: string | null
+}): Promise<void> {
+  const { error } = await supabase
+    .from('plan_items')
+    .update({
+      title: input.title.trim(),
+      amount: input.amount,
+      note: normalizePlanNote(input.note ?? ''),
+      tag: normalizePlanTag(input.tag ?? ''),
+      updated_by: input.updatedBy,
+    })
+    .eq('id', input.id)
+  fail(error)
+}
+
+export async function setPlanItemChosen(id: string, chosen: boolean, updatedBy: string): Promise<void> {
+  const { error } = await supabase
+    .from('plan_items')
+    .update({ chosen, updated_by: updatedBy })
+    .eq('id', id)
+  fail(error)
+}
+
+export async function linkPlanItemExpense(id: string, expenseId: string, updatedBy: string): Promise<void> {
+  const { error } = await supabase
+    .from('plan_items')
+    .update({ expense_id: expenseId, updated_by: updatedBy })
+    .eq('id', id)
+  fail(error)
+}
+
+export async function deletePlanItem(id: string): Promise<void> {
+  const { error } = await supabase.from('plan_items').delete().eq('id', id)
+  fail(error)
+}
+
+export async function loadPlanPartnerStatus(): Promise<PartnerPlanStatus | null> {
+  const { data, error } = await supabase.rpc('plan_partner_status')
+  fail(error)
+  if (data === 'alcanza' || data === 'no_alcanza' || data === 'falta_sueldo') return data
+  return null
 }
