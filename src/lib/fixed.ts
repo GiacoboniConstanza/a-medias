@@ -84,10 +84,17 @@ export function showPayLink(dueDay: number, month: string, today: Date): boolean
   return dayDiff(dueDay, month, today) <= 0
 }
 
-export function shareSentence(myPercent: number, partnerPercent: number, partnerName: string, even: boolean): string {
+export function shareSentence(
+  myPercent: number,
+  partnerPercent: number,
+  partnerName: string,
+  even: boolean,
+  mode?: 'proportional' | 'even' | 'manual',
+): string {
   const name = partnerName.trim() || 'tu compañera'
   const sentence = `Se reparte ${myPercent}/${partnerPercent} con ${name}`
-  return even ? sentence : `${sentence} por sueldo base`
+  const proportional = mode ? mode === 'proportional' : !even
+  return proportional ? `${sentence} por sueldo` : sentence
 }
 
 export function remindSwitchLabel(days: number): string {

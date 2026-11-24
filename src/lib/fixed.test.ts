@@ -76,7 +76,7 @@ describe('vencimientos', () => {
   })
 
   it('arma el reparto con el porcentaje real', () => {
-    expect(shareSentence(60, 40, 'Maru', false)).toBe('Se reparte 60/40 con Maru por sueldo base')
+    expect(shareSentence(60, 40, 'Maru', false)).toBe('Se reparte 60/40 con Maru por sueldo')
     expect(shareSentence(50, 50, 'Maru', true)).toBe('Se reparte 50/50 con Maru')
   })
 })

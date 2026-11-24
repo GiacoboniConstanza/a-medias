@@ -23,6 +23,7 @@ import { homeAccountingCard, type HomeCardLine } from '../lib/home-card.ts'
 import { formatMoney } from '../lib/format.ts'
 import { loanMonthEffect, loadLoanMovements, type PeriodLoan, type PeriodRepayment } from '../lib/transfers.ts'
 import { isHubHome } from '../lib/modules.ts'
+import { effectiveSalary } from '../lib/salary.ts'
 
 function yearBannerKey(userId: string, year: number) {
   return `a-medias.balance-anio.${userId}.${year}`
@@ -135,7 +136,7 @@ export function HomeScreen() {
   if (!data) return <p className="py-16 text-center font-semibold text-tinta">{error}</p>
 
   const split = monthSplit(data)
-  const base = data.bases[meId] ?? 0
+  const base = effectiveSalary(data.salaryHistory, month)
   const privateSpent = myPrivateSpent(data, meId)
   const sharedPaid = sumPaidBy(
     data.monthExpenses.filter((expense) => expense.isShared),
@@ -233,6 +234,16 @@ export function HomeScreen() {
             </div>
           )
         ) : null}
+
+        {otherId ? (
+          <Link
+            to="/reparto"
+            className="mt-2 inline-flex min-h-11 w-full items-center justify-center gap-1 text-sm font-bold text-mostaza-ink"
+          >
+            Cambiar el reparto
+            <AppIcon name="chevron-right" />
+          </Link>
+        ) : null}
       </section>
 
       <SplitNotice notice={data.splitNotice} />
@@ -289,8 +300,7 @@ export function HomeScreen() {
 
       {base <= 0 ? (
         <Card>
-          <p className="font-display font-semibold text-tinta">Falta tu sueldo base</p>
-          <p className="text-base font-normal text-muted">Sin eso el reparto no sabe qué porcentaje te toca.</p>
+          <p className="font-display font-semibold text-tinta">Todavía no cargaste un sueldo este mes.</p>
           <Link to="/sueldo" className="mt-2 inline-flex min-h-11 items-center font-semibold text-mostaza-ink">
             Cargarlo ahora
           </Link>

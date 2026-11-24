@@ -1,7 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import type { FinanceData } from './api.ts'
 import { monthSplit } from './derive.ts'
-import { monthSalarySplit, pocketDelta, salaryMonthError, salaryPercents, visibleSplitNotice } from './salary.ts'
+import {
+  SALARY_CUTOVER,
+  effectiveSalary,
+  monthSalarySplit,
+  pocketDelta,
+  salariesForMonth,
+  salaryMonthError,
+  salaryPercents,
+  visibleSplitNotice,
+  type SalaryPoint,
+} from './salary.ts'
 
 const coty = [
   { effectiveFrom: '2026-01-01', amount: 900_000 },
@@ -46,6 +56,26 @@ describe('historial de sueldo', () => {
       sharedTotal: 352_000,
     })
     expect(delta).toBe(111_062)
+  })
+})
+
+describe('corte de sueldo por mes', () => {
+  it('desde diciembre suma solo las filas del mes', () => {
+    const rows: SalaryPoint[] = [
+      { id: 'a', amount: 400_000, effectiveFrom: '2026-12-01', createdAt: '2026-11-20T12:00:00Z', label: 'Oficina' },
+      { id: 'b', amount: 120_000, effectiveFrom: '2026-12-01', createdAt: '2026-11-21T12:00:00Z', label: 'Clases' },
+      { id: 'c', amount: 900_000, effectiveFrom: '2026-11-01', createdAt: '2026-10-01T12:00:00Z' },
+    ]
+    expect(SALARY_CUTOVER).toBe('2026-12-01')
+    expect(effectiveSalary(rows, '2026-11-01')).toBe(900_000)
+    expect(effectiveSalary(rows, '2026-12-01')).toBe(520_000)
+    expect(salariesForMonth(rows, '2026-12-01').map((row) => row.id)).toEqual(['a', 'b'])
+  })
+
+  it('después del corte deja cargar otro sueldo del mismo mes', () => {
+    const history = [{ id: 'a', effectiveFrom: '2026-12-01' }]
+    expect(salaryMonthError(history, '2026-12-01', null)).toBe('')
+    expect(salaryMonthError(history, '2026-11-01', null)).toBe('El aumento tiene que ser posterior al último sueldo.')
   })
 })
 

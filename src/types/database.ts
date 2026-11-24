@@ -36,6 +36,7 @@ export type Database = {
           user_id: string
           amount: number
           effective_from: string
+          label: string | null
           created_at: string
         },
         {
@@ -43,9 +44,31 @@ export type Database = {
           user_id: string
           amount: number
           effective_from: string
+          label?: string | null
           created_at?: string
         },
-        { amount?: number; effective_from?: string }
+        { amount?: number; effective_from?: string; label?: string | null }
+      >
+      household_split_settings: Table<
+        {
+          id: string
+          household_id: string
+          mode: string
+          percent_by_user: Record<string, number> | null
+          effective_from: string
+          created_by: string
+          created_at: string
+        },
+        {
+          id?: string
+          household_id: string
+          mode: string
+          percent_by_user?: Record<string, number> | null
+          effective_from: string
+          created_by: string
+          created_at?: string
+        },
+        { mode?: string; percent_by_user?: Record<string, number> | null; created_by?: string }
       >
       split_notices: Table<
         {
@@ -1160,6 +1183,19 @@ export type Database = {
       household_split_is_even: {
         Args: { target_month: string }
         Returns: boolean
+      }
+      household_split_setting: {
+        Args: { target_month: string }
+        Returns: {
+          mode: string
+          percent_by_user: Record<string, number>
+          effective_from: string | null
+          created_by: string | null
+        }[]
+      }
+      save_household_split_setting: {
+        Args: { p_mode: string; p_my_percent?: number | null; p_effective_from?: string | null }
+        Returns: Database['public']['Tables']['household_split_settings']['Row']
       }
       year_balance: {
         Args: { target_year: number }

@@ -69,6 +69,12 @@ const RemindersScreen = lazy(() =>
 const SalaryScreen = lazy(() =>
   import('./screens/SalaryScreen.tsx').then((module) => ({ default: module.SalaryScreen })),
 )
+const SplitScreen = lazy(() =>
+  import('./screens/SplitScreen.tsx').then((module) => ({ default: module.SplitScreen })),
+)
+const SplitHelpScreen = lazy(() =>
+  import('./screens/SplitHelpScreen.tsx').then((module) => ({ default: module.SplitHelpScreen })),
+)
 const ShareScreen = lazy(() =>
   import('./screens/ShareScreen.tsx').then((module) => ({ default: module.ShareScreen })),
 )
@@ -160,6 +166,8 @@ export function App() {
                 <Route path="prestamos" element={<PrestamosRedirect />} />
                 <Route path="recordatorios" element={<RemindersScreen />} />
                 <Route path="sueldo" element={<SalaryScreen />} />
+                <Route path="reparto" element={<SplitScreen />} />
+                <Route path="reparto/ayuda" element={<SplitHelpScreen />} />
                 <Route path="mi-anio" element={<YearScreen />} />
                 <Route path="mi-anio/comparar" element={<CompareMonthsScreen />} />
                 <Route path="presupuesto" element={<BudgetScreen />} />

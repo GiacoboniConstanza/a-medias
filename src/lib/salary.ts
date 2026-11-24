@@ -2,14 +2,53 @@ import { amountForMonth, type AmountRevision } from './fixed.ts'
 import { monthTitle } from './month.ts'
 import { shareAmounts, splitByPercents, type SplitResult } from './split.ts'
 
+export const SALARY_CUTOVER = '2026-12-01'
+
 export type SalaryPoint = AmountRevision & {
   id: string
   createdAt: string
+  label?: string | null
 }
 
 /** Sueldo que rige ese mes. Si todavía no había uno, es cero y el reparto queda 50/50. */
 export function effectiveSalary(revisions: AmountRevision[], month: string): number {
+  if (month >= SALARY_CUTOVER) {
+    return revisions.filter((row) => row.effectiveFrom === month).reduce((sum, row) => sum + row.amount, 0)
+  }
   return amountForMonth(revisions, month) ?? 0
+}
+
+/** Filas visibles en Mi sueldo para el mes que se mira. */
+export function salariesForMonth(revisions: SalaryPoint[], month: string): SalaryPoint[] {
+  if (month >= SALARY_CUTOVER) {
+    return [...revisions]
+      .filter((row) => row.effectiveFrom === month)
+      .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
+  }
+  const amount = amountForMonth(revisions, month)
+  if (amount === null) return []
+  const row =
+    [...revisions]
+      .filter((item) => item.effectiveFrom <= month)
+      .sort((left, right) => right.effectiveFrom.localeCompare(left.effectiveFrom))[0] ?? null
+  return row ? [row] : []
+}
+
+export function salaryRowLabel(row: SalaryPoint, index: number, total: number): string {
+  const custom = row.label?.trim()
+  if (custom) return custom
+  if (total === 1) return 'Sueldo'
+  return `Sueldo ${index + 1}`
+}
+
+export function salaryLabelsCaption(rows: SalaryPoint[]): string {
+  return rows.map((row, index) => salaryRowLabel(row, index, rows.length)).join(' + ')
+}
+
+export function salaryRowIcon(label: string): string {
+  const key = label.toLowerCase()
+  if (key.includes('clase') || key.includes('curso')) return 'book'
+  return 'building'
 }
 
 export function latestSalary(records: SalaryPoint[]): SalaryPoint | null {
@@ -68,6 +107,7 @@ export function pocketDelta(input: {
 /** El aumento nuevo tiene que quedar después del historial. Editar solo mueve el último. */
 export function salaryMonthError(history: { id: string; effectiveFrom: string }[], effectiveFrom: string, editingId: string | null): string {
   if (!effectiveFrom) return 'Elegí el mes.'
+  if (effectiveFrom >= SALARY_CUTOVER && !editingId) return ''
   const latest = [...history].sort((left, right) => right.effectiveFrom.localeCompare(left.effectiveFrom))[0]
   if (!latest) return ''
   if (editingId) {

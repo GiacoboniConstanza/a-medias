@@ -25,6 +25,7 @@ insert into public.base_salaries (user_id, amount, effective_from) values
   ('a1111111-1111-4111-8111-111111111111', 100000, '2024-06-01'),
   ('a1111111-1111-4111-8111-111111111111', 1500000, '2026-01-01'),
   ('a1111111-1111-4111-8111-111111111111', 1800000, '2026-07-01'),
+  -- Post-corte (RS3): estas filas son de enero; marzo 2028 no arrastra → 50/50 en el gasto de marzo.
   ('a1111111-1111-4111-8111-111111111111', 1021622, '2028-01-01'),
   ('b2222222-2222-4222-8222-222222222222', 1000000, '2026-01-01'),
   ('b2222222-2222-4222-8222-222222222222', 600000, '2028-01-01');
@@ -212,7 +213,8 @@ $$;
 
 select is(pg_temp.month_field(6, 'base')::text, '1500000', 'junio conserva el sueldo de enero');
 select is(pg_temp.month_field(7, 'base')::text, '1800000', 'julio toma el aumento de mitad de año');
-select is(pg_temp.month_field(12, 'base')::text, '1800000', 'diciembre sigue con el sueldo vigente');
+-- RS3 / SALARY_CUTOVER 2026-12-01: sin arrastre; no hay fila de diciembre → vacío (null), no el sueldo de julio.
+select is(pg_temp.month_field(12, 'base')::text, 'null', 'diciembre ya no arrastra el sueldo vigente');
 select is(pg_temp.month_field(12, 'saved')::text, 'null', 'un mes que no llegó no finge ahorro');
 select is(pg_temp.month_field(2, 'extras')::text, 'null', 'febrero sin extras queda vacío, no en cero');
 select is(pg_temp.month_field(2, 'expenses')::text, 'null', 'febrero sin gastos queda vacío, no en cero');
@@ -336,8 +338,8 @@ select is(
     from jsonb_array_elements(private.year_balance(2028, date '2026-10-20') -> 'months') as item
     where (item ->> 'month')::integer = 3
   ),
-  '221760',
-  'el aumento de sueldo cambia mi parte igual que en Inicio'
+  '176000',
+  'desde el corte sin sueldo de ese mes el compartido va 50/50'
 );
 
 select set_config('request.jwt.claim.sub', 'b2222222-2222-4222-8222-222222222222', true);

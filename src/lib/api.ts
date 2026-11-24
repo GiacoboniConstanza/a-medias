@@ -169,7 +169,7 @@ export async function loadFinance(householdId: string, userId: string, month: st
     supabase.from('profiles').select('id, display_name').eq('household_id', householdId),
     supabase
       .from('base_salaries')
-      .select('id, amount, effective_from, created_at')
+      .select('id, amount, effective_from, created_at, label')
       .eq('user_id', userId)
       .order('effective_from', { ascending: false }),
     supabase.rpc('household_split_percents', { target_month: month }),
@@ -230,6 +230,7 @@ export async function loadFinance(householdId: string, userId: string, month: st
     amount: money(row.amount),
     effectiveFrom: row.effective_from.slice(0, 10),
     createdAt: row.created_at,
+    label: row.label ?? null,
   }))
   const bases: Record<string, number> = {
     [userId]: effectiveSalary(salaryHistory, month),
@@ -396,16 +397,81 @@ export async function loadCategoryYearExpenses(categoryId: string, year: number)
 }
 
 
+export type HouseholdSplitSetting = {
+  mode: 'proportional' | 'even' | 'manual'
+  percentByUser: Record<string, number>
+  effectiveFrom: string | null
+}
+
+export async function loadHouseholdSplitSetting(month: string): Promise<HouseholdSplitSetting> {
+  const { data, error } = await supabase.rpc('household_split_setting', { target_month: month })
+  fail(error)
+  const row = data?.[0]
+  if (!row?.mode) {
+    return { mode: 'proportional', percentByUser: {}, effectiveFrom: null }
+  }
+  const raw = (row.percent_by_user ?? {}) as Record<string, number>
+  const percentByUser: Record<string, number> = {}
+  for (const [id, value] of Object.entries(raw)) percentByUser[id] = Number(value)
+  return {
+    mode: row.mode as HouseholdSplitSetting['mode'],
+    percentByUser,
+    effectiveFrom: row.effective_from ? String(row.effective_from).slice(0, 10) : null,
+  }
+}
+
+export async function saveHouseholdSplitSetting(input: {
+  mode: 'proportional' | 'even' | 'manual'
+  myPercent?: number
+  effectiveFrom?: string
+}): Promise<void> {
+  const { error } = await supabase.rpc('save_household_split_setting', {
+    p_mode: input.mode,
+    p_my_percent: input.myPercent ?? null,
+    p_effective_from: input.effectiveFrom ?? null,
+  })
+  fail(error)
+}
+
+export async function loadHouseholdSalaries(householdId: string): Promise<Record<string, SalaryPoint[]>> {
+  const { data: profiles, error: profileError } = await supabase.from('profiles').select('id').eq('household_id', householdId)
+  fail(profileError)
+  const ids = (profiles ?? []).map((row) => row.id)
+  if (ids.length === 0) return {}
+  const { data, error } = await supabase
+    .from('base_salaries')
+    .select('id, user_id, amount, effective_from, created_at, label')
+    .in('user_id', ids)
+    .order('effective_from', { ascending: false })
+    .order('created_at', { ascending: true })
+  fail(error)
+  const byUser: Record<string, SalaryPoint[]> = {}
+  for (const id of ids) byUser[id] = []
+  for (const row of data ?? []) {
+    const point: SalaryPoint = {
+      id: row.id,
+      amount: money(row.amount),
+      effectiveFrom: row.effective_from.slice(0, 10),
+      createdAt: row.created_at,
+      label: row.label ?? null,
+    }
+    byUser[row.user_id].push(point)
+  }
+  return byUser
+}
+
 export async function saveSalaryRevision(input: {
   id: string | null
   userId: string
   amount: number
   effectiveFrom: string
+  label?: string | null
 }): Promise<void> {
+  const label = input.label?.trim() || null
   if (input.id) {
     const { error } = await supabase
       .from('base_salaries')
-      .update({ amount: input.amount, effective_from: input.effectiveFrom })
+      .update({ amount: input.amount, effective_from: input.effectiveFrom, label })
       .eq('id', input.id)
     fail(error)
     return
@@ -414,6 +480,7 @@ export async function saveSalaryRevision(input: {
     user_id: input.userId,
     amount: input.amount,
     effective_from: input.effectiveFrom,
+    label,
   })
   fail(error)
 }

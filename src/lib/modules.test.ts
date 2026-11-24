@@ -46,8 +46,8 @@ describe('menú según la pantalla', () => {
     expect(finance.activeTo).toBe('/movimientos')
   })
 
-  it('Avisos, Mi año, comparar meses, Mi sueldo y Compartir marcan Resumen', () => {
-    for (const path of ['/recordatorios', '/mi-anio', '/mi-anio/comparar', '/sueldo', '/compartir']) {
+  it('Avisos, Mi año, comparar meses, Mi sueldo, reparto y Compartir marcan Resumen', () => {
+    for (const path of ['/recordatorios', '/mi-anio', '/mi-anio/comparar', '/sueldo', '/compartir', '/reparto', '/reparto/ayuda']) {
       expect(navFor(path, ['finanzas', 'memos']).activeTo).toBe('/finanzas')
     }
   })

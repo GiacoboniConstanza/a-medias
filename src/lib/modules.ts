@@ -81,6 +81,8 @@ const RESUMEN_ALIASES = new Set<string>([
   FINANCE_ROUTES.sueldo,
   FINANCE_ROUTES.compartir,
   FINANCE_ROUTES.presupuesto,
+  '/reparto',
+  '/reparto/ayuda',
 ])
 
 const MEDICATION_TOMAS_ALIASES = new Set<string>([MEDICATION_ROUTES.tratamientos])

@@ -278,7 +278,6 @@ export function MovementForm({
       savingMoves={data.savingMoves}
       editing={Boolean(expense || transfer || savingMove || extra)}
       settledMonths={settledMonths}
-      salaryHistory={data.salaryHistory}
       onClose={() => {
         if (onClose) onClose()
         else if (fromPath) navigate(fromPath)
@@ -340,7 +339,6 @@ function MovementFormBody({
   savingMoves,
   editing,
   settledMonths,
-  salaryHistory,
   onClose,
   onSaved,
 }: {
@@ -360,7 +358,6 @@ function MovementFormBody({
   savingMoves: SavingMove[]
   editing: boolean
   settledMonths: readonly string[]
-  salaryHistory: { id: string; amount: number; effectiveFrom: string }[]
   onClose: () => void
   onSaved: (view: SavedView) => void | Promise<void>
 }) {
@@ -448,7 +445,6 @@ function MovementFormBody({
     return SUGGESTED.map((name) => byName.get(name.toLowerCase())).filter(Boolean) as Category[]
   }, [categories])
   const categoryList = showAllCategories ? categories : suggested.slice(0, 6)
-  const latestSalary = salaryHistory[0] ?? null
 
   useEffect(() => {
     const viewport = window.visualViewport
@@ -591,6 +587,7 @@ function MovementFormBody({
             userId: meId,
             amount,
             effectiveFrom: nextPeriod,
+            label: text.title,
           })
         } else {
           await createExtra({
@@ -1094,8 +1091,7 @@ function MovementFormBody({
             </div>
             {incomeKind === 'sueldo' ? (
               <p className="mt-2 text-sm font-medium text-gris">
-                Desde {monthName(period).toLowerCase()}, va a ser tu sueldo en el reparto
-                {latestSalary ? `. Hoy figura ${formatMoney(latestSalary.amount)}.` : '.'}
+                Se suma a tus sueldos de {monthName(period).toLowerCase()}. Vale solo para ese mes.
               </p>
             ) : null}
           </div>
