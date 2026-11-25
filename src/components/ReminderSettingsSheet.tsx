@@ -15,6 +15,7 @@ export function ReminderSettingsSheet({
   onChange,
   onActivatePush,
   showBudget = false,
+  pushActive,
 }: {
   open: boolean
   prefs: ReminderPrefs
@@ -23,6 +24,8 @@ export function ReminderSettingsSheet({
   onChange: (next: ReminderPrefs) => void
   onActivatePush: () => void
   showBudget?: boolean
+  /** Suscripción + preferencia Finanzas. Si no se pasa, usa prefs.pushEnabled. */
+  pushActive?: boolean
 }) {
   const dailyId = useId()
   const silenceId = useId()
@@ -64,9 +67,9 @@ export function ReminderSettingsSheet({
           type="button"
           className="mt-3"
           onClick={onActivatePush}
-          disabled={prefs.pushEnabled}
+          disabled={pushActive ?? prefs.pushEnabled}
         >
-          {prefs.pushEnabled ? 'Activadas' : 'Activar'}
+          {(pushActive ?? prefs.pushEnabled) ? 'Activadas' : 'Activar'}
         </Button>
       </section>
 

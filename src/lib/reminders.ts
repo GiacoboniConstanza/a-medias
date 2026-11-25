@@ -24,6 +24,14 @@ export type ReminderPrefs = {
   pushEnabled: boolean
 }
 
+/** Push al celu listo: suscripción + preferencia de módulo Finanzas (opt-in). */
+export function financePushActive(
+  prefs: Pick<ReminderPrefs, 'pushEnabled'>,
+  financeModuleEnabled: boolean,
+): boolean {
+  return prefs.pushEnabled && financeModuleEnabled
+}
+
 export const DEFAULT_REMINDER_PREFS: ReminderPrefs = {
   enabled: true,
   times: [DEFAULT_FIRST_TIME, DEFAULT_SECOND_TIME],

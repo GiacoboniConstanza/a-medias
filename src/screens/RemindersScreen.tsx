@@ -21,14 +21,17 @@ import {
   loadBudgets,
   loadCategoryUsage,
   loadDailyStatuses,
+  loadModuleNotificationPrefs,
   loadReminderPreferences,
   markDayClear,
   markFixedPaid,
-  type CategoryUsageRow,
+  modulePrefEnabled,
   saveReminderPreferences,
   setFixedExpensePaused,
+  setModuleNotificationPref,
   undoFixedPayment,
   updateFixedExpense,
+  type CategoryUsageRow,
   type FixedItem,
 } from '../lib/api.ts'
 import { categoryIdForFixedPayment } from '../lib/categories.ts'
@@ -44,6 +47,7 @@ import { isCurrentMonth, monthEnd, monthKey, monthName, shiftMonth, shortDate, t
 import { pushIsConfigured, subscribeToPush } from '../lib/push/permissions.ts'
 import {
   DEFAULT_REMINDER_PREFS,
+  financePushActive,
   laterCopy,
   loggingStreak,
   nextAskAt,
@@ -73,6 +77,7 @@ export function RemindersScreen() {
   const { data, loading, error, refresh } = useFinance()
   const [now, setNow] = useState(() => new Date())
   const [prefs, setPrefs] = useState<ReminderPrefs | null>(null)
+  const [financeModuleOn, setFinanceModuleOn] = useState(false)
   const [statuses, setStatuses] = useState<{ day: string; kind: DailyKind }[]>([])
   const [creating, setCreating] = useState(false)
   const [editing, setEditing] = useState<FixedItem | null>(null)
@@ -108,11 +113,16 @@ export function RemindersScreen() {
     if (!profile) return
     let active = true
     const since = shiftDay(todayISO(), -400)
-    Promise.all([loadReminderPreferences(profile.id), loadDailyStatuses(profile.id, since)])
-      .then(([next, rows]) => {
+    Promise.all([
+      loadReminderPreferences(profile.id),
+      loadDailyStatuses(profile.id, since),
+      loadModuleNotificationPrefs(profile.id),
+    ])
+      .then(([next, rows, modulePrefs]) => {
         if (!active) return
         setPrefs(next)
         setStatuses(rows)
+        setFinanceModuleOn(modulePrefEnabled(modulePrefs, 'finanzas', false))
       })
       .catch((caught: unknown) => {
         if (!active) return
@@ -123,6 +133,21 @@ export function RemindersScreen() {
       active = false
     }
   }, [profile])
+
+  useEffect(() => {
+    if (!settingsOpen || !profile) return
+    let active = true
+    loadModuleNotificationPrefs(profile.id)
+      .then((modulePrefs) => {
+        if (active) setFinanceModuleOn(modulePrefEnabled(modulePrefs, 'finanzas', false))
+      })
+      .catch(() => {
+        /* el estado previo sigue; al activar se reintenta */
+      })
+    return () => {
+      active = false
+    }
+  }, [settingsOpen, profile])
 
   useEffect(() => {
     if (!profile) return
@@ -189,6 +214,8 @@ export function RemindersScreen() {
     try {
       const readiness = await subscribeToPush(profile.id)
       if (readiness === 'ready') {
+        await setModuleNotificationPref({ userId: profile.id, module: 'finanzas', enabled: true })
+        setFinanceModuleOn(true)
         persist({ ...prefs, pushEnabled: true })
         setToast('Listo. Cuando haya avisos, llegan al celular.')
         return
@@ -764,6 +791,7 @@ export function RemindersScreen() {
       <ReminderSettingsSheet
         open={settingsOpen}
         prefs={shownPrefs}
+        pushActive={financePushActive(shownPrefs, financeModuleOn)}
         error={message}
         showBudget={hasBudgets}
         onClose={() => setSettingsOpen(false)}

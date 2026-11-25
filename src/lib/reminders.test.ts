@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_REMINDER_PREFS,
+  financePushActive,
   laterCopy,
   loggingStreak,
   nextAskAt,
@@ -123,6 +124,12 @@ describe('aviso diario', () => {
 
   it('el silencio de 3 días viene prendido por defecto', () => {
     expect(DEFAULT_REMINDER_PREFS.silenceEnabled).toBe(true)
+  })
+
+  it('el push de Finanzas exige suscripción y preferencia del módulo', () => {
+    expect(financePushActive({ pushEnabled: true }, true)).toBe(true)
+    expect(financePushActive({ pushEnabled: true }, false)).toBe(false)
+    expect(financePushActive({ pushEnabled: false }, true)).toBe(false)
   })
 
   it('cuenta los días seguidos anotando', () => {
