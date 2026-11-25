@@ -193,7 +193,7 @@ export function RemindersScreen() {
         setToast('Listo. Cuando haya avisos, llegan al celular.')
         return
       }
-      if (readiness === 'denied') setToast('El celular no dio permiso. El aviso sigue en Avisos.')
+      if (readiness === 'denied') setToast('El celular no dio permiso. El aviso sigue en Gastos fijos.')
       else setToast('Todavía no están configuradas. No enviamos nada al celular.')
     } catch (caught) {
       setMessage(caught instanceof Error ? caught.message : 'No pude preparar los avisos del celular.')

@@ -790,7 +790,7 @@ function MovementFormBody({
   const transferFromSettlement = Boolean(transfer?.settlementId)
   const transferOwnedByPartner = Boolean(transfer && transfer.createdBy && transfer.createdBy !== meId)
   const deleteBlockedReason = expenseIsFixedPayment
-    ? 'Es el pago de un gasto fijo: se deshace en Avisos.'
+    ? 'Es el pago de un gasto fijo: se deshace en Gastos fijos.'
     : expense && expense.isShared && sharedMonthSettled(expense.isShared, expense.period, settledMonths)
       ? `${monthName(expense.period)} está saldado: un gasto compartido no se puede eliminar. Deshacé el saldo en Resumen.`
       : expenseReadOnly

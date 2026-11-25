@@ -81,7 +81,7 @@ export function NotificationBell({
   const count = usePendingCount()
   const resolvedLabel =
     label ??
-    (count == null ? 'Avisos' : count === 0 ? 'Avisos, sin pendientes' : `Avisos, ${count} pendientes`)
+    (count == null ? 'Gastos fijos' : count === 0 ? 'Gastos fijos, sin pendientes' : `Gastos fijos, ${count} pendientes`)
   const badge = showCount && count != null && count > 0 ? (count > 9 ? '9+' : String(count)) : null
   return (
     <Link to={to} aria-label={resolvedLabel} className="relative grid h-11 w-11 place-items-center text-tinta">

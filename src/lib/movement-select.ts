@@ -50,7 +50,7 @@ export function movementSelectability(row: SelectableInputRow, ctx: SelectableCo
     return { canDelete: false, reason: 'Es tu sueldo: se cambia en Sueldo.' }
   }
   if (row.expense && ctx.fixedExpenseIds.has(row.expense.id)) {
-    return { canDelete: false, reason: 'Es el pago de un gasto fijo: se deshace en Avisos.' }
+    return { canDelete: false, reason: 'Es el pago de un gasto fijo: se deshace en Gastos fijos.' }
   }
   if (row.transfer) {
     if (row.transfer.settlementId) {

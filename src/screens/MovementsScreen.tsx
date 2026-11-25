@@ -959,7 +959,7 @@ function mapBulkDeleteError(raw: string, partnerName: string, monthLabel: string
   if (/Solo quien la cargó|cargó/i.test(raw)) return `Una transferencia la cargó ${partnerName}. No eliminé ninguno.`
   if (/negativo/i.test(raw)) return `Tu parte de un ahorro quedaría en negativo. No eliminé ninguno.`
   if (/archivado/i.test(raw)) return 'El ahorro está archivado. No eliminé ninguno.'
-  if (/gasto fijo|Avisos/i.test(raw)) return 'Es el pago de un gasto fijo: se deshace en Avisos. No eliminé ninguno.'
+  if (/gasto fijo|Avisos|Gastos fijos/i.test(raw)) return 'Es el pago de un gasto fijo: se deshace en Gastos fijos. No eliminé ninguno.'
   return 'No pude eliminar los movimientos y no eliminé ninguno. Revisá la conexión y probá de nuevo.'
 }
 

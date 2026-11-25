@@ -90,7 +90,7 @@ describe('qué se puede eliminar', () => {
       ctx({ fixedExpenseIds: new Set([e.id]) }),
     )
     expect(result.canDelete).toBe(false)
-    expect(result.reason).toMatch(/Avisos/)
+    expect(result.reason).toMatch(/Gastos fijos/)
   })
 
   it('bloquea transferencias que cargó Maru', () => {
