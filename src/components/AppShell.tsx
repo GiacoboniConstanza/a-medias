@@ -16,6 +16,8 @@ export function AppShell() {
   const [hideChrome, setHideChrome] = useState(false)
   const bare =
     pathname === '/cargar' ||
+    pathname === '/recordatorios/nuevo' ||
+    (pathname.startsWith('/recordatorios/') && pathname !== '/recordatorios') ||
     pathname === '/comidas/agregar' ||
     pathname === '/comidas/recetas/nueva' ||
     (pathname.startsWith('/comidas/recetas/') && pathname !== '/comidas/recetas') ||

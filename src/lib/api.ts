@@ -73,6 +73,14 @@ export type FixedItem = {
   remind: boolean
   pausedAt: string | null
   notes: string | null
+  /** null = gasto fijo sin plazo. */
+  installmentCount: number | null
+  firstMonth: string | null
+  totalAmount: number | null
+  /** Cantidad original antes de «Pagué el resto»; null si no se cerró anticipado. */
+  installmentClosedFrom: number | null
+  /** true si el mes ya estaba pagado cuando se pagó el resto. */
+  installmentPayoffPriorPaid: boolean | null
   updatedAt: string | null
   updatedBy: string | null
   payment: FixedPayment | null
@@ -196,7 +204,9 @@ export async function loadFinance(householdId: string, userId: string, month: st
       .maybeSingle(),
     supabase
       .from('fixed_expenses')
-      .select('id, title, icon, expected_amount, due_day, is_shared, category_id, owner_id, remind_days_before, remind, paused_at, notes, updated_at, updated_by')
+      .select(
+        'id, title, icon, expected_amount, due_day, is_shared, category_id, owner_id, remind_days_before, remind, paused_at, notes, installment_count, first_month, total_amount, installment_closed_from, installment_payoff_prior_paid, updated_at, updated_by',
+      )
       .eq('household_id', householdId)
       .order('due_day', { ascending: true }),
     supabase.from('fixed_expense_amounts').select('fixed_expense_id, amount, effective_from'),
@@ -342,7 +352,14 @@ export async function loadFinance(householdId: string, userId: string, month: st
       const payment = paymentByFixed.get(expense.id)
       const revisions = revisionsByFixed.get(expense.id) ?? []
       const cleared = clearedByFixed.get(expense.id) ?? new Set<string>()
-      const resolved = amountForMonth(revisions, month, cleared)
+      const plan =
+        expense.installment_count != null && expense.first_month
+          ? {
+              firstMonth: expense.first_month.slice(0, 10),
+              count: expense.installment_count,
+            }
+          : null
+      const resolved = amountForMonth(revisions, month, cleared, plan)
       const hasAmount = resolved !== null
       return {
         id: expense.id,
@@ -350,7 +367,7 @@ export async function loadFinance(householdId: string, userId: string, month: st
         icon: expense.icon || DEFAULT_ICON,
         amount: resolved ?? 0,
         hasAmount,
-        applies: appliesForMonth(revisions, month, cleared),
+        applies: appliesForMonth(revisions, month, cleared, plan),
         revisions,
         dueDay: expense.due_day,
         isShared: expense.is_shared,
@@ -360,6 +377,11 @@ export async function loadFinance(householdId: string, userId: string, month: st
         remind: expense.remind,
         pausedAt: expense.paused_at,
         notes: expense.notes,
+        installmentCount: expense.installment_count,
+        firstMonth: expense.first_month ? expense.first_month.slice(0, 10) : null,
+        totalAmount: expense.total_amount == null ? null : money(expense.total_amount),
+        installmentClosedFrom: expense.installment_closed_from,
+        installmentPayoffPriorPaid: expense.installment_payoff_prior_paid,
         updatedAt: expense.updated_at,
         updatedBy: expense.updated_by,
         payment: payment
@@ -770,6 +792,9 @@ export async function createFixedExpense(input: {
   notes: string | null
   effectiveFrom: string
   createdBy: string
+  installmentCount?: number | null
+  firstMonth?: string | null
+  totalAmount?: number | null
 }): Promise<void> {
   const created = await supabase
     .from('fixed_expenses')
@@ -786,6 +811,9 @@ export async function createFixedExpense(input: {
       remind_days_before: input.remindDaysBefore,
       remind: input.remind,
       notes: input.notes,
+      installment_count: input.installmentCount ?? null,
+      first_month: input.firstMonth ?? null,
+      total_amount: input.totalAmount ?? null,
     })
     .select('id')
     .single()
@@ -816,6 +844,9 @@ export async function updateFixedExpense(input: {
   expectedAmount: number
   updatedBy: string
   revision: { amount: number; effectiveFrom: string; createdBy: string } | null
+  installmentCount?: number | null
+  firstMonth?: string | null
+  totalAmount?: number | null
 }): Promise<void> {
   const { error } = await supabase
     .from('fixed_expenses')
@@ -832,6 +863,13 @@ export async function updateFixedExpense(input: {
       notes: input.notes,
       expected_amount: input.expectedAmount,
       updated_by: input.updatedBy,
+      ...(input.installmentCount !== undefined
+        ? {
+            installment_count: input.installmentCount,
+            first_month: input.firstMonth ?? null,
+            total_amount: input.totalAmount ?? null,
+          }
+        : {}),
     })
     .eq('id', input.id)
   fail(error)
@@ -1034,14 +1072,16 @@ export async function markFixedPaid(input: {
   month: string
   paidOn: string
   categoryId: string | null
+  amount?: number
 }): Promise<void> {
+  const amount = input.amount ?? input.fixed.amount
   const expenseId = await createExpense({
     householdId: input.householdId,
     ownerId: input.ownerId,
     payerId: input.payerId,
     categoryId: input.categoryId,
     title: input.fixed.title,
-    amount: input.fixed.amount,
+    amount,
     spentOn: input.paidOn,
     period: periodFromDate(input.paidOn),
     isShared: input.fixed.isShared,
@@ -1052,10 +1092,81 @@ export async function markFixedPaid(input: {
     month: input.month,
     paid_on: input.paidOn,
     payer_id: input.payerId,
-    amount: input.fixed.amount,
+    amount,
     expense_id: expenseId,
   })
   fail(error)
+}
+
+/** Cierra el plan anotando el restante en el mes visible (C12). */
+export async function payRemainingInstallments(input: {
+  fixed: FixedItem
+  householdId: string
+  ownerId: string
+  payerId: string
+  month: string
+  paidOn: string
+  categoryId: string | null
+  amount: number
+  currentNumber: number
+  originalCount: number
+}): Promise<void> {
+  const alreadyPaid = Boolean(input.fixed.payment)
+  if (alreadyPaid && input.fixed.payment) {
+    const nextAmount = input.fixed.payment.amount + input.amount
+    if (input.fixed.payment.expenseId) {
+      await updateExpense({
+        id: input.fixed.payment.expenseId,
+        payerId: input.payerId,
+        categoryId: input.categoryId,
+        title: input.fixed.title,
+        amount: nextAmount,
+        spentOn: input.fixed.payment.paidOn,
+        period: input.month,
+        isShared: input.fixed.isShared,
+        notes: input.fixed.notes,
+      })
+    }
+    const payment = await supabase
+      .from('fixed_payments')
+      .update({ amount: nextAmount })
+      .eq('id', input.fixed.payment.id)
+    fail(payment.error)
+  } else {
+    await markFixedPaid({
+      fixed: input.fixed,
+      householdId: input.householdId,
+      ownerId: input.ownerId,
+      payerId: input.payerId,
+      month: input.month,
+      paidOn: input.paidOn,
+      categoryId: input.categoryId,
+      amount: input.amount,
+    })
+  }
+
+  const closed = await supabase
+    .from('fixed_expenses')
+    .update({
+      installment_closed_from: input.originalCount,
+      installment_count: input.currentNumber,
+      installment_payoff_prior_paid: alreadyPaid,
+      expected_amount: alreadyPaid ? input.fixed.payment!.amount + input.amount : input.amount,
+      updated_by: input.payerId,
+    })
+    .eq('id', input.fixed.id)
+  fail(closed.error)
+
+  const revision = await supabase.from('fixed_expense_amounts').upsert(
+    {
+      fixed_expense_id: input.fixed.id,
+      amount: alreadyPaid ? input.fixed.payment!.amount + input.amount : input.amount,
+      effective_from: input.month,
+      created_by: input.payerId,
+    },
+    { onConflict: 'fixed_expense_id,effective_from' },
+  )
+  fail(revision.error)
 }
 
 export async function loadYearBalance(year: number): Promise<YearReport> {
@@ -1287,6 +1398,70 @@ export async function undoFixedPayment(payment: FixedPayment): Promise<void> {
   }
   const { error } = await supabase.from('fixed_payments').delete().eq('id', payment.id)
   fail(error)
+}
+
+/** Deshace «Pagué el resto»: restaura el plazo y el estado del mes. */
+export async function undoInstallmentPayoff(input: {
+  fixed: FixedItem
+  payment: FixedPayment
+  month: string
+  payerId: string
+  installmentAmount: number
+}): Promise<void> {
+  const restoreCount = input.fixed.installmentClosedFrom
+  if (restoreCount == null) {
+    await undoFixedPayment(input.payment)
+    return
+  }
+
+  if (input.fixed.installmentPayoffPriorPaid && input.payment.expenseId) {
+    await updateExpense({
+      id: input.payment.expenseId,
+      payerId: input.payment.payerId,
+      categoryId: input.fixed.categoryId,
+      title: input.fixed.title,
+      amount: input.installmentAmount,
+      spentOn: input.payment.paidOn,
+      period: input.month,
+      isShared: input.fixed.isShared,
+      notes: input.fixed.notes,
+    })
+    const paymentUpdate = await supabase
+      .from('fixed_payments')
+      .update({ amount: input.installmentAmount })
+      .eq('id', input.payment.id)
+    fail(paymentUpdate.error)
+    const revision = await supabase.from('fixed_expense_amounts').upsert(
+      {
+        fixed_expense_id: input.fixed.id,
+        amount: input.installmentAmount,
+        effective_from: input.month,
+        created_by: input.payerId,
+      },
+      { onConflict: 'fixed_expense_id,effective_from' },
+    )
+    fail(revision.error)
+  } else {
+    await undoFixedPayment(input.payment)
+    const cleared = await supabase
+      .from('fixed_expense_amounts')
+      .delete()
+      .eq('fixed_expense_id', input.fixed.id)
+      .eq('effective_from', input.month)
+    fail(cleared.error)
+  }
+
+  const restored = await supabase
+    .from('fixed_expenses')
+    .update({
+      installment_count: restoreCount,
+      installment_closed_from: null,
+      installment_payoff_prior_paid: null,
+      expected_amount: input.installmentAmount,
+      updated_by: input.payerId,
+    })
+    .eq('id', input.fixed.id)
+  fail(restored.error)
 }
 
 export type MpImportRow = {

@@ -7,6 +7,12 @@ import {
   dueTone,
   dueVisual,
   editedCaption,
+  firstMonthCaption,
+  firstMonthFromCurrent,
+  installmentAmountFromTotal,
+  installmentLabel,
+  installmentNumber,
+  remainingPayoff,
   scheduleAmount,
   shareSentence,
   showPayLink,
@@ -95,3 +101,48 @@ describe('quién editó', () => {
     expect(editedCaption(updatedAt, 'Coty')).toBe('Editado por Coty el 20/10')
   })
 })
+
+describe('cuotas', () => {
+  const plan = { firstMonth: '2026-07-01', count: 18 }
+  const revisions = [{ effectiveFrom: '2026-07-01', amount: 212_265.83 }]
+
+  it('calcula la cuota redondeada a 2 decimales sin ajuste en la última', () => {
+    expect(installmentAmountFromTotal(3_820_784.98, 18)).toBe(212_265.83)
+    expect(normalizeMoneyTimes(212_265.83, 18)).toBe(3_820_784.94)
+  })
+
+  it('calcula el mes de la primera desde «va por la cuota»', () => {
+    expect(firstMonthFromCurrent('2026-11-01', 5)).toBe('2026-07-01')
+    expect(firstMonthFromCurrent('2026-11-01', 1)).toBe('2026-11-01')
+    expect(firstMonthCaption('2026-07-01')).toBe('La primera queda en julio de 2026')
+  })
+
+  it('arma el texto cuota n/N y resto', () => {
+    expect(installmentLabel(1, 18)).toBe('cuota 1/18')
+    expect(installmentLabel(5, 18)).toBe('cuota 5/18')
+    expect(installmentLabel(18, 18, { resto: true })).toBe('resto')
+  })
+
+  it('corta el plazo: fuera de la ventana no aplica', () => {
+    expect(installmentNumber(plan, '2026-11-01')).toBe(5)
+    expect(amountForMonth(revisions, '2026-11-01', [], plan)).toBe(212_265.83)
+    expect(amountForMonth(revisions, '2026-06-01', [], plan)).toBeNull()
+    expect(appliesForMonth(revisions, '2028-01-01', [], plan)).toBe(false)
+    expect(appliesForMonth(revisions, '2026-12-01', [], plan)).toBe(true)
+  })
+
+  it('Pagué el resto: cubre las impagas del mes visible', () => {
+    expect(remainingPayoff(212_265.83, 18, 5, false)).toEqual({
+      covered: 14,
+      amount: 2_971_721.62,
+    })
+    expect(remainingPayoff(212_265.83, 18, 5, true)).toEqual({
+      covered: 13,
+      amount: 2_759_455.79,
+    })
+  })
+})
+
+function normalizeMoneyTimes(amount: number, times: number): number {
+  return Math.round(amount * 100 * times) / 100
+}

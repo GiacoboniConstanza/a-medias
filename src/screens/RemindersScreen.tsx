@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { ConfirmSheet } from '../components/ConfirmSheet.tsx'
 import { Fab, FabSpace } from '../components/Fab.tsx'
 import { FilterSheet, PERIODS, type ExpenseFilters } from '../components/FilterSheet.tsx'
-import { FixedExpenseSheet, type FixedDraft } from '../components/FixedExpenseSheet.tsx'
 import { MonthSwitcher } from '../components/MonthSwitcher.tsx'
 import { ReminderSettingsSheet } from '../components/ReminderSettingsSheet.tsx'
 import { ScopeChips } from '../components/ScopeChips.tsx'
@@ -16,34 +15,35 @@ import { useFinance } from '../context/FinanceProvider.tsx'
 import { useMonth } from '../context/MonthProvider.tsx'
 import {
   clearFixedAmountsForMonth,
-  createFixedExpense,
-  deleteFixedExpense,
   loadBudgets,
-  loadCategoryUsage,
   loadDailyStatuses,
   loadModuleNotificationPrefs,
   loadReminderPreferences,
   markDayClear,
-  markFixedPaid,
   modulePrefEnabled,
   saveReminderPreferences,
-  setFixedExpensePaused,
   setModuleNotificationPref,
   undoFixedPayment,
-  updateFixedExpense,
-  type CategoryUsageRow,
+  undoInstallmentPayoff,
   type FixedItem,
 } from '../lib/api.ts'
-import { categoryIdForFixedPayment } from '../lib/categories.ts'
 import { partnerId } from '../lib/derive.ts'
 import { expenseSpan } from '../lib/expense-range.ts'
 import { filterReminders, matchesCategories, matchesScope, type PaidFilter, type ScopeFilter } from '../lib/finance-filters.ts'
-import { dayDiff, dueBucket, dueLabel, dueTone, scheduleAmount, type DueBucket } from '../lib/fixed.ts'
+import {
+  dayDiff,
+  dueBucket,
+  dueLabel,
+  dueTone,
+  installmentLabel,
+  installmentNumber,
+  type DueBucket,
+} from '../lib/fixed.ts'
 import { fixedExpensesTotal } from '../lib/fixed-total.ts'
 import { formatMoney } from '../lib/format.ts'
 import { isHubHome } from '../lib/modules.ts'
 import { iconSurface } from '../lib/icons.ts'
-import { isCurrentMonth, monthEnd, monthKey, monthName, shiftMonth, shortDate, todayISO } from '../lib/month.ts'
+import { monthEnd, monthKey, monthName, shortDate, todayISO } from '../lib/month.ts'
 import { pushIsConfigured, subscribeToPush } from '../lib/push/permissions.ts'
 import {
   DEFAULT_REMINDER_PREFS,
@@ -71,6 +71,7 @@ const toneClass = {
 } as const
 
 export function RemindersScreen() {
+  const navigate = useNavigate()
   const { profile } = useAuth()
   const { enabled } = useModules()
   const { month } = useMonth()
@@ -79,8 +80,6 @@ export function RemindersScreen() {
   const [prefs, setPrefs] = useState<ReminderPrefs | null>(null)
   const [financeModuleOn, setFinanceModuleOn] = useState(false)
   const [statuses, setStatuses] = useState<{ day: string; kind: DailyKind }[]>([])
-  const [creating, setCreating] = useState(false)
-  const [editing, setEditing] = useState<FixedItem | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [paidOpen, setPaidOpen] = useState(false)
   const [pausedOpen, setPausedOpen] = useState(false)
@@ -88,7 +87,6 @@ export function RemindersScreen() {
   const [clearBusy, setClearBusy] = useState(false)
   const [clearError, setClearError] = useState('')
   const [message, setMessage] = useState('')
-  const [sheetError, setSheetError] = useState('')
   const [toast, setToast] = useState('')
   const [saving, setSaving] = useState(false)
   const [sheetOpen, setSheetOpen] = useState(false)
@@ -98,7 +96,6 @@ export function RemindersScreen() {
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
   const [categoryIds, setCategoryIds] = useState<string[]>([])
-  const [categoryUsage, setCategoryUsage] = useState<CategoryUsageRow[]>([])
   const [hasBudgets, setHasBudgets] = useState(false)
   const saveChain = useRef(Promise.resolve())
   const end = monthEnd(month)
@@ -164,26 +161,6 @@ export function RemindersScreen() {
     }
   }, [profile, data, settingsOpen])
 
-  useEffect(() => {
-    let active = true
-    loadCategoryUsage()
-      .then((rows) => {
-        if (active) setCategoryUsage(rows)
-      })
-      .catch(() => {
-        if (active) setCategoryUsage([])
-      })
-    return () => {
-      active = false
-    }
-  }, [data?.categories])
-
-  useEffect(() => {
-    if (!editing || !data) return
-    if (!data.fixed.some((item) => item.id === editing.id)) setEditing(null)
-  }, [data, editing])
-
-  const liveEditing = editing ? (data?.fixed.find((item) => item.id === editing.id) ?? null) : null
   const shownPrefs = prefs ?? DEFAULT_REMINDER_PREFS
 
   function persist(next: ReminderPrefs) {
@@ -248,148 +225,35 @@ export function RemindersScreen() {
   }
 
   function openEditor(item: FixedItem) {
-    setCreating(false)
     setSettingsOpen(false)
-    setSheetError('')
-    setEditing(item)
-  }
-
-  async function pay(id: string) {
-    const fixed = data?.fixed.find((item) => item.id === id)
-    if (!fixed || !profile?.householdId || !data || !fixed.hasAmount) return
-    setSaving(true)
-    setMessage('')
-    setSheetError('')
-    try {
-      await markFixedPaid({
-        fixed,
-        householdId: profile.householdId,
-        ownerId: profile.id,
-        payerId: profile.id,
-        month,
-        paidOn: isCurrentMonth(month, now) ? todayISO(now) : `${month.slice(0, 8)}${String(fixed.dueDay).padStart(2, '0')}`,
-        categoryId: categoryIdForFixedPayment(fixed.categoryId),
-      })
-      await refresh()
-      await reloadDays()
-      setEditing(null)
-      setToast('Marcado como pagado.')
-    } catch (caught) {
-      const text = caught instanceof Error ? caught.message : 'No pude marcarlo como pagado.'
-      if (liveEditing?.id === id) setSheetError(text)
-      else setMessage(text)
-    } finally {
-      setSaving(false)
-    }
+    navigate(`/recordatorios/${item.id}`)
   }
 
   async function undo(id: string) {
-    const payment = data?.fixed.find((item) => item.id === id)?.payment
-    if (!payment) return
+    const fixed = data?.fixed.find((item) => item.id === id)
+    const payment = fixed?.payment
+    if (!payment || !fixed || !profile) return
     setSaving(true)
     setMessage('')
-    setSheetError('')
     try {
-      await undoFixedPayment(payment)
+      if (fixed.installmentClosedFrom != null) {
+        const cuota =
+          fixed.revisions.find((row) => row.effectiveFrom === fixed.firstMonth)?.amount ?? fixed.amount
+        await undoInstallmentPayoff({
+          fixed,
+          payment,
+          month,
+          payerId: profile.id,
+          installmentAmount: cuota,
+        })
+      } else {
+        await undoFixedPayment(payment)
+      }
       await refresh()
       await reloadDays()
-      setEditing(null)
       setToast('Deshice el pago.')
     } catch (caught) {
-      const text = caught instanceof Error ? caught.message : 'No pude deshacer el pago.'
-      if (liveEditing?.id === id) setSheetError(text)
-      else setMessage(text)
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  async function saveDraft(draft: FixedDraft) {
-    if (!profile?.householdId) return
-    setSaving(true)
-    setSheetError('')
-    const remindDaysBefore = draft.remind ? shownPrefs.dueLeadDays : 0
-    try {
-      if (!liveEditing) {
-        await createFixedExpense({
-          householdId: profile.householdId,
-          ownerId: draft.shared ? null : profile.id,
-          categoryId: draft.categoryId,
-          title: draft.title,
-          icon: draft.icon,
-          amount: draft.amount,
-          dueDay: draft.dueDay,
-          isShared: draft.shared,
-          remindDaysBefore,
-          remind: draft.remind,
-          notes: draft.notes,
-          effectiveFrom: month,
-          createdBy: profile.id,
-        })
-        setToast('Listo, guardé el gasto fijo.')
-      } else {
-        const revision =
-          draft.amountChanged && draft.applies
-            ? {
-                amount: draft.amount,
-                effectiveFrom: draft.applies === 'next' ? shiftMonth(month, 1) : month,
-                createdBy: profile.id,
-              }
-            : null
-        await updateFixedExpense({
-          id: liveEditing.id,
-          ownerId: draft.shared ? null : profile.id,
-          categoryId: draft.categoryId,
-          title: draft.title,
-          icon: draft.icon,
-          dueDay: draft.dueDay,
-          isShared: draft.shared,
-          remindDaysBefore,
-          remind: draft.remind,
-          notes: draft.notes,
-          expectedAmount: scheduleAmount(liveEditing.revisions, monthKey(now), revision),
-          updatedBy: profile.id,
-          revision,
-        })
-        setToast('Listo, actualicé el gasto fijo.')
-      }
-      setCreating(false)
-      setEditing(null)
-      await refresh()
-    } catch (caught) {
-      setSheetError(caught instanceof Error ? caught.message : 'No pude guardar el gasto fijo.')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  async function pause(paused: boolean) {
-    if (!liveEditing || !profile) return
-    setSaving(true)
-    setSheetError('')
-    try {
-      await setFixedExpensePaused(liveEditing.id, paused, profile.id)
-      await refresh()
-      setToast(paused ? 'Quedó en pausa. No genera vencimientos.' : 'Volvió a generar vencimientos.')
-    } catch (caught) {
-      setSheetError(caught instanceof Error ? caught.message : 'No pude cambiar la pausa.')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  async function remove() {
-    if (!liveEditing) return
-    setSaving(true)
-    setSheetError('')
-    try {
-      await deleteFixedExpense(liveEditing.id)
-      setEditing(null)
-      setCreating(false)
-      await refresh()
-      setToast('Eliminé el gasto fijo.')
-    } catch (caught) {
-      setSheetError(caught instanceof Error ? caught.message : 'No pude eliminar el gasto fijo.')
+      setMessage(caught instanceof Error ? caught.message : 'No pude deshacer el pago.')
     } finally {
       setSaving(false)
     }
@@ -402,7 +266,6 @@ export function RemindersScreen() {
   const today = todayISO(now)
   const otherId = partnerId(data, profile.id)
   const partnerName = (otherId ? data.names[otherId] : '') || 'tu compañera'
-  const myName = data.names[profile.id] ?? ''
   const loggedDays = [
     ...statuses.filter((row) => row.kind === 'logged').map((row) => row.day),
     ...data.monthExpenses.filter((expense) => expense.ownerId === profile.id).map((expense) => expense.spentOn),
@@ -478,11 +341,7 @@ export function RemindersScreen() {
             type="button"
             className="grid h-11 w-11 place-items-center text-title"
             aria-label="Mis recordatorios"
-            onClick={() => {
-              setCreating(false)
-              setEditing(null)
-              setSettingsOpen(true)
-            }}
+            onClick={() => setSettingsOpen(true)}
           >
             <AppIcon name="gear" />
           </button>
@@ -673,6 +532,18 @@ export function RemindersScreen() {
                   </button>
                   <div className="text-right">
                     <p className="whitespace-nowrap font-display text-lg font-semibold">{formatMoney(item.amount)}</p>
+                    {item.installmentCount != null && item.firstMonth ? (
+                      <p className="text-sm font-semibold text-gris">
+                        {installmentLabel(
+                          installmentNumber(
+                            { firstMonth: item.firstMonth, count: item.installmentCount },
+                            month,
+                          ) ?? item.installmentCount,
+                          item.installmentCount,
+                          { resto: item.installmentClosedFrom != null },
+                        )}
+                      </p>
+                    ) : null}
                     <button
                       type="button"
                       className="min-h-11 text-sm font-bold text-mostaza-ink disabled:opacity-50"
@@ -731,44 +602,7 @@ export function RemindersScreen() {
       <ErrorText>{message}</ErrorText>
       <Toast onDone={() => setToast('')}>{toast}</Toast>
       <FabSpace avisos />
-      <Fab
-        label="Nuevo gasto fijo"
-        onClick={() => {
-          setEditing(null)
-          setSettingsOpen(false)
-          setSheetError('')
-          setCreating(true)
-        }}
-      />
-      <FixedExpenseSheet
-        open={creating || liveEditing !== null}
-        expense={creating ? null : liveEditing}
-        saving={saving}
-        error={sheetError}
-        leadDays={shownPrefs.dueLeadDays}
-        myPercent={data.splitPercents[profile.id] ?? 0}
-        partnerPercent={otherId ? (data.splitPercents[otherId] ?? 0) : 0}
-        partnerName={partnerName}
-        splitEven={data.splitEven}
-        editorName={liveEditing?.updatedBy ? (data.names[liveEditing.updatedBy] ?? myName) : myName}
-        paid={Boolean(liveEditing?.payment)}
-        categories={data.categories}
-        categoryUsage={categoryUsage}
-        onClose={() => {
-          setCreating(false)
-          setEditing(null)
-          setSheetError('')
-        }}
-        onSubmit={(draft) => void saveDraft(draft)}
-        onPause={(next) => void pause(next)}
-        onDelete={() => void remove()}
-        onPay={() => {
-          if (liveEditing) void pay(liveEditing.id)
-        }}
-        onUndo={() => {
-          if (liveEditing) void undo(liveEditing.id)
-        }}
-      />
+      <Fab pill label="Nuevo" to="/recordatorios/nuevo" />
       <FilterSheet
         open={sheetOpen}
         month={month}
@@ -877,16 +711,29 @@ function SwipeDue({
   const tone = dueTone(item.dueDay, month, now)
   const when = dueLabel(item.dueDay, month, now)
   const missing = !item.hasAmount
+  const plan =
+    item.installmentCount != null && item.firstMonth
+      ? { firstMonth: item.firstMonth, count: item.installmentCount }
+      : null
+  const n = plan ? installmentNumber(plan, month) : null
+  const cuotaText =
+    plan && n != null
+      ? installmentLabel(n, plan.count, { resto: item.installmentClosedFrom != null && Boolean(item.payment) })
+      : null
   return (
     <div className={grouped ? 'border-b border-line last:border-0' : 'rounded-2xl border-2 border-azul-ink'}>
       <button
         type="button"
         onClick={onEdit}
-        className="flex min-h-[var(--alto-fila-aviso)] w-full items-center gap-3 px-3.5 py-2.5 text-left"
+        className={`flex w-full items-center gap-3 px-3.5 py-2.5 text-left ${
+          cuotaText ? 'min-h-[84px]' : 'min-h-[var(--alto-fila-aviso)]'
+        }`}
         aria-label={
           missing
             ? `Editar ${item.title}, ${when}, falta el monto`
-            : `Editar ${item.title}, ${when}`
+            : cuotaText
+              ? `Editar ${item.title}, ${when}, ${cuotaText}`
+              : `Editar ${item.title}, ${when}`
         }
       >
         <IconBubble icon={item.icon} />
@@ -907,7 +754,14 @@ function SwipeDue({
         {missing ? (
           <span className="whitespace-nowrap text-sm font-bold text-mostaza-ink">Falta el monto</span>
         ) : (
-          <span className="whitespace-nowrap font-display text-lg font-semibold text-tinta">{formatMoney(item.amount)}</span>
+          <span className="shrink-0 text-right">
+            <span className="block whitespace-nowrap font-display text-lg font-semibold text-tinta">
+              {formatMoney(item.amount)}
+            </span>
+            {cuotaText ? (
+              <span className="mt-0.5 block text-sm font-semibold text-gris">{cuotaText}</span>
+            ) : null}
+          </span>
         )}
       </button>
     </div>

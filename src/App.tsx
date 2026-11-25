@@ -66,6 +66,11 @@ const ModulesScreen = lazy(() =>
 const RemindersScreen = lazy(() =>
   import('./screens/RemindersScreen.tsx').then((module) => ({ default: module.RemindersScreen })),
 )
+const FixedExpenseFormScreen = lazy(() =>
+  import('./screens/FixedExpenseFormScreen.tsx').then((module) => ({
+    default: module.FixedExpenseFormScreen,
+  })),
+)
 const SalaryScreen = lazy(() =>
   import('./screens/SalaryScreen.tsx').then((module) => ({ default: module.SalaryScreen })),
 )
@@ -174,6 +179,8 @@ export function App() {
                 <Route path="compartidos" element={<CompartidosRedirect />} />
                 <Route path="prestamos" element={<PrestamosRedirect />} />
                 <Route path="recordatorios" element={<RemindersScreen />} />
+                <Route path="recordatorios/nuevo" element={<FixedExpenseFormScreen />} />
+                <Route path="recordatorios/:id" element={<FixedExpenseFormScreen />} />
                 <Route path="sueldo" element={<SalaryScreen />} />
                 <Route path="reparto" element={<SplitScreen />} />
                 <Route path="reparto/ayuda" element={<SplitHelpScreen />} />

@@ -1,8 +1,14 @@
-import { monthKey } from './month.ts'
+import { normalizeMoney } from './format.ts'
+import { monthKey, monthName, shiftMonth } from './month.ts'
 
 export type AmountRevision = {
   effectiveFrom: string
   amount: number
+}
+
+export type InstallmentPlan = {
+  firstMonth: string
+  count: number
 }
 
 /** Última revisión con monto que rige ese mes (ignora marcas de vaciado). */
@@ -16,12 +22,75 @@ export function draggedAmountForMonth(revisions: AmountRevision[], month: string
   return best?.amount ?? null
 }
 
+export function lastInstallmentMonth(firstMonth: string, count: number): string {
+  return shiftMonth(firstMonth, count - 1)
+}
+
+export function installmentInWindow(plan: InstallmentPlan, month: string): boolean {
+  if (!plan.firstMonth || plan.count < 2) return false
+  if (month < plan.firstMonth) return false
+  return month <= lastInstallmentMonth(plan.firstMonth, plan.count)
+}
+
+/** 1-based; null fuera de la ventana. */
+export function installmentNumber(plan: InstallmentPlan, month: string): number | null {
+  if (!installmentInWindow(plan, month)) return null
+  let n = 1
+  let cursor = plan.firstMonth
+  while (cursor < month) {
+    cursor = shiftMonth(cursor, 1)
+    n += 1
+  }
+  return n
+}
+
+/** Mes de la primera a partir del mes visible y «va por la cuota». */
+export function firstMonthFromCurrent(visibleMonth: string, currentNumber: number): string {
+  const n = Math.max(1, Math.floor(currentNumber))
+  return shiftMonth(visibleMonth, -(n - 1))
+}
+
+/** Todas las cuotas iguales: total/N redondeado a 2 decimales, sin ajuste en la última. */
+export function installmentAmountFromTotal(total: number, count: number): number {
+  if (count < 2) return normalizeMoney(total)
+  return normalizeMoney(total / count)
+}
+
+export function installmentLabel(
+  n: number,
+  count: number,
+  opts?: { resto?: boolean },
+): string {
+  if (opts?.resto) return 'resto'
+  return `cuota ${n}/${count}`
+}
+
+export function firstMonthCaption(firstMonth: string): string {
+  const name = monthName(firstMonth)
+  const year = firstMonth.slice(0, 4)
+  return `La primera queda en ${name} de ${year}`
+}
+
+/** Cuotas que cubre «Pagué el resto» y el monto. */
+export function remainingPayoff(
+  installmentAmount: number,
+  count: number,
+  currentNumber: number,
+  currentPaid: boolean,
+): { covered: number; amount: number } {
+  const covered = currentPaid ? count - currentNumber : count - currentNumber + 1
+  if (covered <= 0) return { covered: 0, amount: 0 }
+  return { covered, amount: normalizeMoney(installmentAmount * covered) }
+}
+
 /** Monto del mes. Si el mes está marcado como vaciado, null aunque haya arrastre. */
 export function amountForMonth(
   revisions: AmountRevision[],
   month: string,
   clearedMonths: ReadonlySet<string> | readonly string[] = [],
+  plan: InstallmentPlan | null = null,
 ): number | null {
+  if (plan && !installmentInWindow(plan, month)) return null
   const cleared = clearedMonths instanceof Set ? clearedMonths : new Set(clearedMonths)
   if (cleared.has(month)) return null
   return draggedAmountForMonth(revisions, month)
@@ -32,7 +101,9 @@ export function appliesForMonth(
   revisions: AmountRevision[],
   month: string,
   clearedMonths: ReadonlySet<string> | readonly string[] = [],
+  plan: InstallmentPlan | null = null,
 ): boolean {
+  if (plan && !installmentInWindow(plan, month)) return false
   const cleared = clearedMonths instanceof Set ? clearedMonths : new Set(clearedMonths)
   return draggedAmountForMonth(revisions, month) !== null || cleared.has(month)
 }

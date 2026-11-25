@@ -281,6 +281,11 @@ export type Database = {
           paused_at: string | null
           notes: string | null
           mp_source: 'credito_mp' | null
+          installment_count: number | null
+          first_month: string | null
+          total_amount: number | null
+          installment_closed_from: number | null
+          installment_payoff_prior_paid: boolean | null
           updated_at: string | null
           updated_by: string | null
           created_at: string
@@ -301,6 +306,11 @@ export type Database = {
           paused_at?: string | null
           notes?: string | null
           mp_source?: 'credito_mp' | null
+          installment_count?: number | null
+          first_month?: string | null
+          total_amount?: number | null
+          installment_closed_from?: number | null
+          installment_payoff_prior_paid?: boolean | null
           created_at?: string
         },
         {
@@ -316,6 +326,11 @@ export type Database = {
           remind?: boolean
           paused_at?: string | null
           notes?: string | null
+          installment_count?: number | null
+          first_month?: string | null
+          total_amount?: number | null
+          installment_closed_from?: number | null
+          installment_payoff_prior_paid?: boolean | null
           updated_by?: string | null
         }
       >
