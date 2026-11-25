@@ -9,6 +9,7 @@ import {
   salariesForMonth,
   salaryMonthError,
   salaryPercents,
+  reconcileSplitNotice,
   visibleSplitNotice,
   type SalaryPoint,
 } from './salary.ts'
@@ -98,6 +99,21 @@ describe('aviso y mes del aumento', () => {
     expect(visibleSplitNotice([older, upcoming], '2026-10-01')?.label).toBe('noviembre')
     expect(visibleSplitNotice([older], '2026-10-01')?.label).toBe('agosto')
     expect(visibleSplitNotice([older], '2026-11-01')).toBeNull()
+  })
+
+  it('el aviso de reparto usa el modo vigente y se oculta si no cambia nada', () => {
+    const stale = { effectiveFrom: '2026-12-01', myPercent: 75, partnerPercent: 25, label: 'diciembre' }
+    const evenLive = { myPercent: 50, partnerPercent: 50 }
+    const currentEven = { myPercent: 50, partnerPercent: 50 }
+    expect(reconcileSplitNotice(stale, evenLive, currentEven)).toBeNull()
+
+    const proportionalLive = { myPercent: 60, partnerPercent: 40 }
+    const currentProportional = { myPercent: 55, partnerPercent: 45 }
+    expect(reconcileSplitNotice(stale, proportionalLive, currentProportional)).toEqual({
+      ...stale,
+      myPercent: 60,
+      partnerPercent: 40,
+    })
   })
 })
 

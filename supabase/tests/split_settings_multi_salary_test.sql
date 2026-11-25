@@ -1,5 +1,5 @@
 begin;
-select plan(19);
+select plan(21);
 
 insert into auth.users (id, email, raw_user_meta_data)
 values
@@ -209,6 +209,36 @@ select is(
   ),
   null,
   'label en blanco queda null'
+);
+
+-- Aviso futuro viejo (p. ej. de un cambio de sueldo) no sobrevive a guardar even
+reset role;
+insert into public.split_notices (recipient_id, effective_from, recipient_percent, partner_percent)
+values
+  ('a1000001-0001-4001-8001-000000000001', '2027-07-01', 75, 25);
+
+select set_config('request.jwt.claim.sub', 'a1000001-0001-4001-8001-000000000001', true);
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"a1000001-0001-4001-8001-000000000001","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+
+select lives_ok(
+  $$select public.save_household_split_setting('even', null, '2027-06-01')$$,
+  'guardar even limpia avisos futuros obsoletos'
+);
+
+select is(
+  (
+    select count(*)::integer from public.split_notices
+    where recipient_id = 'a1000001-0001-4001-8001-000000000001'
+      and effective_from = '2027-07-01'
+      and recipient_percent = 75
+  ),
+  0,
+  'el aviso 75/25 de julio no queda tras guardar even en junio'
 );
 
 select finish();

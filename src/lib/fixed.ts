@@ -131,3 +131,8 @@ export function editedCaption(updatedAt: string, name: string): string {
   const who = name.trim() || 'alguien'
   return `Editado por ${who} el ${day}/${monthNumber}`
 }
+
+/** Guardar fuera del <form> (footer del Sheet): type=submit + form=id. */
+export function sheetFormSubmitProps(formId: string): { type: 'submit'; form: string } {
+  return { type: 'submit', form: formId }
+}

@@ -292,10 +292,12 @@ export function SplitScreen() {
         <p className="mt-3 text-sm font-semibold text-muted">Los ingresos puntuales no entran en este porcentaje.</p>
       </Card>
 
-      <Button type="button" className="mt-2" disabled={!canSave} onClick={() => void save()}>
-        Guardar
-      </Button>
-      <FieldError>{loadError || formError}</FieldError>
+      <div className="pb-[calc(72px+env(safe-area-inset-bottom))]">
+        <Button type="button" className="mt-2" disabled={!canSave} onClick={() => void save()}>
+          Guardar
+        </Button>
+        <FieldError>{loadError || formError}</FieldError>
+      </div>
 
       <Toast onDone={() => setToast('')}>{toast}</Toast>
     </>

@@ -133,6 +133,22 @@ export function visibleSplitNotice<T extends { effectiveFrom: string; createdAt:
   )
 }
 
+/**
+ * Ajusta el aviso al reparto vigente (modo even/manual/proporcional) y lo oculta
+ * si no cambia nada respecto del mes actual.
+ */
+export function reconcileSplitNotice<T extends { myPercent: number; partnerPercent: number }>(
+  notice: T,
+  live: { myPercent: number; partnerPercent: number },
+  currentMonth: { myPercent: number; partnerPercent: number },
+): (T & { myPercent: number; partnerPercent: number }) | null {
+  const next = { ...notice, myPercent: live.myPercent, partnerPercent: live.partnerPercent }
+  if (next.myPercent === currentMonth.myPercent && next.partnerPercent === currentMonth.partnerPercent) {
+    return null
+  }
+  return next
+}
+
 export function sinceLabel(month: string): string {
   const title = monthTitle(month)
   return title.charAt(0).toLowerCase() + title.slice(1)

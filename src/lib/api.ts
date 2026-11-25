@@ -12,7 +12,7 @@ import {
 } from './meals.ts'
 import { monthEnd, monthKey } from './month.ts'
 import { periodFromDate } from './period.ts'
-import { effectiveSalary, visibleSplitNotice, type SalaryPoint } from './salary.ts'
+import { effectiveSalary, reconcileSplitNotice, visibleSplitNotice, type SalaryPoint } from './salary.ts'
 import { sortedTimes, type DailyKind, type ReminderPrefs, DEFAULT_REMINDER_PREFS } from './reminders.ts'
 import { supabase } from './supabase.ts'
 import { normalizePlanNote, normalizePlanTag, type PartnerPlanStatus, type PlanItem } from './plans.ts'
@@ -255,13 +255,43 @@ export async function loadFinance(householdId: string, userId: string, month: st
     })),
     monthKey(),
   )
-  const splitNotice: SplitNotice | null = noticeRow
-    ? {
+  const partnerUserId = Object.keys(splitPercents).find((id) => id !== userId) ?? null
+  const currentMine = splitPercents[userId] ?? 50
+  const currentPartner = partnerUserId ? (splitPercents[partnerUserId] ?? 50) : 50
+  let splitNotice: SplitNotice | null = null
+  if (noticeRow) {
+    let liveMine = noticeRow.myPercent
+    let livePartner = noticeRow.partnerPercent
+    if (noticeRow.effectiveFrom === month) {
+      liveMine = currentMine
+      livePartner = currentPartner
+    } else {
+      const livePercents = await supabase.rpc('household_split_percents', {
+        target_month: noticeRow.effectiveFrom,
+      })
+      fail(livePercents.error)
+      for (const row of livePercents.data ?? []) {
+        if (row.user_id === userId) liveMine = row.percent
+        else livePartner = row.percent
+      }
+    }
+    const reconciled = reconcileSplitNotice(
+      {
         effectiveFrom: noticeRow.effectiveFrom,
         myPercent: noticeRow.myPercent,
         partnerPercent: noticeRow.partnerPercent,
+      },
+      { myPercent: liveMine, partnerPercent: livePartner },
+      { myPercent: currentMine, partnerPercent: currentPartner },
+    )
+    if (reconciled) {
+      splitNotice = {
+        effectiveFrom: reconciled.effectiveFrom,
+        myPercent: reconciled.myPercent,
+        partnerPercent: reconciled.partnerPercent,
       }
-    : null
+    }
+  }
 
   const end = monthEnd(month)
   const extrasThisMonth: ExtraItem[] = (extras.data ?? [])

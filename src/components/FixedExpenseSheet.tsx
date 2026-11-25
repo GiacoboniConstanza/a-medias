@@ -7,7 +7,7 @@ import { Sheet } from './Sheet.tsx'
 import { Button, Chip, ErrorText, NotesField, inputClass, Toggle } from './ui.tsx'
 import type { Category, CategoryUsageRow, FixedItem } from '../lib/api.ts'
 import { categoryChipsForPicker } from '../lib/categories.ts'
-import { editedCaption, remindSwitchLabel, shareSentence } from '../lib/fixed.ts'
+import { editedCaption, remindSwitchLabel, shareSentence, sheetFormSubmitProps } from '../lib/fixed.ts'
 import { clampNotes, formatMoney, moneyDraftFromAmount, normalizeMoney } from '../lib/format.ts'
 
 export type FixedDraft = {
@@ -76,7 +76,7 @@ export function FixedExpenseSheet({
       onClose={onClose}
       footer={
         confirming ? undefined : (
-          <Button type="button" form="fixed-expense-form" disabled={saving}>
+          <Button {...sheetFormSubmitProps('fixed-expense-form')} disabled={saving}>
             Guardar
           </Button>
         )
