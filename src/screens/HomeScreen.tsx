@@ -20,7 +20,14 @@ import { budgetRowsForMonth, type BudgetRow } from '../lib/budget.ts'
 import { debtCopy, monthPocket, monthSplit, myPrivateSpent, partnerId } from '../lib/derive.ts'
 import { fixedExpensesTotal } from '../lib/fixed-total.ts'
 import { sumPaidBy } from '../lib/period.ts'
-import { homeAccountingCard, type HomeCardLine } from '../lib/home-card.ts'
+import {
+  estimatedFixedLine,
+  estimatedMargin,
+  estimatedMarginLine,
+  estimatedOpenFixedTotal,
+  homeAccountingCard,
+  type HomeCardLine,
+} from '../lib/home-card.ts'
 import { formatMoney } from '../lib/format.ts'
 import { iconSurface } from '../lib/icons.ts'
 import { loanMonthEffect, loadLoanMovements, type PeriodLoan, type PeriodRepayment } from '../lib/transfers.ts'
@@ -156,6 +163,14 @@ export function HomeScreen() {
   const partnerName = (otherId && data.names[otherId]) || 'tu compañera'
   const card = homeAccountingCard(pocket, transferEffect, partnerName)
   const remaining = card.remaining
+  const estimatedFixed = estimatedOpenFixedTotal({
+    fixed: data.fixed,
+    meId,
+    partnerId: otherId,
+    splitPercents: data.splitPercents,
+    month,
+  })
+  const margin = estimatedMargin(remaining, estimatedFixed)
   const amountTone = remaining < 0 ? 'text-rosa-texto' : 'text-title'
   const aMano = hasShared && split.amount === 0
   const settled = Boolean(data.settlement)
@@ -267,7 +282,18 @@ export function HomeScreen() {
         </div>
         <div className="my-3 border-t border-dashed border-line" />
         <div className="space-y-2">
-          {card.lines.map((row) => (
+          {card.pocketLines.map((row) => (
+            <Row key={row.label} line={row} />
+          ))}
+        </div>
+        <div className="my-3 border-t border-dashed border-line" />
+        <div className="space-y-2">
+          <Row line={estimatedFixedLine(estimatedFixed)} />
+          <Row line={estimatedMarginLine(margin)} />
+        </div>
+        <div className="my-3 border-t border-dashed border-line" />
+        <div className="space-y-2">
+          {card.transferLines.map((row) => (
             <Row key={row.label} line={row} />
           ))}
         </div>
@@ -412,11 +438,14 @@ function StatusChip({ settled }: { settled: boolean }) {
 }
 
 function Row({ line }: { line: HomeCardLine }) {
+  const marginNegative = line.role === 'margin' && line.amount.trim().startsWith('-')
   const tone = {
     income: 'font-semibold text-mostaza-ink',
     spent: 'font-semibold text-rosa-texto',
     ahorro: 'font-semibold text-azul-ink',
     transfer: 'font-normal text-ciruela-ink',
+    estimated: 'font-semibold text-rosa-texto',
+    margin: marginNegative ? 'font-semibold text-rosa-texto' : 'font-semibold text-title',
   }[line.role]
   return (
     <div className={`flex items-baseline justify-between gap-3 text-[14px] ${tone}`}>
