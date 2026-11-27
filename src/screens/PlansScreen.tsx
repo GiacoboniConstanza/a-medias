@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useId, useMemo, useState, type ReactNode } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { Link, useLocation, useNavigate } from 'react-router'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { ConfirmSheet } from '../components/ConfirmSheet.tsx'
-import { MoneyField } from '../components/MoneyField.tsx'
+import { Fab, FabSpace } from '../components/Fab.tsx'
+import { PlanItemFormFields, type PlanItemDraft } from '../components/PlanItemFormFields.tsx'
 import { Sheet } from '../components/Sheet.tsx'
-import { Button, Chip, ErrorText, Toggle, inputClass } from '../components/ui.tsx'
+import { Button, Chip, ErrorText, Toast } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
 import { useModules } from '../context/ModulesProvider.tsx'
@@ -42,18 +43,13 @@ import {
 
 export type { PlanItem }
 
-type Draft = {
-  title: string
-  digits: string
-  note: string
-  tag: string
-  isPrivate: boolean
-}
+type Draft = PlanItemDraft
 
 const emptyDraft = (): Draft => ({ title: '', digits: '', note: '', tag: '', isPrivate: false })
 
 export function PlansScreen() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { profile } = useAuth()
   const { enabled } = useModules()
   const { month } = useMonth()
@@ -69,6 +65,10 @@ export function PlansScreen() {
   const [sheetError, setSheetError] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [boughtOpen, setBoughtOpen] = useState(false)
+  const [toast, setToast] = useState(() => {
+    const notice = (location.state as { toast?: string } | null)?.toast
+    return notice ?? ''
+  })
   const backTo = isHubHome(enabled) ? '/finanzas' : '/'
 
   const reload = useCallback(async () => {
@@ -130,14 +130,6 @@ export function PlansScreen() {
   const hasItems = items.length > 0
   const signal = partnerStatusLabel(partnerName, partnerStatus)
   const signalTone = partnerStatusTone(partnerStatus)
-
-  function openCreate() {
-    setEditing(null)
-    setDraft(emptyDraft())
-    setSheetError('')
-    setConfirmDelete(false)
-    setSheetOpen(true)
-  }
 
   function openEdit(item: PlanItem) {
     setEditing(item)
@@ -221,7 +213,7 @@ export function PlansScreen() {
   function buyItem(item: PlanItem) {
     if (!data) return
     const hogar = data.categories.find((category) => category.name === 'Hogar')
-    navigate('/cargar', {
+    navigate('/cargar/gasto', {
       state: {
         from: '/planes',
         tipo: 'gasto',
@@ -231,6 +223,7 @@ export function PlansScreen() {
         notes: item.note,
         isShared: !item.isPrivate,
         categoryId: hogar?.id ?? null,
+        skipStep1: true,
       },
     })
   }
@@ -296,14 +289,6 @@ export function PlansScreen() {
         ) : null}
       </section>
 
-      {hasItems ? (
-        <Button type="button" variant="alt" className="mt-4" onClick={openCreate}>
-          <span className="inline-flex items-center gap-2">
-            <AppIcon name="plus" /> Agregar
-          </span>
-        </Button>
-      ) : null}
-
       {tags.length > 0 ? (
         <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
           <Chip active={tagFilter == null} onClick={() => setTagFilter(null)}>
@@ -321,9 +306,6 @@ export function PlansScreen() {
         <div className="mt-8 flex flex-col items-center gap-3 text-center">
           <Plantita />
           <p className="text-base font-semibold text-gris">Sin ítems todavía.</p>
-          <Button type="button" onClick={openCreate}>
-            Agregar
-          </Button>
         </div>
       ) : (
         <>
@@ -383,72 +365,13 @@ export function PlansScreen() {
       )}
 
       <Sheet open={sheetOpen} title={editing ? 'Editar ítem' : 'Nuevo ítem'} onClose={() => setSheetOpen(false)}>
-        <label className="mb-4 block text-sm font-semibold text-gris">
-          Nombre
-          <input
-            value={draft.title}
-            maxLength={80}
-            onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
-            className={`mt-1.5 ${inputClass}`}
-          />
-        </label>
-        <div className="mb-4">
-          <MoneyField
-            label="Importe"
-            draft={draft.digits}
-            onDraft={(digits) => setDraft((current) => ({ ...current, digits }))}
-            size="form"
-          />
-        </div>
-        <label className="mb-4 block text-sm font-semibold text-gris">
-          Observación
-          <textarea
-            value={draft.note}
-            rows={3}
-            maxLength={500}
-            onChange={(event) => setDraft((current) => ({ ...current, note: event.target.value.slice(0, 500) }))}
-            className={`mt-1.5 min-h-[72px] resize-none ${inputClass}`}
-          />
-        </label>
-        <label className="mb-2 block text-sm font-semibold text-gris">
-          Etiqueta
-          <input
-            value={draft.tag}
-            maxLength={24}
-            onChange={(event) => setDraft((current) => ({ ...current, tag: event.target.value.slice(0, 24) }))}
-            className={`mt-1.5 ${inputClass}`}
-          />
-        </label>
-        {tagSuggestions.length > 0 ? (
-          <div className="mb-4 flex flex-wrap gap-2">
-            {tagSuggestions.map((tag) => (
-              <Chip
-                key={tag}
-                active={draft.tag.trim().toLocaleLowerCase('es') === tag.toLocaleLowerCase('es')}
-                onClick={() => setDraft((current) => ({ ...current, tag }))}
-              >
-                {tag}
-              </Chip>
-            ))}
-          </div>
-        ) : (
-          <div className="mb-4" />
-        )}
-        {editing ? (
-          editing.isPrivate ? (
-            <p className="mb-4 flex min-h-11 items-center gap-2 text-sm font-semibold text-gris">
-              <AppIcon name="lock" className="text-sm" /> Privado
-            </p>
-          ) : null
-        ) : (
-          <div className="mb-4">
-            <Toggle
-              label="Privado"
-              checked={draft.isPrivate}
-              onClick={() => setDraft((current) => ({ ...current, isPrivate: !current.isPrivate }))}
-            />
-          </div>
-        )}
+        <PlanItemFormFields
+          draft={draft}
+          onChange={setDraft}
+          tagSuggestions={tagSuggestions}
+          showPrivateToggle={!editing}
+          privateLockedLabel={Boolean(editing?.isPrivate)}
+        />
         {sheetError ? <ErrorText>{sheetError}</ErrorText> : null}
         {editing && !editing.expenseId ? (
           <Button type="button" variant="alt" className="mb-2" disabled={saving} onClick={() => buyItem(editing)}>
@@ -481,6 +404,12 @@ export function PlansScreen() {
       >
         <p className="text-base font-semibold text-tinta">Se saca de la lista. No toca los gastos ya cargados.</p>
       </ConfirmSheet>
+
+      <FabSpace avisos={Boolean(toast)} />
+      <Fab label="Cargar" to="/cargar" state={{ from: '/planes' }} />
+      <Toast aboveFab onDone={() => setToast('')}>
+        {toast}
+      </Toast>
     </>
   )
 }

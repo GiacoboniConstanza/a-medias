@@ -168,6 +168,7 @@ export function App() {
                 <Route path="medicamentos/:id" element={<MedicationFormScreen />} />
                 <Route path="notificaciones" element={<NotificationsScreen />} />
                 <Route path="cargar" element={<ExpenseScreen />} />
+                <Route path="cargar/:tipo" element={<ExpenseScreen />} />
                 <Route path="compartir" element={<ShareScreen />} />
                 <Route path="movimientos/resumen" element={<StatementImportScreen />} />
                 <Route path="movimientos" element={<MovementsScreen />} />
@@ -179,7 +180,12 @@ export function App() {
                 <Route path="compartidos" element={<CompartidosRedirect />} />
                 <Route path="prestamos" element={<PrestamosRedirect />} />
                 <Route path="recordatorios" element={<RemindersScreen />} />
-                <Route path="recordatorios/nuevo" element={<FixedExpenseFormScreen />} />
+                <Route
+                  path="recordatorios/nuevo"
+                  element={
+                    <Navigate to="/cargar/fijo" replace state={{ from: '/recordatorios', tipo: 'fijo', skipStep1: true }} />
+                  }
+                />
                 <Route path="recordatorios/:id" element={<FixedExpenseFormScreen />} />
                 <Route path="sueldo" element={<SalaryScreen />} />
                 <Route path="reparto" element={<SplitScreen />} />

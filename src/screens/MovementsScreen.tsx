@@ -854,7 +854,7 @@ export function MovementsScreen() {
       )}
 
       <FabSpace avisos={Boolean(toastText)} />
-      <Fab to="/cargar" label="Cargar un movimiento" state={{ from: location.pathname }} />
+      <Fab to="/cargar" label="Cargar" state={{ from: location.pathname }} />
       {toastText ? (
         <Toast
           aboveFab

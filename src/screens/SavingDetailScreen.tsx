@@ -209,9 +209,9 @@ export function SavingDetailScreen() {
 
       <FabSpace avisos={Boolean(toast)} />
       <Fab
-        to="/cargar"
+        to="/cargar/ahorro"
         label={`Cargar un movimiento en ${saving.name}`}
-        state={{ from: location.pathname, tipo: 'ahorro', savingId: saving.id }}
+        state={{ from: location.pathname, tipo: 'ahorro', savingId: saving.id, skipStep1: true }}
       />
       <Toast aboveFab onDone={() => setToast('')}>
         {toast}

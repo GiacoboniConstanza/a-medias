@@ -83,6 +83,11 @@ export function MovementForm({
   prefill,
   onClose,
   onDone,
+  hideTypeSelector = false,
+  hideChrome = false,
+  titleOverride = null,
+  stepBadge = null,
+  lockedTipo = null,
 }: {
   expense?: ExpenseItem | null
   transfer?: Transfer | null
@@ -91,6 +96,14 @@ export function MovementForm({
   prefill?: MovementPrefill
   onClose?: () => void
   onDone?: () => void | Promise<void>
+  /** Flujo Cargar paso 2: oculta la grilla de tipos del encabezado. */
+  hideTypeSelector?: boolean
+  /** El padre ya puso el encabezado azul; solo cuerpo + footer. */
+  hideChrome?: boolean
+  titleOverride?: string | null
+  /** p. ej. «2 de 2»; null si se saltó el paso 1. */
+  stepBadge?: string | null
+  lockedTipo?: MovementType | null
 } = {}) {
   const navigate = useNavigate()
   const location = useLocation()
@@ -261,8 +274,7 @@ export function MovementForm({
               tall
               onClick={() => {
                 void onDone?.()
-                if (onClose) onClose()
-                else navigate(fromPath || '/')
+                navigate(fromPath || '/')
               }}
             >
               Listo
@@ -271,6 +283,7 @@ export function MovementForm({
               type="button"
               className="flex min-h-11 w-full items-center justify-center font-semibold text-mostaza-ink"
               onClick={() => {
+                // «Cargar otro» repite el tipo (misma pantalla / mismo lockedTipo).
                 setSaved(null)
                 setSavedPocket(null)
                 setSavedDebt(null)
@@ -314,13 +327,17 @@ export function MovementForm({
               ? 'ahorro'
               : extra
                 ? 'ingreso'
-                : prefill?.tipo ?? statePrefill?.tipo ?? stateTipo ?? null
+                : lockedTipo ?? prefill?.tipo ?? statePrefill?.tipo ?? stateTipo ?? null
       }
       initialSavingId={savingMove?.savingId ?? prefill?.savingId ?? locationState?.savingId ?? null}
       savings={data.savings}
       savingMoves={data.savingMoves}
       editing={Boolean(expense || transfer || savingMove || extra)}
       settledMonths={settledMonths}
+      hideTypeSelector={hideTypeSelector}
+      hideChrome={hideChrome}
+      titleOverride={titleOverride}
+      stepBadge={stepBadge}
       onClose={() => {
         if (onClose) onClose()
         else if (fromPath) navigate(fromPath)
@@ -383,6 +400,10 @@ function MovementFormBody({
   savingMoves,
   editing,
   settledMonths,
+  hideTypeSelector,
+  hideChrome,
+  titleOverride,
+  stepBadge,
   onClose,
   onSaved,
 }: {
@@ -403,6 +424,10 @@ function MovementFormBody({
   savingMoves: SavingMove[]
   editing: boolean
   settledMonths: readonly string[]
+  hideTypeSelector: boolean
+  hideChrome: boolean
+  titleOverride: string | null
+  stepBadge: string | null
   onClose: () => void
   onSaved: (view: SavedView) => void | Promise<void>
 }) {
@@ -903,96 +928,106 @@ function MovementFormBody({
     )
   }
 
+  const headingTitle =
+    titleOverride ?? (editing ? 'Editar movimiento' : 'Nuevo movimiento')
+  const showMpLink =
+    !editing && (hideTypeSelector ? tipo === 'gasto' : true)
+
   return (
-    <div className="min-h-dvh bg-crema">
-      <section className="scallop-b bg-azul px-4 pb-4 pt-[max(0.5rem,env(safe-area-inset-top))]">
-        <button
-          type="button"
-          aria-label="Volver"
-          className="-ml-3 inline-flex min-h-12 min-w-11 items-center justify-center text-tinta"
-          onClick={onClose}
-        >
-          <AppIcon name="chevron-left" />
-        </button>
-        <h1 className="font-display text-[34px] font-semibold text-tinta">
-          {editing ? 'Editar movimiento' : 'Nuevo movimiento'}
-        </h1>
-        <div
-          ref={tipoRef}
-          tabIndex={-1}
-          className="mt-3 grid grid-cols-2 gap-2"
-          role="radiogroup"
-          aria-label="Tipo de movimiento"
-        >
-          {(
-            [
-              { id: 'gasto', label: 'Gasto', icon: 'receipt', soft: 'bg-rosa-claro', ink: 'text-rosa-texto', ring: 'border-rosa-texto' },
-              { id: 'ingreso', label: 'Ingreso', icon: 'sack-dollar', soft: 'bg-mostaza-claro', ink: 'text-mostaza-ink', ring: 'border-mostaza-ink' },
-              { id: 'transferencia', label: 'Transferencia', icon: 'right-left', soft: 'bg-ciruela-claro', ink: 'text-ciruela-ink', ring: 'border-ciruela-ink' },
-              { id: 'ahorro', label: 'Ahorro', icon: 'piggy-bank', soft: 'bg-azul-claro', ink: 'text-azul-ink', ring: 'border-azul-ink' },
-            ] as const
-          ).map((option) => {
-            const selected = tipo === option.id
-            const locked = movementTypeIsLocked(editing) && tipo !== option.id
-            const transferOff = option.id === 'transferencia' && !partnerIdValue && !editing
-            return (
-              <button
-                key={option.id}
-                type="button"
-                role="radio"
-                aria-checked={selected}
-                disabled={locked || transferOff || undefined}
-                aria-disabled={locked || transferOff || undefined}
-                className={`relative flex h-16 items-center gap-2 rounded-2xl px-2.5 text-sm whitespace-nowrap ${
-                  selected
-                    ? `${option.soft} border-2 border-tinta font-bold text-tinta`
-                    : locked || transferOff
-                      ? 'border-[1.5px] border-dashed border-gris-claro bg-fondo-desactivado font-semibold text-gris'
-                      : 'border-[1.5px] border-azul-ink bg-tarjeta font-semibold text-tinta'
-                }`}
-                onClick={() => {
-                  if (locked) return
-                  chooseTipo(option.id)
-                }}
-              >
-                {selected ? <AppIcon name="check" className="absolute right-2 top-1.5 text-xs" /> : null}
-                <span className={`grid h-8 w-8 place-items-center rounded-full border-2 ${option.ring} ${selected ? 'bg-tarjeta' : option.soft} ${option.ink}`}>
-                  <AppIcon name={option.icon} className="text-[15px]" />
-                </span>
-                <span>{option.label}</span>
-              </button>
-            )
-          })}
-        </div>
-        {editing ? (
-          <p className="mt-2 text-sm font-semibold text-tinta">Para cambiar el tipo, eliminalo y cargalo de nuevo.</p>
-        ) : null}
-        {tipo === 'transferencia' && !partnerIdValue ? (
-          <p className="mt-2 text-sm font-semibold text-tinta" role="alert">
-            Para cargar transferencias, primero sumá a tu compañera.{' '}
-            <Link to="/compartir" className="font-bold text-mostaza-ink">
-              Invitarla
+    <div className={hideChrome ? '' : 'min-h-dvh bg-crema'}>
+      {hideChrome ? null : (
+        <section className="scallop-b bg-azul px-4 pb-4 pt-[max(0.5rem,env(safe-area-inset-top))]">
+          <div className="flex items-center justify-between gap-2">
+            <button
+              type="button"
+              aria-label="Volver"
+              className="-ml-3 inline-flex min-h-12 min-w-11 items-center justify-center text-tinta"
+              onClick={onClose}
+            >
+              <AppIcon name="chevron-left" />
+            </button>
+            {stepBadge ? <p className="text-sm font-semibold text-tinta">{stepBadge}</p> : null}
+          </div>
+          <h1 className="font-display text-[34px] font-semibold text-tinta">{headingTitle}</h1>
+          {hideTypeSelector ? null : (
+            <div
+              ref={tipoRef}
+              tabIndex={-1}
+              className="mt-3 grid grid-cols-2 gap-2"
+              role="radiogroup"
+              aria-label="Tipo de movimiento"
+            >
+              {(
+                [
+                  { id: 'gasto', label: 'Gasto', icon: 'receipt', soft: 'bg-rosa-claro', ink: 'text-rosa-texto', ring: 'border-rosa-texto' },
+                  { id: 'ingreso', label: 'Ingreso', icon: 'sack-dollar', soft: 'bg-mostaza-claro', ink: 'text-mostaza-ink', ring: 'border-mostaza-ink' },
+                  { id: 'transferencia', label: 'Transferencia', icon: 'right-left', soft: 'bg-ciruela-claro', ink: 'text-ciruela-ink', ring: 'border-ciruela-ink' },
+                  { id: 'ahorro', label: 'Ahorro', icon: 'piggy-bank', soft: 'bg-azul-claro', ink: 'text-azul-ink', ring: 'border-azul-ink' },
+                ] as const
+              ).map((option) => {
+                const selected = tipo === option.id
+                const locked = movementTypeIsLocked(editing) && tipo !== option.id
+                const transferOff = option.id === 'transferencia' && !partnerIdValue && !editing
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    disabled={locked || transferOff || undefined}
+                    aria-disabled={locked || transferOff || undefined}
+                    className={`relative flex h-16 items-center gap-2 rounded-2xl px-2.5 text-sm whitespace-nowrap ${
+                      selected
+                        ? `${option.soft} border-2 border-tinta font-bold text-tinta`
+                        : locked || transferOff
+                          ? 'border-[1.5px] border-dashed border-gris-claro bg-fondo-desactivado font-semibold text-gris'
+                          : 'border-[1.5px] border-azul-ink bg-tarjeta font-semibold text-tinta'
+                    }`}
+                    onClick={() => {
+                      if (locked) return
+                      chooseTipo(option.id)
+                    }}
+                  >
+                    {selected ? <AppIcon name="check" className="absolute right-2 top-1.5 text-xs" /> : null}
+                    <span className={`grid h-8 w-8 place-items-center rounded-full border-2 ${option.ring} ${selected ? 'bg-tarjeta' : option.soft} ${option.ink}`}>
+                      <AppIcon name={option.icon} className="text-[15px]" />
+                    </span>
+                    <span>{option.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+          {editing && !hideTypeSelector ? (
+            <p className="mt-2 text-sm font-semibold text-tinta">Para cambiar el tipo, eliminalo y cargalo de nuevo.</p>
+          ) : null}
+          {tipo === 'transferencia' && !partnerIdValue ? (
+            <p className="mt-2 text-sm font-semibold text-tinta" role="alert">
+              Para cargar transferencias, primero sumá a tu compañera.{' '}
+              <Link to="/compartir" className="font-bold text-mostaza-ink">
+                Invitarla
+              </Link>
+            </p>
+          ) : null}
+          {showErrors && fieldError === 'tipo' && !hideTypeSelector ? (
+            <p className="mt-2 flex items-center gap-1 text-sm font-bold text-tinta" role="alert">
+              <AppIcon name="circle-exclamation" /> Elegí si es gasto, ingreso, transferencia o ahorro.
+            </p>
+          ) : null}
+          {showMpLink ? (
+            <Link
+              to="/movimientos/resumen"
+              state={{ from: '/cargar' }}
+              className="mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-bold text-tinta underline"
+            >
+              <AppIcon name="file-arrow-up" /> O subí un resumen de Mercado Pago
             </Link>
-          </p>
-        ) : null}
-        {showErrors && fieldError === 'tipo' ? (
-          <p className="mt-2 flex items-center gap-1 text-sm font-bold text-tinta" role="alert">
-            <AppIcon name="circle-exclamation" /> Elegí si es gasto, ingreso, transferencia o ahorro.
-          </p>
-        ) : null}
-        {!editing ? (
-          <Link
-            to="/movimientos/resumen"
-            state={{ from: '/cargar' }}
-            className="mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-bold text-tinta underline"
-          >
-            <AppIcon name="file-arrow-up" /> O subí un resumen de Mercado Pago
-          </Link>
-        ) : null}
-      </section>
+          ) : null}
+        </section>
+      )}
 
       <div
-        className="space-y-4 px-4 pt-[calc(var(--feston-alto)+1rem)]"
+        className={`space-y-4 px-4 ${hideChrome ? 'pt-4' : 'pt-[calc(var(--feston-alto)+1rem)]'}`}
         style={{ paddingBottom: `calc(${footerH}px + ${keyboard}px)` }}
       >
         <label className="block text-sm font-semibold text-gris">

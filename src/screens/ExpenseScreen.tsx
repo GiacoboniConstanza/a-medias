@@ -1,8 +1,9 @@
-import { useNavigate } from 'react-router'
-import { MovementForm, type MovementPrefill } from '../components/MovementForm.tsx'
+import { CargaScreen } from './CargaScreen.tsx'
+import type { MovementPrefill } from '../components/MovementForm.tsx'
 
 export type { MovementPrefill as ExpensePrefill }
 
+/** Alta unificada de Finanzas en /cargar (7 tipos). */
 export function ExpenseScreen({
   prefill,
   onCancel,
@@ -12,15 +13,5 @@ export function ExpenseScreen({
   onCancel?: () => void
   onDone?: () => void
 } = {}) {
-  const navigate = useNavigate()
-  return (
-    <MovementForm
-      prefill={prefill}
-      onClose={() => {
-        if (onCancel) onCancel()
-        else navigate(-1)
-      }}
-      onDone={onDone}
-    />
-  )
+  return <CargaScreen prefillOverride={prefill} onCancel={onCancel} onDone={onDone} />
 }

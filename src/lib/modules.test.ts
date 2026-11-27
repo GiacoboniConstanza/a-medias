@@ -56,6 +56,8 @@ describe('menú según la pantalla', () => {
     expect(navFor('/cargar', ['finanzas'], '/movimientos').activeTo).toBe('/movimientos')
     expect(navFor('/cargar', ['finanzas']).activeTo).toBe('/')
     expect(navFor('/cargar', ['finanzas', 'memos']).activeTo).toBe('/finanzas')
+    expect(navFor('/cargar/gasto', ['finanzas'], '/movimientos').activeTo).toBe('/movimientos')
+    expect(navFor('/cargar/plan', ['finanzas', 'memos']).activeTo).toBe('/finanzas')
   })
 
   it('Mis módulos usa el menú general con Inicio marcado', () => {

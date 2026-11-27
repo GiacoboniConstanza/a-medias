@@ -132,7 +132,7 @@ export function SavingsScreen() {
       )}
 
       <FabSpace avisos={Boolean(toast)} />
-      <Fab to="/cargar" label="Cargar un movimiento" state={{ from: location.pathname }} />
+      <Fab to="/cargar" label="Cargar" state={{ from: location.pathname }} />
       <Toast aboveFab onDone={() => setToast('')}>
         {toast}
       </Toast>

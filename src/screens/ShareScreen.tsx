@@ -86,7 +86,11 @@ export function ShareScreen() {
         <p className="mt-3 text-base font-bold leading-snug text-tinta">No pude recuperar el comprobante. Podés cargar el gasto a mano.</p>
       ) : null}
       {phase === 'empty' || phase === 'error' ? (
-        <Link to="/cargar" className="mt-6 inline-flex min-h-11 w-full items-center justify-center rounded-full border-[1.5px] border-tinta bg-mostaza px-4 font-semibold text-tinta">
+        <Link
+          to="/cargar/gasto"
+          state={{ from: '/compartir', tipo: 'gasto', skipStep1: true }}
+          className="mt-6 inline-flex min-h-11 w-full items-center justify-center rounded-full border-[1.5px] border-tinta bg-mostaza px-4 font-semibold text-tinta"
+        >
           Nuevo gasto
         </Link>
       ) : null}

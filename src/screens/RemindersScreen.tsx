@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { Link, useLocation, useNavigate } from 'react-router'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { ConfirmSheet } from '../components/ConfirmSheet.tsx'
 import { Fab, FabSpace } from '../components/Fab.tsx'
@@ -72,6 +72,7 @@ const toneClass = {
 
 export function RemindersScreen() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { profile } = useAuth()
   const { enabled } = useModules()
   const { month } = useMonth()
@@ -87,7 +88,10 @@ export function RemindersScreen() {
   const [clearBusy, setClearBusy] = useState(false)
   const [clearError, setClearError] = useState('')
   const [message, setMessage] = useState('')
-  const [toast, setToast] = useState('')
+  const [toast, setToast] = useState(() => {
+    const notice = (location.state as { toast?: string } | null)?.toast
+    return notice ?? ''
+  })
   const [saving, setSaving] = useState(false)
   const [sheetOpen, setSheetOpen] = useState(false)
   const [scope, setScope] = useState<ScopeFilter>('all')
@@ -401,8 +405,9 @@ export function RemindersScreen() {
           </div>
           <div className="mt-3.5 flex items-center gap-3">
             <Link
-              to="/cargar"
-              className="inline-flex h-11 items-center rounded-full border-[1.5px] border-tinta bg-mostaza px-[18px] font-display text-lg font-semibold text-tinta"
+              to="/cargar/gasto"
+              state={{ from: '/recordatorios', tipo: 'gasto', skipStep1: true }}
+              className="inline-flex h-11 items-center justify-center rounded-full border-[1.5px] border-tinta bg-mostaza px-[18px] font-display text-lg font-semibold text-tinta"
             >
               Anotar
             </Link>
@@ -600,9 +605,11 @@ export function RemindersScreen() {
 
       <div className="h-24" aria-hidden="true" />
       <ErrorText>{message}</ErrorText>
-      <Toast onDone={() => setToast('')}>{toast}</Toast>
+      <Toast aboveFab onDone={() => setToast('')}>
+        {toast}
+      </Toast>
       <FabSpace avisos />
-      <Fab pill label="Nuevo" to="/recordatorios/nuevo" />
+      <Fab label="Cargar" to="/cargar" state={{ from: '/recordatorios' }} />
       <FilterSheet
         open={sheetOpen}
         month={month}

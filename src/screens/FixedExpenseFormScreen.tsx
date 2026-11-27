@@ -2,8 +2,8 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { AppIcon } from '../components/AppIcon.tsx'
 import { ConfirmSheet } from '../components/ConfirmSheet.tsx'
-import { MoneyField } from '../components/MoneyField.tsx'
-import { Button, Chip, ErrorText, NotesField, Toggle, inputClass } from '../components/ui.tsx'
+import { FixedExpenseFormFields } from '../components/FixedExpenseFormFields.tsx'
+import { Button, ErrorText } from '../components/ui.tsx'
 import { useAuth } from '../context/AuthProvider.tsx'
 import { useFinance } from '../context/FinanceProvider.tsx'
 import { useMonth } from '../context/MonthProvider.tsx'
@@ -527,157 +527,80 @@ export function FixedExpenseFormScreen() {
         className="space-y-4 px-4 pt-[calc(var(--feston-alto)+1rem)]"
         style={{ paddingBottom: `calc(${footerH}px + ${keyboard}px + 1rem)` }}
       >
-        <label className="block text-sm font-semibold text-gris">
-          Nombre
-          <input
-            value={title}
-            onChange={(event) => setTitle(event.target.value.slice(0, 80))}
-            className={`mt-1 ${inputClass}`}
-            placeholder="Alquiler, luz, cama…"
-          />
-        </label>
-
-        <MoneyField
-          draft={digits}
-          onDraft={(value) => {
-            setDigits(value)
-            if (kind === 'installments' && totalDigits && count >= 2) {
-              // monto manual pisa el total derivado
+        <FixedExpenseFormFields
+          kind={kind}
+          title={title}
+          onTitle={setTitle}
+          digits={digits}
+          onDigits={setDigits}
+          totalDigits={totalDigits}
+          onTotalDigits={(value) => {
+            setTotalDigits(value)
+            const nextTotal = value ? normalizeMoney(amountFromDigits(value)) : 0
+            if (nextTotal > 0 && count >= 2) {
+              setDigits(moneyDraftFromAmount(installmentAmountFromTotalSafe(nextTotal, count)))
             }
           }}
-          size="form"
-          autoFocus={!editing}
+          dueDay={dueDay}
+          onDueDay={setDueDay}
+          shared={shared}
+          onShared={() => setShared((current) => !current)}
+          remind={remind}
+          onRemind={() => setRemind((current) => !current)}
+          notes={notes}
+          onNotes={setNotes}
+          categoryId={categoryId}
+          onCategoryId={setCategoryId}
+          categoryChips={categoryChips}
+          showAllCategories={showAllCategories}
+          onShowAllCategories={() => setShowAllCategories(true)}
+          categoriesTotal={data?.categories.length ?? 0}
+          countText={countText}
+          onCountText={setCountText}
+          currentText={currentText}
+          onCurrentText={setCurrentText}
+          firstCaption={firstCaption}
+          leadDays={leadDays}
+          remindId={remindId}
+          amountChanged={amountChanged}
+          applies={applies}
+          onApplies={setApplies}
+          autoFocusAmount={!editing}
+          extraActions={
+            <>
+              {editing && kind === 'installments' && showPayoff && payoff && payoff.covered > 0 ? (
+                <Button type="button" variant="alt" disabled={saving} onClick={() => setConfirmPayoff(true)}>
+                  Pagué el resto
+                </Button>
+              ) : null}
+              {editing && !paid && editing.hasAmount ? (
+                <Button type="button" variant="alt" disabled={saving} onClick={() => void pay()}>
+                  Marcar como pagado
+                </Button>
+              ) : null}
+              {editing && paid ? (
+                <Button type="button" variant="alt" disabled={saving} onClick={() => void undo()}>
+                  Deshacer
+                </Button>
+              ) : null}
+              {editing ? (
+                <>
+                  <Button
+                    type="button"
+                    variant="alt"
+                    disabled={saving}
+                    onClick={() => void pause(!editing.pausedAt)}
+                  >
+                    {editing.pausedAt ? 'Reactivar' : 'Pausar'}
+                  </Button>
+                  <Button type="button" variant="danger" disabled={saving} onClick={() => setConfirmDelete(true)}>
+                    Eliminar
+                  </Button>
+                </>
+              ) : null}
+            </>
+          }
         />
-
-        <div>
-          <p className="mb-2 text-sm font-semibold text-gris">Categoría (opcional)</p>
-          <div className="flex flex-wrap gap-2">
-            {categoryChips.map((category) => (
-              <Chip
-                key={category.id}
-                active={categoryId === category.id}
-                onClick={() => setCategoryId((current) => (current === category.id ? null : category.id))}
-              >
-                <AppIcon name={category.icon} className="text-sm" />
-                {category.name}
-              </Chip>
-            ))}
-            {!showAllCategories && (data?.categories.length ?? 0) > categoryChips.length ? (
-              <Chip onClick={() => setShowAllCategories(true)}>
-                Ver todas ({data?.categories.length ?? 0})
-              </Chip>
-            ) : null}
-          </div>
-        </div>
-
-        <Toggle
-          label="¿Es compartido?"
-          checked={shared}
-          onClick={() => setShared((current) => !current)}
-        />
-
-        {kind === 'installments' ? (
-          <>
-            <label className="block text-sm font-semibold text-gris">
-              Cantidad
-              <input
-                value={countText}
-                onChange={(event) => setCountText(event.target.value.replace(/\D/g, '').slice(0, 3))}
-                inputMode="numeric"
-                className={`mt-1 ${inputClass}`}
-              />
-            </label>
-            <label className="block text-sm font-semibold text-gris">
-              Va por la cuota
-              <input
-                value={currentText}
-                onChange={(event) => setCurrentText(event.target.value.replace(/\D/g, '').slice(0, 3))}
-                inputMode="numeric"
-                className={`mt-1 ${inputClass}`}
-              />
-            </label>
-            {firstCaption ? <p className="text-sm font-semibold text-gris">{firstCaption}</p> : null}
-            <MoneyField
-              draft={totalDigits}
-              onDraft={(value) => {
-                setTotalDigits(value)
-                const nextTotal = value ? normalizeMoney(amountFromDigits(value)) : 0
-                if (nextTotal > 0 && count >= 2) {
-                  setDigits(moneyDraftFromAmount(installmentAmountFromTotalSafe(nextTotal, count)))
-                }
-              }}
-              size="form"
-              label="Total (opcional)"
-            />
-          </>
-        ) : (
-          <>
-            <label className="block text-sm font-semibold text-gris">
-              Día de vencimiento
-              <input
-                value={dueDay}
-                onChange={(event) => setDueDay(event.target.value.replace(/\D/g, '').slice(0, 2))}
-                inputMode="numeric"
-                className={`mt-1 text-center font-display text-2xl ${inputClass}`}
-              />
-            </label>
-            <div className="flex items-center justify-between gap-3">
-              <p id={remindId} className="text-lg font-medium text-tinta">
-                {leadDays <= 0
-                  ? 'Avisarme el mismo día'
-                  : leadDays === 1
-                    ? 'Avisarme 1 día antes'
-                    : `Avisarme ${leadDays} días antes`}
-              </p>
-              <Toggle labelledBy={remindId} checked={remind} onClick={() => setRemind((current) => !current)} />
-            </div>
-            {amountChanged ? (
-              <div>
-                <p className="mb-2 text-sm font-semibold text-tinta">¿Desde cuándo aplica?</p>
-                <div className="flex flex-wrap gap-2">
-                  <Chip active={applies === 'this'} onClick={() => setApplies('this')}>
-                    Este mes
-                  </Chip>
-                  <Chip active={applies === 'next'} onClick={() => setApplies('next')}>
-                    El mes que viene
-                  </Chip>
-                </div>
-              </div>
-            ) : null}
-            <NotesField value={notes} onChange={setNotes} />
-          </>
-        )}
-
-        {editing && kind === 'installments' && showPayoff && payoff && payoff.covered > 0 ? (
-          <Button type="button" variant="alt" disabled={saving} onClick={() => setConfirmPayoff(true)}>
-            Pagué el resto
-          </Button>
-        ) : null}
-        {editing && !paid && editing.hasAmount ? (
-          <Button type="button" variant="alt" disabled={saving} onClick={() => void pay()}>
-            Marcar como pagado
-          </Button>
-        ) : null}
-        {editing && paid ? (
-          <Button type="button" variant="alt" disabled={saving} onClick={() => void undo()}>
-            Deshacer
-          </Button>
-        ) : null}
-        {editing ? (
-          <>
-            <Button
-              type="button"
-              variant="alt"
-              disabled={saving}
-              onClick={() => void pause(!editing.pausedAt)}
-            >
-              {editing.pausedAt ? 'Reactivar' : 'Pausar'}
-            </Button>
-            <Button type="button" variant="danger" disabled={saving} onClick={() => setConfirmDelete(true)}>
-              Eliminar
-            </Button>
-          </>
-        ) : null}
 
         <ErrorText>{error}</ErrorText>
       </div>

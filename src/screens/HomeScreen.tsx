@@ -345,7 +345,7 @@ export function HomeScreen() {
       {error ? <p className="text-center text-sm font-semibold text-tinta">{error}</p> : null}
 
       <FabSpace avisos={Boolean(toast)} />
-      <Fab to="/cargar" label="Cargar un movimiento" state={{ from: location.pathname }} />
+      <Fab to="/cargar" label="Cargar" state={{ from: location.pathname }} />
       <Toast aboveFab onDone={() => setToast('')}>
         {toast}
       </Toast>

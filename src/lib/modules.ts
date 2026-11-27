@@ -144,6 +144,7 @@ export function navFor(pathname: string, enabled: readonly ModuleId[], from?: st
     tabs.some((item) => item.to === pathname) ||
     RESUMEN_ALIASES.has(pathname) ||
     pathname === FINANCE_ROUTES.cargar ||
+    pathname.startsWith(`${FINANCE_ROUTES.cargar}/`) ||
     pathname.startsWith(`${FINANCE_ROUTES.ahorros}/`) ||
     pathname === '/se-me-fue' ||
     pathname === '/compartidos' ||
@@ -191,7 +192,7 @@ export function navFor(pathname: string, enabled: readonly ModuleId[], from?: st
     const active = general.find((item) => item.to === pathname)?.to ?? '/'
     return { items: general, activeTo: active }
   }
-  if (pathname === FINANCE_ROUTES.cargar) {
+  if (pathname === FINANCE_ROUTES.cargar || pathname.startsWith(`${FINANCE_ROUTES.cargar}/`)) {
     const origin = from && tabs.some((item) => item.to === from) ? from : resumen
     return { items: tabs, activeTo: origin }
   }
